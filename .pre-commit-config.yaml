@@ -1,0 +1,17 @@
+# Root pre-commit config - runs both backend and frontend hooks
+repos:
+  - repo: local
+    hooks:
+      - id: backend-pre-commit
+        name: Backend pre-commit
+        entry: bash -c 'cd backend && pre-commit run --all-files'
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: frontend-pre-commit
+        name: Frontend pre-commit
+        entry: bash -c 'cd frontend && pre-commit run --all-files'
+        language: system
+        pass_filenames: false
+        always_run: true

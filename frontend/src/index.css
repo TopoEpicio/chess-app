@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+@theme {
+  --color-sage-50: #f6f7f4;
+  --color-sage-100: #e2e6da;
+  --color-sage-200: #c5ccb6;
+  --color-sage-500: #8a9a7a;
+  --color-sage-700: #5c6b4e;
+  --color-sage-900: #2d3527;
+  --color-sand-50: #faf8f5;
+  --color-sand-100: #f5f0e8;
+  --color-sand-200: #e8dfce;
+  --color-sand-500: #c4b49a;
+  --color-sand-700: #9a8a72;
+  --color-board-light: #edeed7;
+  --color-board-dark: #7a9a6a;
+  --color-green-line: #5cb85c;
+  --color-yellow-line: #f0ad4e;
+  --color-red-line: #d9534f;
+  --font-family-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --radius-box: 14px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--font-family-sans);
+  background: var(--color-sage-50);
+  color: var(--color-sage-900);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1.25rem;
+  border-radius: var(--radius-box);
+  font-family: var(--font-family-sans);
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: var(--color-sage-500);
+  color: white;
+}
+.btn-primary:hover {
+  background: var(--color-sage-700);
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1.25rem;
+  border-radius: var(--radius-box);
+  font-family: var(--font-family-sans);
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: transparent;
+  color: var(--color-sage-700);
+}
+.btn-ghost:hover {
+  background: var(--color-sage-100);
+}
