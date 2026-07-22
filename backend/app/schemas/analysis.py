@@ -106,3 +106,53 @@ class CoachFeedback(BaseModel):
     best_move: str
     played_move: str
     eval_swing: int
+
+
+class MoveAnalysisOut(BaseModel):
+    move_number: int
+    is_white: bool
+    san: str
+    fen_before: str
+    fen_after: str
+    played_eval: float
+    best_eval: float
+    best_move_san: str
+    best_move_uci: str
+    second_move_uci: str | None = None
+    second_move_eval: float | None = None
+    third_move_uci: str | None = None
+    third_move_eval: float | None = None
+    depth: int
+    eval_swing: float
+    classification: str
+    pvs: list[list[str]] | None = None
+    wp_before: float | None = None
+    wp_after: float | None = None
+    wp_best: float | None = None
+    wp_loss: float | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SaveAnalysisRequest(BaseModel):
+    moves: list[MoveAnalysisOut]
+    white_accuracy: float
+    black_accuracy: float
+    white_cpl: float
+    black_cpl: float
+
+
+class GameAnalysisResultOut(BaseModel):
+    game_id: int
+    white_accuracy: float | None = None
+    black_accuracy: float | None = None
+    white_cpl: float | None = None
+    black_cpl: float | None = None
+    white_classification_counts: dict[str, int] = Field(default_factory=dict)
+    black_classification_counts: dict[str, int] = Field(default_factory=dict)
+    total_classification_counts: dict[str, int] = Field(default_factory=dict)
+    moves: list[MoveAnalysisOut] = Field(default_factory=list)
+    analyzed_at: str | None = None
+    status: str = "done"
+    current_move: int | None = None
+    total_moves: int | None = None

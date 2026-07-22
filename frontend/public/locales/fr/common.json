@@ -1,1 +1,7 @@
-"version": "1.0.0", "language": "fr", "common": true}
+{
+  "app": { "name": "Chess Training" },
+  "nav": { "home": "Accueil", "play": "Jouer", "studio": "Étude", "games": "Parties", "analysis": "Analyse", "puzzles": "Puzzles", "settings": "Paramètres" },
+  "settings": { "title": "Paramètres", "language": "Langue", "theme": "Thème", "board": "Échiquier", "light": "Clair", "dark": "Sombre", "auto": "Automatique" },
+  "board": { "default": "Défaut", "blue": "Bleu", "green": "Vert", "brown": "Marron", "opacity": "Opacité des cases", "pieceShadow": "Ombre des pièces" },
+  "common": { "loading": "Chargement..." }
+}

@@ -1,8 +1,8 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 
 interface MenuItem {
   label: string
-  icon?: string
+  icon?: ReactNode
   onClick: () => void
   danger?: boolean
 }
@@ -40,7 +40,7 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
   return (
     <div
       ref={ref}
-      className="fixed z-50 bg-white rounded-box shadow-xl border border-sage-100 py-1 min-w-[180px]"
+      className="fixed z-50 bg-white-pure rounded-box shadow-xl border border-sage-100 py-1 min-w-[180px]"
       style={{ left: menuX, top: menuY }}
     >
       {items.map((item, i) => (

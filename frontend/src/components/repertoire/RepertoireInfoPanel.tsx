@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
+import { Bot, BarChart3, Pencil } from 'lucide-react'
 import { EducationalPanel } from '../analysis/EducationalPanel'
 import type { RepertoireNode } from '../../types'
 import type { AnalysisExplanation } from '../../types/analysis'
@@ -15,10 +16,10 @@ type Tab = 'annotations' | 'coach' | 'stats'
 export function RepertoireInfoPanel({ selectedNode, analysis, engineReady, onEdit }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>('annotations')
 
-  const tabs: { id: Tab; label: string; icon: string }[] = [
-    { id: 'annotations', label: 'Annotazioni', icon: '📝' },
-    { id: 'coach', label: 'Coach', icon: '🤖' },
-    { id: 'stats', label: 'Statistiche', icon: '📊' },
+  const tabs: { id: Tab; label: string; icon: ReactNode }[] = [
+    { id: 'annotations', label: 'Annotazioni', icon: <Pencil size={16} /> },
+    { id: 'coach', label: 'Coach', icon: <Bot size={16} className="inline-block" /> },
+    { id: 'stats', label: 'Statistiche', icon: <BarChart3 size={16} className="inline-block" /> },
   ]
 
   if (!selectedNode) {
@@ -59,7 +60,7 @@ export function RepertoireInfoPanel({ selectedNode, analysis, engineReady, onEdi
                 onClick={onEdit}
                 className="text-xs px-2 py-1 rounded btn-ghost"
               >
-                ✎ Modifica
+                <Pencil size={14} className="inline-block" /> Modifica
               </button>
             </div>
             {selectedNode.annotation ? (

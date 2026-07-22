@@ -1,4 +1,5 @@
 import { getYouTubeEmbedUrl } from '../../utils/youtube'
+import { X } from 'lucide-react'
 
 interface Props {
   url: string
@@ -11,10 +12,10 @@ export function YouTubePlayer({ url, title, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-box shadow-xl w-full max-w-3xl" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white-pure rounded-box shadow-xl w-full max-w-3xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-4 border-b border-sage-100">
           <h3 className="font-semibold text-sm truncate">{title}</h3>
-          <button onClick={onClose} className="text-sage-500 hover:text-sage-700 text-xl leading-none">×</button>
+          <button onClick={onClose} className="text-sage-500 hover:text-sage-700"><X size={20} className="inline-block" /></button>
         </div>
         {embedUrl ? (
           <>

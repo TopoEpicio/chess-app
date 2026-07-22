@@ -1,4 +1,5 @@
 import type { StudyFolder } from '../../types'
+import { Folder, Pencil, Trash2 } from 'lucide-react'
 
 interface Props {
   folders: StudyFolder[]
@@ -39,12 +40,12 @@ function FolderCard({ folder, onOpen, onDelete, onRename, onContextMenu }: {
 }) {
   return (
     <div
-      className="bg-white rounded-box shadow-[0_2px_12px_rgba(45,53,39,0.08)] p-4 cursor-pointer hover:shadow-[0_4px_20px_rgba(45,53,39,0.12)] transition-all group relative"
+      className="bg-surface rounded-box shadow-card p-4 cursor-pointer hover:shadow-card transition-all group relative"
       onClick={() => onOpen(folder)}
       onContextMenu={(e) => onContextMenu?.(e, folder)}
     >
       <div className="flex items-start gap-3">
-        <span className="text-3xl">📁</span>
+        <Folder size={28} className="inline-block" />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-sage-900 truncate">{folder.name}</p>
           <p className="text-xs text-sage-500 mt-0.5">
@@ -60,17 +61,17 @@ function FolderCard({ folder, onOpen, onDelete, onRename, onContextMenu }: {
       <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         <button
           onClick={(e) => { e.stopPropagation(); onRename(folder) }}
-          className="w-6 h-6 rounded bg-white/80 text-sage-400 hover:text-sage-700 hover:bg-sage-50 flex items-center justify-center text-xs"
+          className="w-6 h-6 rounded bg-surface/80 text-sage-400 hover:text-sage-700 hover:bg-sage-100 flex items-center justify-center text-xs"
           title="Rinomina"
         >
-          ✏️
+          <Pencil size={14} />
         </button>
         <button
           onClick={(e) => { e.stopPropagation(); onDelete(folder) }}
-          className="w-6 h-6 rounded bg-white/80 text-sage-400 hover:text-red-500 hover:bg-red-50 flex items-center justify-center text-xs"
+          className="w-6 h-6 rounded bg-surface/80 text-sage-400 hover:text-red-500 hover:bg-red-100 flex items-center justify-center text-xs"
           title="Elimina"
         >
-          🗑️
+          <Trash2 size={14} />
         </button>
       </div>
     </div>

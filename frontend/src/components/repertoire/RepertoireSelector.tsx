@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
+import { Circle, X, Plus } from 'lucide-react'
 import { Chess } from 'chess.js'
 import { api } from '../../api/client'
 import { parseRepertoireText } from '../../utils/repertoireParser'
@@ -55,13 +56,13 @@ export function RepertoireSelector({ onSelect }: Props) {
     <div className="max-w-4xl mx-auto space-y-8">
       <div className="flex justify-end">
         <button onClick={() => setShowCreate(true)} className="btn-primary text-sm flex items-center gap-1.5">
-          <span>➕</span> Nuova apertura
+          <Plus size={16} /> Nuova apertura
         </button>
       </div>
 
       <div>
         <h2 className="text-lg font-semibold text-sage-900 mb-4 flex items-center gap-2">
-          <span className="text-2xl">⚪</span> Bianco
+          <span className="text-2xl"><Circle size={12} className="inline-block" fill="white" stroke="black" /></span> Bianco
         </h2>
         {whiteOpenings.length === 0 ? (
           <p className="text-sm text-sage-500 italic">Nessuna apertura per il bianco.</p>
@@ -76,7 +77,7 @@ export function RepertoireSelector({ onSelect }: Props) {
 
       <div>
         <h2 className="text-lg font-semibold text-sage-900 mb-4 flex items-center gap-2">
-          <span className="text-2xl">⚫</span> Nero
+          <span className="text-2xl"><Circle size={12} className="inline-block" fill="black" stroke="black" /></span> Nero
         </h2>
         {blackOpenings.length === 0 ? (
           <p className="text-sm text-sage-500 italic">Nessuna apertura per il nero.</p>
@@ -134,7 +135,7 @@ function OpeningCard({ opening, onClick, onDeleted }: { opening: Opening; onClic
             className="text-sage-300 hover:text-red-line transition-colors opacity-0 group-hover:opacity-100 text-sm leading-none"
             title="Elimina apertura"
           >
-            ✕
+            <X size={16} />
           </button>
         </div>
       </div>
@@ -296,7 +297,7 @@ export function CreateOpeningModal({ onClose, onCreated }: { onClose: () => void
       <div className="bg-white rounded-box shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
         <div className="p-5 border-b border-sage-100 flex justify-between items-center shrink-0">
           <h2 className="text-lg font-semibold">Nuova apertura</h2>
-          <button onClick={onClose} className="text-sage-500 hover:text-sage-700 text-xl leading-none">×</button>
+          <button onClick={onClose} className="text-sage-500 hover:text-sage-700 text-xl leading-none"><X size={16} /></button>
         </div>
         <div className="p-5 space-y-4 overflow-y-auto">
           <div>
@@ -318,13 +319,13 @@ export function CreateOpeningModal({ onClose, onCreated }: { onClose: () => void
                 className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${
                   side === 'white' ? 'bg-sage-500 text-white' : 'bg-white text-sage-700 hover:bg-sage-50'
                 }`}
-              >⚪ Bianco</button>
+              ><Circle size={16} className="inline-block mr-1" fill="white" stroke="black" /> Bianco</button>
               <button
                 onClick={() => setSide('black')}
                 className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${
                   side === 'black' ? 'bg-sage-500 text-white' : 'bg-white text-sage-700 hover:bg-sage-50'
                 }`}
-              >⚫ Nero</button>
+              ><Circle size={16} className="inline-block mr-1" fill="black" stroke="black" /> Nero</button>
             </div>
           </div>
 

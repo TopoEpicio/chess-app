@@ -24,7 +24,7 @@ export class MockEngineAdapter implements EngineAdapter {
     callback({ bestMove: 'e2e4', evaluation: 0.3, mate: null, depth: 18 })
   }
 
-  async deepAnalyze(_fen: string, _pvCount?: number): Promise<MultiPvLine[]> {
+  async deepAnalyze(_fen: string, _pvCount?: number, _depth?: number): Promise<MultiPvLine[]> {
     return [
       { rank: 1, san: 'e4', uci: 'e2e4', evaluation: 0.3, mate: null, depth: 18, pv: ['e2e4', 'e7e5'] },
       { rank: 2, san: 'd4', uci: 'd2d4', evaluation: 0.2, mate: null, depth: 16, pv: ['d2d4', 'd7d5'] },

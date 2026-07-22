@@ -1,4 +1,5 @@
-import type { Puzzle, PuzzleCategory, CategoryStats, RepertoireNode, Opening, DailyStats, StudyFolder, StudyResource, FolderContents, BreadcrumbItem, ResourceType } from '../types'
+import type { Puzzle, PuzzleCategory, CategoryStats, RepertoireNode, Opening, DailyStats, StudyFolder, StudyResource, FolderContents, BreadcrumbItem, ResourceType, SettingsResponse } from '../types'
+import type { GameAnalysisResult, MoveAnalysisData } from '../types/analysis'
 
 export interface RepertoireApi {
   getTree(id: number): Promise<RepertoireNode[]>
@@ -38,6 +39,15 @@ export interface AnalysisApi {
   getMoments(id: number): Promise<unknown[]>
   delete(id: number): Promise<void>
   importPgn(pgnText: string, userId?: number): Promise<unknown>
+  saveAnalysis(id: number, data: {
+    moves: MoveAnalysisData[]
+    white_accuracy: number
+    black_accuracy: number
+    white_cpl: number
+    black_cpl: number
+  }): Promise<{ ok: boolean }>
+  getAnalysisResult(id: number): Promise<GameAnalysisResult>
+  deleteAnalysisResult(id: number): Promise<void>
 }
 
 export interface OpeningsApi {
@@ -106,7 +116,7 @@ export interface NavApi {
 
 export interface ApiClient {
   health(): Promise<{ status: string }>
-  settings(): Promise<unknown>
+  settings(): Promise<SettingsResponse>
   repertoire: RepertoireApi
   puzzles: PuzzlesApi
   analysis: AnalysisApi

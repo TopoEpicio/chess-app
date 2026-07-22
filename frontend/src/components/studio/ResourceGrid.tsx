@@ -1,5 +1,6 @@
 import { getYouTubeThumbnail, getYouTubeEmbedUrl } from '../../utils/youtube'
 import type { StudyResource } from '../../types'
+import { BookOpen, FileText, BarChart3, Link, Play, X, GripVertical } from 'lucide-react'
 
 interface Props {
   resources: StudyResource[]
@@ -15,12 +16,12 @@ interface Props {
   draggedId?: number | null
 }
 
-const TYPE_ICONS: Record<string, string> = {
-  opening: '♟️',
-  pdf: '📄',
-  excel: '📊',
-  link: '🔗',
-  youtube: '▶️',
+const TYPE_ICONS: Record<string, React.ReactNode> = {
+  opening: <BookOpen size={28} />,
+  pdf: <FileText size={28} className="inline-block" />,
+  excel: <BarChart3 size={28} className="inline-block" />,
+  link: <Link size={28} className="inline-block" />,
+  youtube: <Play size={28} className="inline-block" />,
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -85,7 +86,7 @@ function ResourceCard({
     else if (resource.type === 'pdf' || resource.type === 'excel') onDownload(resource)
   }
 
-  const icon = TYPE_ICONS[resource.type] ?? '📄'
+  const icon = TYPE_ICONS[resource.type] ?? <FileText size={28} className="inline-block" />
   const label = TYPE_LABELS[resource.type] ?? resource.type
 
   const thumbnail = resource.type === 'youtube' && resource.url
@@ -99,15 +100,15 @@ function ResourceCard({
       onDragOver={(e) => onDragOver?.(e, resource)}
       onDrop={(e) => onDrop?.(e, resource)}
       onContextMenu={(e) => onContextMenu?.(e, resource)}
-      className={`bg-white rounded-box shadow-[0_2px_12px_rgba(45,53,39,0.08)] p-4 cursor-pointer hover:shadow-[0_4px_20px_rgba(45,53,39,0.12)] transition-all group relative ${isDragged ? 'opacity-50' : ''}`}
+      className={`bg-surface rounded-box shadow-card p-4 cursor-pointer hover:shadow-card transition-all group relative ${isDragged ? 'opacity-50' : ''}`}
       onClick={handleClick}
     >
       {resource.type === 'youtube' && thumbnail ? (
         <div className="relative mb-3 rounded-lg overflow-hidden bg-black aspect-video">
           <img src={thumbnail} alt="" className="w-full h-full object-cover" />
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center">
-              <span className="text-xl ml-0.5">▶</span>
+              <div className="w-12 h-12 bg-white-pure/90 rounded-full flex items-center justify-center">
+              <Play size={20} className="ml-0.5" fill="currentColor" />
             </div>
           </div>
         </div>
@@ -130,13 +131,13 @@ function ResourceCard({
       </div>
       <button
         onClick={(e) => { e.stopPropagation(); onRemove(resource) }}
-        className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white/80 text-sage-400 hover:text-red-500 hover:bg-red-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-sm"
+        className="absolute top-2 right-2 w-6 h-6 rounded-full bg-surface/80 text-sage-400 hover:text-red-500 hover:bg-red-100 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-sm"
         title="Rimuovi dalla cartella"
       >
-        ×
+        <X size={14} />
       </button>
-      <div className="absolute top-2 left-2 text-sage-300 cursor-grab opacity-0 group-hover:opacity-100 transition-opacity text-sm">
-        ⠿
+      <div className="absolute top-2 left-2 text-sage-300 cursor-grab opacity-0 group-hover:opacity-100 transition-opacity">
+        <GripVertical size={14} />
       </div>
     </div>
   )

@@ -107,3 +107,9 @@ export interface DailyStats {
   gamesAnalyzed: number
   streakDays: number
 }
+
+export interface SettingsResponse {
+  i18n: { default_locale: string; supported_locales: string[] }
+  theme: { default_theme: string; default_board_theme: string }
+  board: { square_opacity: number; piece_shadow: boolean }
+}

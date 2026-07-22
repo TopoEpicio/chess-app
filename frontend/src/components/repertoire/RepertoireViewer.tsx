@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import { ArrowLeft, Target, BookOpen, Plus } from 'lucide-react'
 import { Chess } from 'chess.js'
 import { InteractiveBoard } from '../board/ChessBoard'
 import { RepertoireTree } from './RepertoireTree'
@@ -266,7 +267,7 @@ export function RepertoireViewer({
                   className="text-sage-500 hover:text-sage-700 transition-colors text-lg leading-none"
                   title="Tutte le aperture"
                 >
-                  ←
+                  <ArrowLeft size={16} className="inline-block" />
                 </button>
               )}
               <h2 className="text-lg font-semibold text-sage-900">
@@ -280,7 +281,7 @@ export function RepertoireViewer({
                 title={!selectedNode ? 'Seleziona un nodo' : 'Avvia lezione'}
                 onClick={() => selectedNode && setLessonMode(true)}
               >
-                <span>📖</span>
+                <BookOpen size={16} />
                 <span className="hidden sm:inline">Lezione</span>
               </button>
               <button
@@ -289,15 +290,14 @@ export function RepertoireViewer({
                 title={!selectedNode ? 'Seleziona un nodo' : 'Avvia quiz'}
                 onClick={() => selectedNode && setQuizMode(true)}
               >
-                <span>🎯</span>
+                <span><Target size={14} className="inline-block" /></span>
                 <span className="hidden sm:inline">Quiz</span>
               </button>
               <button
                 className="btn-primary text-sm flex items-center gap-1.5"
                 onClick={handleAddRoot}
               >
-                <span>➕</span>
-                <span className="hidden sm:inline">Aggiungi radice</span>
+                <Plus size={16} /> <span className="hidden sm:inline">Aggiungi radice</span>
               </button>
             </div>
           </div>

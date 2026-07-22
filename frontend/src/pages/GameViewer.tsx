@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Chess } from 'chess.js'
-import { Chessboard } from 'react-chessboard'
+import { Chessboard } from '../components/board/ThemedBoard'
 import { api } from '../api/client'
 import { useMoveNavigation, type MoveItem } from '../engine/useMoveNavigation'
+import { ArrowLeft } from 'lucide-react'
 
 interface Props {
   gameId: number
@@ -57,7 +58,7 @@ export function GameViewer({ gameId, onBack, onAnalyze }: Props) {
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-4">
         <button onClick={onBack} className="btn-ghost text-sm">
-          &larr; Torna alle partite
+          <ArrowLeft size={16} className="inline-block" /> Torna alle partite
         </button>
         <button onClick={onAnalyze} className="btn-primary text-sm">
           Analizza con Stockfish
@@ -84,12 +85,7 @@ export function GameViewer({ gameId, onBack, onAnalyze }: Props) {
                     return false
                   }
                 },
-                boardStyle: {
-                  borderRadius: '8px',
-                  boxShadow: '0 2px 12px rgba(45, 53, 39, 0.08)',
-                },
-                darkSquareStyle: { backgroundColor: '#7a9a6a' },
-                lightSquareStyle: { backgroundColor: '#edeed7' },
+                boardStyle: {},
               }}
             />
           </div>

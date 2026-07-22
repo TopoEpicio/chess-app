@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Home } from './pages/Home'
 import { Analysis } from './pages/Analysis'
 import { Games } from './pages/Games'
@@ -6,19 +7,22 @@ import { GameViewer } from './pages/GameViewer'
 import { Studio } from './pages/Studio'
 import { Puzzles } from './pages/Puzzles'
 import { Play } from './pages/Play'
+import { Settings } from './pages/Settings'
+import { ChevronRight, Settings as SettingsIcon } from 'lucide-react'
 
-type Page = 'home' | 'analysis' | 'studio' | 'puzzles' | 'partite' | 'play'
+type Page = 'home' | 'analysis' | 'studio' | 'puzzles' | 'partite' | 'play' | 'settings'
 
-const navItems: { page: Page; label: string }[] = [
-  { page: 'home', label: 'Home' },
-  { page: 'play', label: 'Gioca' },
-  { page: 'studio', label: 'Studio' },
-  { page: 'partite', label: 'Partite' },
-  { page: 'analysis', label: 'Analisi' },
-  { page: 'puzzles', label: 'Puzzle' },
+const pageKeys: { page: Page; labelKey: string }[] = [
+  { page: 'home', labelKey: 'nav.home' },
+  { page: 'play', labelKey: 'nav.play' },
+  { page: 'studio', labelKey: 'nav.studio' },
+  { page: 'partite', labelKey: 'nav.games' },
+  { page: 'analysis', labelKey: 'nav.analysis' },
+  { page: 'puzzles', labelKey: 'nav.puzzles' },
 ]
 
 function App() {
+  const { t } = useTranslation()
   const [page, setPage] = useState<Page>('home')
   const [selectedGameId, setSelectedGameId] = useState<number | null>(null)
   const [analyzeGameId, setAnalyzeGameId] = useState<number | null>(null)
@@ -49,9 +53,9 @@ function App() {
     <div className="min-h-screen bg-sage-50">
       <nav className="bg-white border-b border-sage-100 shadow-sm sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 flex items-center justify-between h-14">
-          <span className="font-bold text-lg text-sage-900">♟ Chess Training</span>
+          <span className="font-bold text-lg text-sage-900"><ChevronRight size={20} className="inline-block" /> {t('app.name')}</span>
           <div className="flex gap-1">
-            {navItems.map((item) => (
+            {pageKeys.map((item) => (
               <button
                 key={item.page}
                 onClick={() => handlePageChange(item.page)}
@@ -61,9 +65,20 @@ function App() {
                     : 'text-sage-700 hover:bg-sage-100'
                 }`}
               >
-                {item.label}
+                {t(item.labelKey)}
               </button>
             ))}
+            <button
+              onClick={() => handlePageChange('settings')}
+              className={`ml-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                page === 'settings'
+                  ? 'bg-sage-500 text-white'
+                  : 'text-sage-700 hover:bg-sage-100'
+              }`}
+              title={t('nav.settings')}
+            >
+              <SettingsIcon size={18} />
+            </button>
           </div>
         </div>
       </nav>
@@ -80,6 +95,7 @@ function App() {
         {page === 'studio' && <Studio />}
         {page === 'puzzles' && <Puzzles />}
         {page === 'play' && <Play onBack={() => setPage('home')} />}
+        {page === 'settings' && <Settings />}
       </main>
     </div>
   )

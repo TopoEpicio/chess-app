@@ -33,23 +33,23 @@ export function EvalBar({ evalInfo, engineReady, engineError, boardOrientation =
 
   return (
     <div className="flex items-stretch gap-3 h-full">
-      <div className="relative w-[36px] border border-sage-200 rounded-[3px] overflow-hidden flex flex-col bg-[#302e2b]">
+      <div className="relative w-[36px] border border-sage-200 rounded-[3px] overflow-hidden flex flex-col" style={{ backgroundColor: '#302e2b' }}>
         {!flipped ? (
           <>
-            <div className="bg-[#302e2b] transition-all duration-300"
-              style={{ height: `${100 - barPercent}%` }}
+            <div className="transition-all duration-300"
+              style={{ height: `${100 - barPercent}%`, backgroundColor: '#302e2b' }}
             />
-            <div className="bg-white transition-all duration-300"
-              style={{ height: `${barPercent}%` }}
+            <div className="transition-all duration-300"
+              style={{ height: `${barPercent}%`, backgroundColor: '#fff' }}
             />
           </>
         ) : (
           <>
-            <div className="bg-white transition-all duration-300"
-              style={{ height: `${barPercent}%` }}
+            <div className="transition-all duration-300"
+              style={{ height: `${barPercent}%`, backgroundColor: '#fff' }}
             />
-            <div className="bg-[#302e2b] transition-all duration-300"
-              style={{ height: `${100 - barPercent}%` }}
+            <div className="transition-all duration-300"
+              style={{ height: `${100 - barPercent}%`, backgroundColor: '#302e2b' }}
             />
           </>
         )}

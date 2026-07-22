@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { ImportBulkModal } from '../components/puzzles/ImportBulkModal.tsx'
 import type { AnalysisFilters } from '../api/interface.ts'
+import { ArrowRight } from 'lucide-react'
 
 interface GameSummary {
   id: number
@@ -193,7 +194,7 @@ export function Games({ onSelectGame, onAnalyzeGame }: Props) {
           <p className="text-sm text-sage-500">
             {countActive > 0
               ? 'Prova a modificare o rimuovere i filtri'
-              : 'Vai su Analisi → Importa PGN per aggiungere la prima partita'}
+              : <>Vai su Analisi <ArrowRight size={12} className="inline-block" /> Importa PGN per aggiungere la prima partita</>}
           </p>
         </div>
       ) : (
@@ -258,7 +259,7 @@ export function Games({ onSelectGame, onAnalyzeGame }: Props) {
 
       {confirmDeleteId !== null && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-20" onClick={() => setConfirmDeleteId(null)}>
-          <div className="bg-white rounded-box shadow-lg p-6 w-full max-w-sm mx-4" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white-pure rounded-box shadow-lg p-6 w-full max-w-sm mx-4" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-base font-semibold mb-2">Eliminare questa partita?</h3>
             <p className="text-sm text-sage-700 mb-4">L'operazione non può essere annullata.</p>
             <div className="flex justify-end gap-2">

@@ -7,6 +7,8 @@ import { ImportBulkModal } from '../components/puzzles/ImportBulkModal.tsx'
 import { usePuzzleStore } from '../stores/puzzleStore'
 import { CATEGORIES, getCategory, getSubcategory } from '../data/puzzleCategories'
 import type { PuzzleCategory, CategoryStats } from '../types'
+import { ChevronRight, ArrowLeft } from 'lucide-react'
+import { getPuzzleIcon } from '../components/puzzles/puzzleIcons'
 
 type View = 'categories' | 'subcategories' | 'puzzles'
 
@@ -120,7 +122,7 @@ export function Puzzles() {
     <div className="max-w-6xl mx-auto px-4 py-6">
       <div className="flex items-center justify-between mb-2 flex-wrap gap-4">
         <div>
-          <h1 className="text-[28px] font-bold text-sage-900">♟ Puzzle</h1>
+          <h1 className="text-[28px] font-bold text-sage-900"><ChevronRight size={18} className="inline-block" /> Puzzle</h1>
           <p className="text-[15px] text-sage-700">Scegli una categoria per iniziare ad allenarti</p>
         </div>
         <button
@@ -179,7 +181,7 @@ export function Puzzles() {
                 onClick={() => handleSelectCategory(catKey)}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSelectCategory(catKey) } }}
               >
-                <div className="text-[28px] leading-none mb-2">{def.icon}</div>
+                <div className="text-[28px] leading-none mb-2">{getPuzzleIcon(def.icon)}</div>
                 <div className="text-[13px] font-semibold text-sage-900">{def.title}</div>
                 <div className="text-lg font-semibold text-sage-500 mt-1">{total.toLocaleString()}</div>
                 <div className="text-[11px] text-sage-500 mt-1 leading-tight">
@@ -219,12 +221,12 @@ export function Puzzles() {
 
           <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
             <h2 className="text-[22px] font-bold text-sage-900">
-              {subDef?.icon ?? catDef?.icon} {subDef?.name ?? catDef?.title}
+              {getPuzzleIcon(subDef?.icon ?? catDef?.icon)} {subDef?.name ?? catDef?.title}
             </h2>
             <div className="flex items-center gap-3 text-sm text-sage-700">
               <span>{totalPuzzles > 0 ? `${totalPuzzles} puzzle disponibili` : '...'}</span>
               <button onClick={handleBack} className="btn-ghost text-xs border border-sage-200 hover:bg-sage-100">
-                ← Indietro
+                <ArrowLeft size={16} className="inline-block" /> Indietro
               </button>
             </div>
           </div>

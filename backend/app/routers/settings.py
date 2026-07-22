@@ -1,34 +1,25 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
+from fastapi import APIRouter
 
-from app.database import get_db
+from app.config import get_settings as get_app_settings
+from app.schemas.settings import SettingsOut
 
 router = APIRouter(tags=["settings"])
 
 
-def _svc(db: Session):
-    class _SVC:
-        def get(self, db: Session = Depends(get_db)):
-            from app.config import get_settings
-            settings = get_settings()
-            return {
-                "i18n": {
-                    "default_locale": settings.default_locale,
-                    "supported_locales": settings.supported_locales,
-                },
-                "theme": {
-                    "default_theme": settings.default_theme,
-                    "default_board_theme": settings.default_board_theme,
-                },
-                "board": {
-                    "square_opacity": settings.board_square_opacity,
-                    "piece_shadow": settings.board_piece_shadow,
-                },
-            }
-
-    return _svc(db)
-
-
-@router.get("/")
-def get_settings(db: Session = Depends(get_db)):
-    return _svc(db).get(db)
+@router.get("/", response_model=SettingsOut)
+def get_settings():
+    cfg = get_app_settings()
+    return SettingsOut(
+        i18n={
+            "default_locale": cfg.default_locale,
+            "supported_locales": cfg.supported_locales,
+        },
+        theme={
+            "default_theme": cfg.default_theme,
+            "default_board_theme": cfg.default_board_theme,
+        },
+        board={
+            "square_opacity": cfg.board_square_opacity,
+            "piece_shadow": cfg.board_piece_shadow,
+        },
+    )

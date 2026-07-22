@@ -44,3 +44,92 @@ export interface AnalysisExplanation {
   tacticalPatterns: TacticalPattern[]
   keyConcepts: string[]
 }
+
+// --- TYPES FOR FULL GAME ANALYSIS ---
+
+export type MoveClassification =
+  | 'brilliant'
+  | 'best'
+  | 'excellent'
+  | 'good'
+  | 'inaccuracy'
+  | 'mistake'
+  | 'blunder'
+  | 'miss'
+  | 'great'
+  | 'forced'
+  | 'book'
+
+export interface ClassificationMeta {
+  symbol: string
+  color: string
+  label: string
+}
+
+export const CLASSIFICATION_META: Record<MoveClassification, ClassificationMeta> = {
+  brilliant:  { symbol: '!!', color: '#00e5b0', label: 'Brillante' },
+  best:       { symbol: '',   color: '#4caf50', label: 'Miglior mossa' },
+  excellent:  { symbol: '',   color: '#8bc34a', label: 'Eccellente' },
+  good:       { symbol: '!',  color: '#cddc39', label: 'Buona' },
+  inaccuracy: { symbol: '?!', color: '#ff9800', label: 'Imprecisione' },
+  mistake:    { symbol: '?',  color: '#ff5722', label: 'Errore' },
+  blunder:    { symbol: '??', color: '#f44336', label: 'Blunder' },
+  miss:       { symbol: '☐', color: '#9c27b0', label: 'Occasione persa' },
+  great:      { symbol: '!',  color: '#00bcd4', label: 'Grande mossa' },
+  forced:     { symbol: '',   color: '#9e9e9e', label: 'Forzata' },
+  book:       { symbol: '',   color: '#607d8b', label: 'Teoria' },
+}
+
+export interface MoveAnalysisData {
+  move_number: number
+  is_white: boolean
+  san: string
+  fen_before: string
+  fen_after: string
+  played_eval: number
+  best_eval: number
+  best_move_san: string
+  best_move_uci: string
+  second_move_uci: string | null
+  second_move_eval: number | null
+  third_move_uci: string | null
+  third_move_eval: number | null
+  depth: number
+  eval_swing: number
+  classification: MoveClassification
+  pvs: string[][] | null
+  wp_before: number | null
+  wp_after: number | null
+  wp_best: number | null
+  wp_loss: number | null
+}
+
+export interface GameAnalysisResult {
+  game_id: number
+  white_accuracy: number | null
+  black_accuracy: number | null
+  white_cpl: number | null
+  black_cpl: number | null
+  white_classification_counts: Record<string, number>
+  black_classification_counts: Record<string, number>
+  total_classification_counts: Record<string, number>
+  moves: MoveAnalysisData[]
+  analyzed_at: string | null
+  status: string
+  current_move: number | null
+  total_moves: number | null
+}
+
+export interface ArrowConfig {
+  showBestMove: boolean
+  showSecondBest: boolean
+  showThirdBest: boolean
+  showThreats: boolean
+}
+
+export const DEFAULT_ARROW_CONFIG: ArrowConfig = {
+  showBestMove: true,
+  showSecondBest: false,
+  showThirdBest: false,
+  showThreats: false,
+}

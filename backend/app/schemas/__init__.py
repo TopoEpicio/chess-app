@@ -5,8 +5,11 @@ from app.schemas.analysis import (
     EngineLine,
     GameAnalysisCreate,
     GameAnalysisRead,
+    GameAnalysisResultOut,
     GameSummary,
     KeyMomentRead,
+    MoveAnalysisOut,
+    SaveAnalysisRequest,
 )
 from app.schemas.settings import SettingsOut
 from app.schemas.common import (
@@ -111,6 +114,9 @@ __all__ = [
     "AnalysisProgress",
     "EngineLine",
     "CoachFeedback",
+    "MoveAnalysisOut",
+    "SaveAnalysisRequest",
+    "GameAnalysisResultOut",
     # Stats
     "DailyStatsCreate",
     "DailyStatsRead",

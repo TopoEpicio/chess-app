@@ -1,4 +1,5 @@
 import { Chess } from 'chess.js'
+import { ChevronLeft, ChevronRight, RotateCw, BarChart3 } from 'lucide-react'
 import type { RepertoireNode } from '../../types'
 
 interface Props {
@@ -88,7 +89,7 @@ export function RepertoireBoardControls({
           className="p-2 rounded hover:bg-sage-100 transition-colors duration-150 disabled:opacity-30 disabled:cursor-not-allowed text-sage-700"
           title="Mossa precedente"
         >
-          ◀
+            <ChevronLeft size={16} className="inline-block" />
         </button>
         <button
           onClick={onNextMove}
@@ -96,14 +97,14 @@ export function RepertoireBoardControls({
           className="p-2 rounded hover:bg-sage-100 transition-colors duration-150 disabled:opacity-30 disabled:cursor-not-allowed text-sage-700"
           title="Mossa successiva"
         >
-          ▶
-        </button>
-        <button
-          onClick={onFlip}
+            <ChevronRight size={16} className="inline-block" />
+          </button>
+          <button
+            onClick={onFlip}
           className="p-2 rounded hover:bg-sage-100 transition-colors duration-150 text-sage-700"
           title="Capovolgi scacchiera"
         >
-          🔄
+            <RotateCw size={16} className="inline-block" />
         </button>
         <button
           onClick={onToggleEval}
@@ -112,7 +113,7 @@ export function RepertoireBoardControls({
           }`}
           title={showEval ? 'Nascondi valutazione' : 'Mostra valutazione'}
         >
-          📊
+            <BarChart3 size={16} className="inline-block" />
         </button>
       </div>
 

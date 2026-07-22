@@ -1,6 +1,7 @@
 import { Chess } from 'chess.js'
 import type { MultiPvLine } from '../types/analysis'
 import type { EngineAdapter, EvalInfo } from './interface.ts'
+import type { EngineConfig } from '../stores/engineStore'
 import { parseScoreLine, parseBestMoveLine, evalInfoFromScore, buildPositionCommand } from './uci-protocol.ts'
 
 interface StockfishEngine {
@@ -31,6 +32,8 @@ export class StockfishWasmAdapter implements EngineAdapter {
     lines: Map<number, { evaluation: number; mate: number | null; depth: number; pv: string[] }>
     resolve: (result: MultiPvLine[]) => void
   } | null = null
+
+  private config: EngineConfig = { depth: 22, hash: 16, threads: 1, multiPv: 3, skillElo: 2800 }
 
   get ready() { return this._ready }
   get error() { return this._error }
@@ -63,8 +66,8 @@ export class StockfishWasmAdapter implements EngineAdapter {
       })
 
       engine.postMessage('uci')
-      engine.postMessage('setoption name Threads value 1')
-      engine.postMessage('setoption name Hash value 16')
+      engine.postMessage(`setoption name Threads value ${this.config.threads}`)
+      engine.postMessage(`setoption name Hash value ${this.config.hash}`)
       engine.postMessage('isready')
 
       if (engine.ready) {
@@ -72,6 +75,7 @@ export class StockfishWasmAdapter implements EngineAdapter {
       }
 
       this._ready = true
+      this.configure(this.config)
       for (const fen of this.queue) {
         this.sendPosition(fen)
       }
@@ -171,40 +175,65 @@ export class StockfishWasmAdapter implements EngineAdapter {
     this.engine?.postMessage(buildPositionCommand(fen))
   }
 
-  analyze(fen: string, depth: number = 22) {
+  analyze(fen: string, depth?: number) {
     if (!this.engine) {
       this.queue.push(fen)
       return
     }
     this._evalInfo = null
     this.sendPosition(fen)
-    this.engine.postMessage(`go depth ${depth}`)
+    this.engine.postMessage(`go depth ${depth ?? this.config.depth}`)
   }
 
   bestMove(fen: string, callback: (info: EvalInfo) => void) {
     this.callbackRef = callback
     if (!this.engine) return
     this.sendPosition(fen)
-    this.engine.postMessage('go depth 22')
+    this.engine.postMessage(`go depth ${this.config.depth}`)
   }
 
-  async deepAnalyze(fen: string, pvCount = 3): Promise<MultiPvLine[]> {
+  async deepAnalyze(fen: string, pvCount?: number, depth?: number): Promise<MultiPvLine[]> {
     if (!this.engine) return []
+
+    if (this.deepAnalyzeRef) {
+      const old = this.deepAnalyzeRef
+      this.deepAnalyzeRef = null
+      old.resolve([])
+    }
 
     this.engine.postMessage('stop')
     await new Promise((r) => setTimeout(r, 300))
 
+    const count = pvCount ?? this.config.multiPv
     return new Promise<MultiPvLine[]>((resolve) => {
       this.deepAnalyzeRef = { fen, lines: new Map(), resolve }
       this.side = (fen.split(' ')[1] || 'w') as 'w' | 'b'
-      this.engine!.postMessage('setoption name MultiPV value ' + pvCount)
+      this.engine!.postMessage('setoption name MultiPV value ' + count)
       this.engine!.postMessage(buildPositionCommand(fen))
-      this.engine!.postMessage('go depth 18')
+      this.engine!.postMessage(`go depth ${depth ?? this.config.depth}`)
     })
   }
 
   stop() {
     this.engine?.postMessage('stop')
+  }
+
+  configure(cfg: Partial<EngineConfig>) {
+    Object.assign(this.config, cfg)
+    if (!this.engine) return
+    this.engine.postMessage(`setoption name Threads value ${this.config.threads}`)
+    this.engine.postMessage(`setoption name Hash value ${this.config.hash}`)
+    const elo = this.config.skillElo
+    if (elo >= 1320 && elo <= 3190) {
+      this.engine.postMessage('setoption name UCI_LimitStrength value true')
+      this.engine.postMessage(`setoption name UCI_Elo value ${elo}`)
+    } else if (elo > 3190) {
+      this.engine.postMessage('setoption name UCI_LimitStrength value false')
+    } else {
+      this.engine.postMessage('setoption name UCI_LimitStrength value false')
+      const skill = Math.max(0, Math.min(20, Math.round((elo - 200) / 150)))
+      this.engine.postMessage(`setoption name Skill Level value ${skill}`)
+    }
   }
 
   destroy() {

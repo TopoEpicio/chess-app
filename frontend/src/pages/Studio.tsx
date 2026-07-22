@@ -13,6 +13,7 @@ import { AddLinkModal } from '../components/studio/AddLinkModal'
 import { YouTubePlayer } from '../components/studio/YouTubePlayer'
 import { CreateOpeningModal } from '../components/repertoire/RepertoireSelector'
 import type { StudyFolder, StudyResource, FolderContents, BreadcrumbItem, Opening, ResourceType } from '../types'
+import { ArrowLeft, ChevronRight, FileText, BarChart3, Link as LinkIcon, Play as PlayIcon, FolderOpen, Pencil, Move, Trash2, ClipboardList, Minus } from 'lucide-react'
 
 type CtxTarget =
   | { type: 'folder'; item: StudyFolder }
@@ -250,7 +251,7 @@ export function Studio() {
           onClick={() => setSelectedOpening(null)}
           className="text-sm text-sage-600 hover:text-sage-900 mb-4 flex items-center gap-1"
         >
-          ← Torna allo Studio
+          <ArrowLeft size={16} className="inline-block" /> Torna allo Studio
         </button>
         <RepertoireViewer
           repertoireId={1}
@@ -284,7 +285,7 @@ export function Studio() {
           onClick={() => handleNavigate(contents?.folder?.parentId ?? null)}
           className="text-sm text-sage-600 hover:text-sage-900 mb-4 flex items-center gap-1"
         >
-          ← Torna indietro
+          <ArrowLeft size={16} className="inline-block" /> Torna indietro
         </button>
       )}
       <Breadcrumb items={breadcrumb} onNavigate={handleNavigate} />
@@ -294,12 +295,12 @@ export function Studio() {
         <>
           <div className="flex items-center gap-2 mb-4 flex-wrap">
             {[
-              { value: 'all', label: 'Tutti' },
-              { value: 'opening', label: '♟ Aperture' },
-              { value: 'pdf', label: '📄 PDF' },
-              { value: 'excel', label: '📊 Excel' },
-              { value: 'link', label: '🔗 Link' },
-              { value: 'youtube', label: '▶️ Video' },
+              { value: 'all', label: <>Tutti</> },
+              { value: 'opening', label: <><ChevronRight size={14} className="inline-block" /> Aperture</> },
+              { value: 'pdf', label: <><FileText size={14} className="inline-block" /> PDF</> },
+              { value: 'excel', label: <><BarChart3 size={14} className="inline-block" /> Excel</> },
+              { value: 'link', label: <><LinkIcon size={14} className="inline-block" /> Link</> },
+              { value: 'youtube', label: <><PlayIcon size={14} className="inline-block" /> Video</> },
             ].map(f => (
               <button
                 key={f.value}
@@ -477,17 +478,17 @@ export function Studio() {
           items={
             ctxMenu.target.type === 'folder'
               ? [
-                  { label: 'Apri', icon: '📂', onClick: () => handleNavigate(ctxMenu.target.item.id) },
-                  { label: 'Rinomina', icon: '✏️', onClick: () => { setRenameFolder(ctxMenu.target.item as StudyFolder) } },
-                  { label: 'Sposta in...', icon: '🚚', onClick: () => setFolderPicker({ mode: 'move', target: ctxMenu.target }) },
-                  { label: 'Elimina', icon: '🗑️', onClick: () => handleDeleteFolder(ctxMenu.target.item as StudyFolder), danger: true },
+                  { label: 'Apri', icon: <FolderOpen size={14} className="inline-block" />, onClick: () => handleNavigate(ctxMenu.target.item.id) },
+                  { label: 'Rinomina', icon: <Pencil size={14} className="inline-block" />, onClick: () => { setRenameFolder(ctxMenu.target.item as StudyFolder) } },
+                  { label: 'Sposta in...', icon: <Move size={14} className="inline-block" />, onClick: () => setFolderPicker({ mode: 'move', target: ctxMenu.target }) },
+                  { label: 'Elimina', icon: <Trash2 size={14} className="inline-block" />, onClick: () => handleDeleteFolder(ctxMenu.target.item as StudyFolder), danger: true },
                 ]
               : [
-                  { label: 'Rinomina', icon: '✏️', onClick: () => { setRenameResource(ctxMenu.target.item as StudyResource) } },
-                  { label: 'Sposta in...', icon: '🚚', onClick: () => setFolderPicker({ mode: 'move', target: ctxMenu.target }) },
-                  { label: 'Copia in...', icon: '📋', onClick: () => setFolderPicker({ mode: 'copy', target: ctxMenu.target }) },
-                  { label: 'Rimuovi dalla cartella', icon: '➖', onClick: () => handleRemoveResource(ctxMenu.target.item as StudyResource) },
-                  { label: 'Elimina definitivamente', icon: '🗑️', onClick: () => handleDeleteResource(ctxMenu.target.item as StudyResource), danger: true },
+                  { label: 'Rinomina', icon: <Pencil size={14} className="inline-block" />, onClick: () => { setRenameResource(ctxMenu.target.item as StudyResource) } },
+                  { label: 'Sposta in...', icon: <Move size={14} className="inline-block" />, onClick: () => setFolderPicker({ mode: 'move', target: ctxMenu.target }) },
+                  { label: 'Copia in...', icon: <ClipboardList size={14} className="inline-block" />, onClick: () => setFolderPicker({ mode: 'copy', target: ctxMenu.target }) },
+                  { label: 'Rimuovi dalla cartella', icon: <Minus size={14} className="inline-block" />, onClick: () => handleRemoveResource(ctxMenu.target.item as StudyResource) },
+                  { label: 'Elimina definitivamente', icon: <Trash2 size={14} className="inline-block" />, onClick: () => handleDeleteResource(ctxMenu.target.item as StudyResource), danger: true },
                 ]
           }
         />

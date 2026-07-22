@@ -1,27 +1,48 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
-  --color-sage-50: #f6f7f4;
-  --color-sage-100: #e2e6da;
-  --color-sage-200: #c5ccb6;
-  --color-sage-500: #8a9a7a;
-  --color-sage-700: #5c6b4e;
-  --color-sage-900: #2d3527;
-  --color-sand-50: #faf8f5;
-  --color-sand-100: #f5f0e8;
-  --color-sand-200: #e8dfce;
-  --color-sand-500: #c4b49a;
-  --color-sand-700: #9a8a72;
+  --color-sage-50: #f4f5f2;
+  --color-sage-100: #e2e5dc;
+  --color-sage-200: #c8cebd;
+  --color-sage-500: #8d9c7e;
+  --color-sage-700: #637455;
+  --color-sage-900: #3a4234;
+  --color-sand-50: #f8f7f3;
+  --color-sand-100: #f0ede5;
+  --color-sand-200: #e4dfd2;
+  --color-sand-500: #c4b89e;
+  --color-sand-700: #9e907a;
+
+  --color-dark-bg: #1e201e;
+  --color-dark-surface: #2a2d2a;
+  --color-dark-border: #3a3d3a;
+  --color-dark-text: #d4d8ce;
+
   --color-board-light: #edeed7;
   --color-board-dark: #7a9a6a;
+  --color-board-light-blue: #dee8f0;
+  --color-board-dark-blue: #6a8aaa;
+  --color-board-light-green: #d8e8d8;
+  --color-board-dark-green: #5a8a5a;
+  --color-board-light-brown: #e8dcc8;
+  --color-board-dark-brown: #8a7a5a;
+
   --color-green-line: #5cb85c;
   --color-yellow-line: #f0ad4e;
   --color-red-line: #d9534f;
+  --color-surface: #ffffff;
+  --color-white-pure: #ffffff;
   --font-family-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --radius-box: 14px;
 }
 
 * { box-sizing: border-box; }
+
+html {
+  overflow-y: scroll;
+}
 
 body {
   margin: 0;
@@ -30,10 +51,28 @@ body {
   color: var(--color-sage-900);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background 0.2s, color 0.2s;
 }
 
 #root {
   min-height: 100vh;
+}
+
+.dark {
+  --color-surface: #2a2d2a;
+  --color-white: #2a2d2a;
+  --color-white-pure: #ffffff;
+  --color-sage-50: #1e201e;
+  --color-sage-100: #2a2d2a;
+  --color-sage-200: #3a3d3a;
+  --color-sage-500: #7a8a6a;
+  --color-sage-700: #b0b8a4;
+  --color-sage-900: #d4d8ce;
+  --color-sand-50: #1e201e;
+  --color-sand-100: #2a2d2a;
+  --color-sand-200: #3a3d3a;
+  --color-sand-500: #9e907a;
+  --color-sand-700: #c4b89e;
 }
 
 .btn-primary {
@@ -75,3 +114,22 @@ body {
 .btn-ghost:hover {
   background: var(--color-sage-100);
 }
+
+.shadow-card {
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+.shadow-card:hover {
+  box-shadow: 0 4px 20px rgba(0,0,0,0.10);
+}
+.dark .shadow-card {
+  box-shadow: 0 2px 12px rgba(0,0,0,0.20);
+}
+.dark .shadow-card:hover {
+  box-shadow: 0 4px 20px rgba(0,0,0,0.30);
+}
+
+.dark .text-white {
+  color: #ffffff;
+}
+
+.bg-white-pure { background-color: #ffffff; }

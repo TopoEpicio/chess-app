@@ -4,6 +4,7 @@ import { useEngineAdapter } from '../../engine/EngineProvider'
 import { generateExplanation } from '../../engine/analysisEngine'
 import type { AnalysisExplanation } from '../../types/analysis'
 import type { Puzzle } from '../../types'
+import { Search } from 'lucide-react'
 
 interface Props {
   puzzles: Puzzle[]
@@ -41,7 +42,7 @@ export function PuzzleList({ puzzles, loading, onSelect, onDelete, onSolve }: Pr
   if (puzzles.length === 0 && !loading) {
     return (
       <div className="text-center py-12">
-        <div className="text-[40px] mb-4 opacity-40">🔍</div>
+        <div className="text-[40px] mb-4 opacity-40"><Search size={32} className="inline-block text-sage-300" /></div>
         <div className="text-lg font-semibold text-sage-700 mb-2">Nessun puzzle trovato</div>
         <div className="text-sm text-sage-500">Prova a cambiare i filtri o seleziona un'altra categoria.</div>
       </div>

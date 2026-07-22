@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Chess } from 'chess.js'
-import { Chessboard } from 'react-chessboard'
+import { Chessboard } from '../components/board/ThemedBoard'
 import { useEngineAdapter } from '../engine/EngineProvider'
+import { ArrowLeft, Bot, Crown, Dices, PartyPopper, Frown, Handshake, RotateCw, Flag, ChevronDown, ChevronUp } from 'lucide-react'
+import { useEngineConfig } from '../stores/engineStore'
 
 function getResultMessage(game: Chess): string {
   if (game.isCheckmate()) return 'Scacco matto!'
@@ -21,7 +23,9 @@ export function Play({ onBack }: { onBack?: () => void }) {
   const [gameOver, setGameOver] = useState(false)
   const [resultMsg, setResultMsg] = useState('')
   const [boardFlipped, setBoardFlipped] = useState(false)
+  const [elo, setElo] = useState(1200)
   const { bestMove: getBestMove, ready } = useEngineAdapter()
+  const engineCfg = useEngineConfig()
 
   const userColor = userSide === 'white' ? 'w' : 'b'
 
@@ -80,6 +84,7 @@ export function Play({ onBack }: { onBack?: () => void }) {
   }, [botThinking, gameOver, userSide, userColor])
 
   const startGame = (side: 'white' | 'black') => {
+    engineCfg.setSkillElo(elo)
     gameRef.current = new Chess()
     setFen('start')
     setMoves([])
@@ -96,29 +101,45 @@ export function Play({ onBack }: { onBack?: () => void }) {
   }
 
   if (!userSide) {
+    const diffLabel = elo <= 600 ? 'Principiante' : elo <= 1200 ? 'Intermedio' : elo <= 2000 ? 'Avanzato' : elo <= 2800 ? 'Esperto' : 'Maestro'
     return (
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="flex items-center gap-3 mb-6">
           {onBack && (
-            <button onClick={onBack} className="text-sage-500 hover:text-sage-700 text-lg leading-none" title="Torna indietro">←</button>
+            <button onClick={onBack} className="text-sage-500 hover:text-sage-700 text-lg leading-none" title="Torna indietro"><ArrowLeft size={16} className="inline-block" /></button>
           )}
           <h1 className="text-2xl font-bold">Gioca contro Bot</h1>
         </div>
         <div className="max-w-lg mx-auto mt-16">
           <div className="bg-white rounded-box shadow-[0_2px_12px_rgba(45,53,39,0.08)] p-8 text-center">
-            <div className="text-5xl mb-4">🤖</div>
+            <div className="text-5xl mb-4"><Bot size={20} className="inline-block" /></div>
             <h2 className="text-xl font-semibold text-sage-900 mb-2">Scegli il tuo colore</h2>
             <p className="text-sm text-sage-600 mb-6">Il bot giocherà con l'altro colore usando Stockfish</p>
+
+            <div className="mb-6 space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-semibold uppercase tracking-wider text-sage-500">Difficoltà</span>
+                <span className="text-sm font-bold text-sage-900">{diffLabel} · {elo}</span>
+              </div>
+              <input type="range" min="200" max="3200" step="50" value={elo}
+                onChange={(e) => setElo(parseInt(e.target.value))}
+                className="w-full accent-sage-500" />
+              <div className="flex justify-between text-[11px] text-sage-400">
+                <span>200</span>
+                <span>3200</span>
+              </div>
+            </div>
+
             <div className="flex gap-4 justify-center">
               <button onClick={() => startGame('white')} className="btn-primary px-8 py-3 text-lg flex items-center gap-2">
-                <span className="text-2xl">♔</span> Bianco
+                <Crown size={20} className="inline-block" /> Bianco
               </button>
               <button onClick={() => startGame('black')} className="btn-primary px-8 py-3 text-lg flex items-center gap-2">
-                <span className="text-2xl">♚</span> Nero
+                <Crown size={20} className="inline-block text-gray-400" /> Nero
               </button>
             </div>
             <button onClick={() => startGame(Math.random() < 0.5 ? 'white' : 'black')} className="btn-ghost mt-4 text-sm">
-              🎲 Random
+              <Dices size={16} className="inline-block" /> Random
             </button>
           </div>
         </div>
@@ -137,7 +158,7 @@ export function Play({ onBack }: { onBack?: () => void }) {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           {onBack && (
-            <button onClick={onBack} className="text-sage-500 hover:text-sage-700 text-lg leading-none" title="Torna indietro">←</button>
+            <button onClick={onBack} className="text-sage-500 hover:text-sage-700 text-lg leading-none" title="Torna indietro"><ArrowLeft size={16} className="inline-block" /></button>
           )}
           <h1 className="text-2xl font-bold">Gioca contro Bot</h1>
         </div>
@@ -153,21 +174,19 @@ export function Play({ onBack }: { onBack?: () => void }) {
                 boardOrientation: boardFlipped ? 'black' : 'white',
                 onPieceDrop: handleDrop,
                 boardStyle: { borderRadius: '8px', boxShadow: '0 2px 12px rgba(45,53,39,0.08)' },
-                darkSquareStyle: { backgroundColor: '#7a9a6a' },
-                lightSquareStyle: { backgroundColor: '#edeed7' },
               }}
             />
             {botThinking && (
               <div className="absolute inset-0 bg-black/10 rounded-lg flex items-center justify-center pointer-events-none">
-                <div className="bg-white rounded-full px-4 py-2 shadow-lg flex items-center gap-2 text-sm font-medium text-sage-700">
-                  <span className="animate-spin text-lg inline-block">🤖</span> Bot sta pensando...
+                <div className="bg-white-pure rounded-full px-4 py-2 shadow-lg flex items-center gap-2 text-sm font-medium text-sage-700">
+                  <span className="animate-spin text-lg inline-block"><Bot size={16} className="inline-block animate-spin" /></span> Bot sta pensando...
                 </div>
               </div>
             )}
             {gameOver && (
               <div className="absolute inset-0 bg-black/30 rounded-lg flex items-center justify-center">
-                <div className="bg-white rounded-box shadow-xl p-6 mx-4 text-center max-w-xs">
-                  <div className="text-3xl mb-2">{resultMsg.includes('matto') ? '🎉' : resultMsg.includes('abbandonato') ? '😔' : '🤝'}</div>
+                <div className="bg-white-pure rounded-box shadow-xl p-6 mx-4 text-center max-w-xs">
+                  <div className="text-3xl mb-2">{resultMsg.includes('matto') ? <PartyPopper size={24} className="inline-block" /> : resultMsg.includes('abbandonato') ? <Frown size={24} className="inline-block" /> : <Handshake size={24} className="inline-block" />}</div>
                   <p className="text-lg font-semibold text-sage-900 mb-1">{resultMsg}</p>
                   <p className="text-sm text-sage-500 mb-4">
                     {resultMsg === 'Scacco matto!'
@@ -184,10 +203,10 @@ export function Play({ onBack }: { onBack?: () => void }) {
           </div>
 
           <div className="flex items-center gap-3">
-            <button onClick={() => setBoardFlipped(f => !f)} className="p-2 rounded hover:bg-sage-100 text-sage-700" title="Capovolgi">🔄</button>
+            <button onClick={() => setBoardFlipped(f => !f)} className="p-2 rounded hover:bg-sage-100 text-sage-700" title="Capovolgi"><RotateCw size={16} className="inline-block" /></button>
             <button onClick={() => startGame(userSide)} className="btn-ghost text-sm">Nuova partita</button>
             <button onClick={() => setUserSide(null)} className="btn-ghost text-sm">Cambia colore</button>
-            {!gameOver && <button onClick={resign} className="btn-ghost text-sm text-red-500 hover:text-red-700">🏳 Abbandona</button>}
+            {!gameOver && <button onClick={resign} className="btn-ghost text-sm text-red-500 hover:text-red-700"><Flag size={16} className="inline-block" /> Abbandona</button>}
           </div>
         </div>
 
@@ -196,13 +215,13 @@ export function Play({ onBack }: { onBack?: () => void }) {
             <div className="text-xs font-semibold uppercase tracking-wider text-sage-500 mb-3">Partita</div>
             <div className="space-y-2 text-sm">
               <div className="flex items-center justify-between">
-                <span className="flex items-center gap-2"><span className="text-lg">♔</span> Bianco</span>
+                <span className="flex items-center gap-2"><Crown size={20} className="inline-block" /> Bianco</span>
                 <span className={`font-medium ${userSide === 'white' ? 'text-sage-900' : 'text-sage-500'}`}>
                   {userSide === 'white' ? 'Tu' : 'Bot'}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="flex items-center gap-2"><span className="text-lg">♚</span> Nero</span>
+                <span className="flex items-center gap-2"><Crown size={20} className="inline-block text-gray-400" /> Nero</span>
                 <span className={`font-medium ${userSide === 'black' ? 'text-sage-900' : 'text-sage-500'}`}>
                   {userSide === 'black' ? 'Tu' : 'Bot'}
                 </span>
@@ -245,12 +264,12 @@ export function Play({ onBack }: { onBack?: () => void }) {
             <div className="flex justify-between items-start">
               <div className="flex flex-wrap gap-0.5 text-lg max-w-[120px]">
                 {Array.from({ length: 16 - whiteCount }).map((_, i) => (
-                  <span key={`cwu-${i}`} className="opacity-50">♟</span>
+                  <ChevronDown key={`cwu-${i}`} size={16} className="inline-block opacity-50" />
                 ))}
               </div>
               <div className="flex flex-wrap gap-0.5 text-lg max-w-[120px]">
                 {Array.from({ length: 16 - blackCount }).map((_, i) => (
-                  <span key={`cbu-${i}`} className="opacity-50">♙</span>
+                  <ChevronUp key={`cbu-${i}`} size={16} className="inline-block opacity-50" />
                 ))}
               </div>
             </div>

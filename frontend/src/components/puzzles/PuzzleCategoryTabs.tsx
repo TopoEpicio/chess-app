@@ -1,18 +1,19 @@
 import { CATEGORIES, CATEGORY_KEYS } from '../../data/puzzleCategories'
-import type { PuzzleCategory } from '../../types'
+import type { PuzzleCategory, CategoryStats } from '../../types'
+import { Target, BookOpen, Zap, Flag, Palette } from 'lucide-react'
 
 interface Props {
   current: PuzzleCategory
-  categoryStats: Record<string, { total: number }> | null
+  categoryStats: Record<string, CategoryStats> | null
   onSelect: (cat: PuzzleCategory) => void
 }
 
-const CATEGORY_LABELS: Record<string, { label: string; icon: string }> = {
-  mix: { label: 'Mix', icon: '🎯' },
-  phases: { label: 'Fasi', icon: '📚' },
-  motifs: { label: 'Motivi', icon: '⚡' },
-  mates: { label: 'Matti', icon: '🏁' },
-  'mate-themes': { label: 'Temi', icon: '🎨' },
+const CATEGORY_LABELS: Record<string, { label: string; icon: React.ReactNode }> = {
+  mix: { label: 'Mix', icon: <Target size={16} className="inline-block" /> },
+  phases: { label: 'Fasi', icon: <BookOpen size={16} className="inline-block" /> },
+  motifs: { label: 'Motivi', icon: <Zap size={16} className="inline-block" /> },
+  mates: { label: 'Matti', icon: <Flag size={16} className="inline-block" /> },
+  'mate-themes': { label: 'Temi', icon: <Palette size={16} className="inline-block" /> },
 }
 
 export function PuzzleCategoryTabs({ current, categoryStats, onSelect }: Props) {

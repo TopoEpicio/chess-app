@@ -1,8 +1,14 @@
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { Chess } from 'chess.js'
-import { Chessboard } from 'react-chessboard'
+import { Chessboard } from './ThemedBoard'
 import { EvalBar } from './EvalBar'
 import { useEngineAdapter } from '../../engine/EngineProvider'
+
+interface Arrow {
+  startSquare: string
+  endSquare: string
+  color: string
+}
 
 interface Props {
   boardWidth?: number
@@ -10,9 +16,11 @@ interface Props {
   fen?: string
   boardOrientation?: 'white' | 'black'
   onMove?: (move: { from: string; to: string; promotion?: string }) => void
+  arrows?: Arrow[]
+  highlightedSquares?: Record<string, React.CSSProperties>
 }
 
-export function InteractiveBoard({ boardWidth = 400, showEval = true, fen, boardOrientation, onMove }: Props) {
+export function InteractiveBoard({ boardWidth = 400, showEval = true, fen, boardOrientation, onMove, arrows, highlightedSquares }: Props) {
   const [game] = useState(() => new Chess())
   const [position, setPosition] = useState(fen || 'start')
   const { evalInfo, analyze, ready, error } = useEngineAdapter()
@@ -71,23 +79,14 @@ export function InteractiveBoard({ boardWidth = 400, showEval = true, fen, board
     [game, onMove]
   )
 
-  const boardStyle = useMemo(() => ({
-    borderRadius: '8px',
-    boxShadow: '0 2px 12px rgba(45, 53, 39, 0.08)',
-  }), [])
-
-  const darkSquareStyle = useMemo(() => ({ backgroundColor: '#7a9a6a' }), [])
-  const lightSquareStyle = useMemo(() => ({ backgroundColor: '#edeed7' }), [])
-
-  const chessOptions = useMemo(() => ({
+  const chessOptions = {
     id: 'main-board',
     position: position === 'start' ? undefined : position,
     onPieceDrop: onDrop,
     boardOrientation: boardOrientation || 'white',
-    boardStyle,
-    darkSquareStyle,
-    lightSquareStyle,
-  }), [position, onDrop, boardOrientation, boardStyle, darkSquareStyle, lightSquareStyle])
+    ...(arrows && arrows.length > 0 ? { arrows } : {}),
+    ...(highlightedSquares ? { squareStyles: highlightedSquares } : {}),
+  }
 
   const evalWidth = 100
   const totalWidth = boardWidth + (showEval ? 16 + evalWidth : 0)

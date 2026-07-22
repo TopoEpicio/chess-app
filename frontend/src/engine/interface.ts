@@ -14,7 +14,7 @@ export interface EngineAdapter {
 
   analyze(fen: string, depth?: number): void
   bestMove(fen: string, callback: (info: EvalInfo) => void): void
-  deepAnalyze(fen: string, pvCount?: number): Promise<MultiPvLine[]>
+  deepAnalyze(fen: string, pvCount?: number, depth?: number): Promise<MultiPvLine[]>
   stop(): void
   destroy(): void
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
+import { X } from 'lucide-react'
 import { Chess } from 'chess.js'
-import { Chessboard } from 'react-chessboard'
+import { Chessboard } from '../board/ThemedBoard'
 import type { RepertoireNode } from '../../types'
 
 interface Props {
@@ -68,7 +69,7 @@ export function RepertoireNodeEditor({ node, onSave, onClose }: Props) {
             onClick={onClose}
             className="text-sage-500 hover:text-sage-700 text-xl leading-none"
           >
-            ×
+            <X size={16} />
           </button>
         </div>
 
@@ -187,8 +188,6 @@ export function RepertoireNodeEditor({ node, onSave, onClose }: Props) {
                   borderRadius: '8px',
                   boxShadow: '0 2px 12px rgba(45, 53, 39, 0.08)',
                 },
-                darkSquareStyle: { backgroundColor: '#7a9a6a' },
-                lightSquareStyle: { backgroundColor: '#edeed7' },
               }}
             />
           </div>

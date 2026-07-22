@@ -1,6 +1,6 @@
 import type { ApiClient, BulkPreviewResponse, BulkImportResponse } from './interface.ts'
 import { normalizeStats, normalizeOpening, normalizeStudyResource } from './transformers.ts'
-import type { Puzzle, PuzzleCategory, CategoryStats, RepertoireNode, Opening, StudyFolder, StudyResource, FolderContents, BreadcrumbItem } from '../types'
+import type { Puzzle, PuzzleCategory, CategoryStats, RepertoireNode, Opening, StudyFolder, StudyResource, FolderContents, BreadcrumbItem, SettingsResponse } from '../types'
 
 export class FetchApiClient implements ApiClient {
   constructor(private baseUrl: string = 'http://localhost:8003/api') {}
@@ -18,6 +18,10 @@ export class FetchApiClient implements ApiClient {
 
   health(): Promise<{ status: string }> {
     return this.request('/health')
+  }
+
+  settings(): Promise<SettingsResponse> {
+    return this.request('/settings/')
   }
 
   repertoire = {
@@ -92,6 +96,21 @@ export class FetchApiClient implements ApiClient {
       }
       return res.json()
     },
+    saveAnalysis: (id: number, data: {
+      moves: import('../types/analysis').MoveAnalysisData[]
+      white_accuracy: number
+      black_accuracy: number
+      white_cpl: number
+      black_cpl: number
+    }) =>
+      this.request<{ ok: boolean }>(`/analysis/${id}/save-analysis`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    getAnalysisResult: (id: number) =>
+      this.request<import('../types/analysis').GameAnalysisResult>(`/analysis/${id}/analysis-result`),
+    deleteAnalysisResult: (id: number) =>
+      this.request<void>(`/analysis/${id}/analysis-result`, { method: 'DELETE' }),
   }
 
   openings = {
@@ -127,6 +146,26 @@ export class FetchApiClient implements ApiClient {
       this.request<BulkImportResponse>('/import/bulk', {
         method: 'POST', body: JSON.stringify({ content, types }),
       }),
+  }
+
+  recal = {
+    get: (userId = 1, limit = 50) =>
+      this.request<unknown[]>(`/recal/?user_id=${userId}&limit=${limit}`),
+    getById: (id: number) =>
+      this.request<unknown>(`/recal/${id}`),
+    delete: (id: number) =>
+      this.request<void>(`/recal/${id}`, { method: 'DELETE' }),
+    exportJson: () =>
+      this.request<unknown>('/recal/export/json'),
+    exportPgn: () =>
+      this.request<unknown>('/recal/export/pgn'),
+  }
+
+  nav = {
+    getFolders: () =>
+      this.request<unknown[]>('/nav/folders'),
+    getResources: () =>
+      this.request<unknown[]>('/nav/resources'),
   }
 
   private normalizeFolder(raw: Record<string, unknown>): StudyFolder {

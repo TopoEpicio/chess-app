@@ -1,5 +1,7 @@
 import type { CategoryDef } from '../../data/puzzleCategories'
 import type { CategoryStats } from '../../types'
+import { ArrowLeft } from 'lucide-react'
+import { getPuzzleIcon } from './puzzleIcons'
 
 interface Props {
   category: CategoryDef
@@ -23,12 +25,12 @@ export function PuzzleSubcategoryGrid({ category, stats, onSelect, onBack }: Pro
 
       <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
         <h2 className="text-[22px] font-bold text-sage-900">
-          {category.icon} {category.title}
+          {getPuzzleIcon(category.icon)} {category.title}
         </h2>
         <div className="flex items-center gap-3 text-sm text-sage-700">
           <span>{total.toLocaleString()} puzzle</span>
           <button onClick={onBack} className="btn-ghost text-xs border border-sage-200 hover:bg-sage-100">
-            ← Indietro
+            <ArrowLeft size={16} className="inline-block" /> Indietro
           </button>
         </div>
       </div>
@@ -45,7 +47,7 @@ export function PuzzleSubcategoryGrid({ category, stats, onSelect, onBack }: Pro
               onClick={() => onSelect(sub.key)}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(sub.key) } }}
             >
-              <div className="text-[28px] leading-none mb-2">{sub.icon}</div>
+              <div className="text-[28px] leading-none mb-2">{getPuzzleIcon(sub.icon)}</div>
               <div className="text-[13px] font-semibold text-sage-900">{sub.name}</div>
               <div className="text-lg font-semibold text-sage-500 mt-1">{count.toLocaleString()}</div>
               <div className="text-[11px] text-sage-500 mt-1 leading-tight">{sub.desc}</div>

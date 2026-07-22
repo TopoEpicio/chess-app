@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
-import { Chessboard } from 'react-chessboard'
+import { Chessboard } from '../board/ThemedBoard'
 import { Chess } from 'chess.js'
 import { getThemeLabel, MATE_THEMES } from '../../data/puzzleCategories'
 import type { AnalysisExplanation } from '../../types/analysis'
+import { X, Check, Zap, Skull, Target, Crown, ArrowUp, AlertTriangle } from 'lucide-react'
 
 interface Props {
   puzzle: {
@@ -154,7 +155,7 @@ export function PuzzleCard({ puzzle, onSolve, getExplanation, onClick, onDelete 
                 className="text-sage-400 hover:text-red-500 transition-colors text-sm font-medium px-1"
                 title="Elimina puzzle"
               >
-                ✕
+                <X size={20} />
               </button>
             )}
           </div>
@@ -171,8 +172,6 @@ export function PuzzleCard({ puzzle, onSolve, getExplanation, onClick, onDelete 
               borderRadius: '0',
               boxShadow: 'none',
             },
-            darkSquareStyle: { backgroundColor: '#7a9a6a' },
-            lightSquareStyle: { backgroundColor: '#edeed7' },
           }}
         />
       </div>
@@ -180,13 +179,13 @@ export function PuzzleCard({ puzzle, onSolve, getExplanation, onClick, onDelete 
       <div className="p-4 space-y-3">
         {solved && (
           <div className="text-center text-green-600 font-medium p-3 bg-green-50 rounded-lg">
-            ✓ Risolto!
+            <Check size={16} className="text-green-500 inline-block" /> Risolto!
           </div>
         )}
 
         {failed && !showSolution && (
           <div className="text-center text-red-600 font-medium p-3 bg-red-50 rounded-lg">
-            ✗ Mossa errata. La mossa corretta era: <span className="font-mono">{puzzle.solution[currentMove]}</span>
+            <X size={16} className="text-red-500 inline-block" /> Mossa errata. La mossa corretta era: <span className="font-mono">{puzzle.solution[currentMove]}</span>
           </div>
         )}
 
@@ -224,13 +223,13 @@ export function PuzzleCard({ puzzle, onSolve, getExplanation, onClick, onDelete 
                         : 'bg-sage-100 text-sage-700'
                     }`}
                   >
-                    {p.type === 'fork' ? '⚡ FORK' :
-                     p.type === 'checkmate' ? '♛ MATTO' :
-                     p.type === 'double_check' ? '⚡ Doppio Scacco' :
-                     p.type === 'hanging_piece' ? '🎯 Pezzo sospeso' :
-                     p.type === 'king_exposure' ? '👑 Re esposto' :
-                     p.type === 'promotion_threat' ? '⬆ Promozione' :
-                     p.type === 'check' ? '⚠ Scacco' : p.type}
+                    {p.type === 'fork' ? <><Zap size={14} className="inline-block" /> FORK</> :
+                     p.type === 'checkmate' ? <><Skull size={14} className="inline-block" /> MATTO</> :
+                     p.type === 'double_check' ? <><Zap size={14} className="inline-block" /> Doppio Scacco</> :
+                     p.type === 'hanging_piece' ? <><Target size={14} className="inline-block" /> Pezzo sospeso</> :
+                     p.type === 'king_exposure' ? <><Crown size={14} className="inline-block" /> Re esposto</> :
+                     p.type === 'promotion_threat' ? <><ArrowUp size={14} className="inline-block" /> Promozione</> :
+                     p.type === 'check' ? <><AlertTriangle size={14} className="inline-block" /> Scacco</> : p.type}
                   </span>
                 ))}
               </div>

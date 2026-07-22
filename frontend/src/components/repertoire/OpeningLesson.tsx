@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
-import { Chessboard } from 'react-chessboard'
+import { ArrowLeft, Bot, ChevronRight, ChevronLeft, RotateCw } from 'lucide-react'
+import { Chessboard } from '../board/ThemedBoard'
 import { EducationalPanel } from '../analysis/EducationalPanel'
 import { useEngineAdapter } from '../../engine/EngineProvider'
 import { generateExplanation } from '../../engine/analysisEngine'
@@ -99,7 +100,7 @@ export function OpeningLesson({ nodes, rootNodeId, openingName, side, onExit }: 
             className="text-sage-500 hover:text-sage-700 transition-colors text-lg leading-none"
             title="Torna all'albero"
           >
-            ←
+            <ArrowLeft size={16} className="inline-block" />
           </button>
           <h2 className="text-lg font-semibold text-sage-900">
             {openingName ?? 'Lezione'}
@@ -118,7 +119,7 @@ export function OpeningLesson({ nodes, rootNodeId, openingName, side, onExit }: 
               : 'bg-white text-sage-700 border border-sage-200 hover:bg-sage-50'
           }`}
         >
-          🤖 Coach
+          <Bot size={16} className="inline-block" /> Coach
         </button>
       </div>
 
@@ -153,7 +154,7 @@ export function OpeningLesson({ nodes, rootNodeId, openingName, side, onExit }: 
                     }`}
                   >
                     <div className="flex items-center gap-2">
-                      {isCurrent && <span className="text-sage-500 text-xs font-bold shrink-0">►</span>}
+                      {isCurrent && <span className="text-sage-500 text-xs font-bold shrink-0"><ChevronRight size={14} className="inline-block" /></span>}
                       {!isCurrent && <span className="w-3 shrink-0" />}
                       {!isRoot && colorDot(node.colorCode)}
                       <span className="text-xs text-sage-500 font-mono shrink-0">
@@ -195,8 +196,6 @@ export function OpeningLesson({ nodes, rootNodeId, openingName, side, onExit }: 
                     borderRadius: '8px',
                     boxShadow: '0 2px 12px rgba(45, 53, 39, 0.08)',
                   },
-                  darkSquareStyle: { backgroundColor: '#7a9a6a' },
-                  lightSquareStyle: { backgroundColor: '#edeed7' },
                 }}
               />
             </div>
@@ -209,14 +208,14 @@ export function OpeningLesson({ nodes, rootNodeId, openingName, side, onExit }: 
                 className="p-2 rounded hover:bg-sage-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-sage-700"
                 title="Mossa precedente"
               >
-                ◀
+                <ChevronLeft size={16} className="inline-block" />
               </button>
               <button
                 onClick={() => setBoardFlipped(f => !f)}
                 className="p-2 rounded hover:bg-sage-100 transition-colors text-sage-700"
                 title="Capovolgi scacchiera"
               >
-                🔄
+                <RotateCw size={16} className="inline-block" />
               </button>
               <button
                 onClick={handleNext}
@@ -224,7 +223,7 @@ export function OpeningLesson({ nodes, rootNodeId, openingName, side, onExit }: 
                 className="p-2 rounded hover:bg-sage-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-sage-700"
                 title="Mossa successiva"
               >
-                ▶
+                <ChevronRight size={16} className="inline-block" />
               </button>
             </div>
           </div>

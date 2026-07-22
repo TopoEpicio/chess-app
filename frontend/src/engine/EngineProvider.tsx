@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { EngineAdapter, EvalInfo } from './interface'
 import { StockfishWasmAdapter } from './stockfish-adapter'
+import { useEngineConfig } from '../stores/engineStore'
 
 const EngineContext = createContext<EngineAdapter | null>(null)
 
@@ -45,6 +46,7 @@ interface EngineProviderProps {
 
 export function EngineProvider({ children, adapter }: EngineProviderProps) {
   const engineRef = useRef<EngineAdapter | null>(null)
+  const config = useEngineConfig()
 
   if (!engineRef.current) {
     engineRef.current = adapter ?? new StockfishWasmAdapter()
@@ -60,6 +62,12 @@ export function EngineProvider({ children, adapter }: EngineProviderProps) {
       engine.destroy()
     }
   }, [engine])
+
+  useEffect(() => {
+    if ('configure' in engine) {
+      ;(engine as any).configure(config)
+    }
+  }, [config.depth, config.hash, config.threads, config.multiPv, config.skillElo])
 
   return (
     <EngineContext.Provider value={engine}>

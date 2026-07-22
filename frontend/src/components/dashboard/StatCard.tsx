@@ -5,8 +5,8 @@ interface Props {
 
 export function StatCard({ value, label }: Props) {
   return (
-    <div className="bg-sage-50 rounded-box p-4 text-center">
-      <div className="text-2xl font-bold">{value}</div>
+    <div className="bg-surface rounded-box p-4 text-center shadow-card">
+      <div className="text-2xl font-bold text-sage-900">{value}</div>
       <div className="text-sm text-sage-700">{label}</div>
     </div>
   )

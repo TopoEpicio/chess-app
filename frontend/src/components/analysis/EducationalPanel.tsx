@@ -1,5 +1,6 @@
 import { CoachCard } from './CoachCard'
 import type { AnalysisExplanation } from '../../types/analysis'
+import { Crosshair, RotateCw, AlertTriangle, Zap, Lightbulb, Circle } from 'lucide-react'
 
 interface Props {
   analysis: AnalysisExplanation | null
@@ -43,7 +44,7 @@ export function EducationalPanel({ analysis, engineReady }: Props) {
   return (
     <div className="space-y-3">
       <CoachCard
-        icon="🎯"
+        icon={<Crosshair size={18} />}
         title="Mossa consigliata"
         variant={isCritical ? 'error' : 'success'}
       >
@@ -63,7 +64,7 @@ export function EducationalPanel({ analysis, engineReady }: Props) {
       </CoachCard>
 
       {analysis.alternatives.length > 0 && (
-        <CoachCard icon="🔄" title="Alternative valide">
+        <CoachCard icon={<RotateCw size={18} />} title="Alternative valide">
           <div className="space-y-2">
             {analysis.alternatives.map((alt, i) => (
               <div key={i} className="pb-2 border-b border-sage-100 last:border-0 last:pb-0">
@@ -80,7 +81,7 @@ export function EducationalPanel({ analysis, engineReady }: Props) {
 
       {analysis.threats.length > 0 && (
         <CoachCard
-          icon="⚠️"
+          icon={<AlertTriangle size={18} />}
           title={analysis.threats.length === 1 ? 'Minaccia avversaria' : 'Minacce avversarie'}
           variant="warning"
         >
@@ -96,15 +97,19 @@ export function EducationalPanel({ analysis, engineReady }: Props) {
 
       {analysis.tacticalPatterns.length > 0 && (
         <CoachCard
-          icon="⚡"
+          icon={<Zap size={18} />}
           title="Pattern tattici"
           variant={isCritical ? 'error' : isWarning ? 'warning' : 'default'}
         >
           <div className="space-y-1.5">
             {analysis.tacticalPatterns.map((p, i) => (
               <div key={i} className="flex items-start gap-2">
-                <span className="mt-0.5 text-xs leading-none">
-                  {p.severity === 'critical' ? '🔴' : p.severity === 'warning' ? '🟡' : '🟢'}
+                <span className="mt-0.5 flex items-center">
+                  {p.severity === 'critical'
+                    ? <Circle size={10} fill="#d9534f" color="#d9534f" />
+                    : p.severity === 'warning'
+                    ? <Circle size={10} fill="#f0ad4e" color="#f0ad4e" />
+                    : <Circle size={10} fill="#5cb85c" color="#5cb85c" />}
                 </span>
                 <p className="text-xs text-sage-700">{p.description}</p>
               </div>
@@ -114,7 +119,7 @@ export function EducationalPanel({ analysis, engineReady }: Props) {
       )}
 
       {analysis.keyConcepts.length > 0 && (
-        <CoachCard icon="💡" title="Concetti chiave">
+        <CoachCard icon={<Lightbulb size={18} />} title="Concetti chiave">
           <ul className="space-y-1 list-disc list-inside">
             {analysis.keyConcepts.map((c, i) => (
               <li key={i} className="text-xs text-sage-700">{c}</li>

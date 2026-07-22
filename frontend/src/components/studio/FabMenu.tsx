@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { Folder, BookOpen, FileText, Link, Play, X, Plus } from 'lucide-react'
 
 interface Props {
   onAddFolder: () => void
@@ -21,11 +22,11 @@ export function FabMenu({ onAddFolder, onAddOpening, onUploadFile, onAddLink, on
   }, [])
 
   const items = [
-    { label: 'Nuova cartella', icon: '📁', action: onAddFolder },
-    { label: 'Nuova apertura', icon: '♟️', action: onAddOpening },
-    { label: 'Carica file', icon: '📄', action: onUploadFile },
-    { label: 'Aggiungi link', icon: '🔗', action: onAddLink },
-    { label: 'Aggiungi video YouTube', icon: '▶️', action: onAddYoutube },
+    { label: 'Nuova cartella', icon: <Folder size={16} className="inline-block" />, action: onAddFolder },
+    { label: 'Nuova apertura', icon: <BookOpen size={16} />, action: onAddOpening },
+    { label: 'Carica file', icon: <FileText size={16} className="inline-block" />, action: onUploadFile },
+    { label: 'Aggiungi link', icon: <Link size={16} className="inline-block" />, action: onAddLink },
+    { label: 'Aggiungi video YouTube', icon: <Play size={16} className="inline-block" />, action: onAddYoutube },
   ]
 
   return (
@@ -36,7 +37,7 @@ export function FabMenu({ onAddFolder, onAddOpening, onUploadFile, onAddLink, on
             <button
               key={item.label}
               onClick={() => { setOpen(false); item.action() }}
-              className="flex items-center gap-2 bg-white rounded-lg shadow-lg px-4 py-2.5 text-sm text-sage-900 hover:bg-sage-50 transition-colors whitespace-nowrap border border-sage-100"
+              className="flex items-center gap-2 bg-white-pure rounded-lg shadow-lg px-4 py-2.5 text-sm text-sage-900 hover:bg-sage-50 transition-colors whitespace-nowrap border border-sage-100"
             >
               <span>{item.icon}</span>
               <span>{item.label}</span>
@@ -48,7 +49,7 @@ export function FabMenu({ onAddFolder, onAddOpening, onUploadFile, onAddLink, on
         onClick={() => setOpen(!open)}
         className="w-14 h-14 bg-sage-500 text-white rounded-full shadow-lg hover:bg-sage-700 transition-colors text-2xl flex items-center justify-center"
       >
-        {open ? '×' : '+'}
+        {open ? <X size={20} /> : <Plus size={20} />}
       </button>
     </div>
   )

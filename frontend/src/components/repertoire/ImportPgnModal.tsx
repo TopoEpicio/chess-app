@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { X, Circle } from 'lucide-react'
 import { Chess } from 'chess.js'
 import { parseRepertoireText } from '../../utils/repertoireParser'
 import type { ParsedVariation } from '../../utils/repertoireParser'
@@ -157,7 +158,7 @@ export function ImportPgnModal({ repertoireId: _repertoireId, onImport, onImport
       <div className="bg-white rounded-box shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
         <div className="p-5 border-b border-sage-100 flex justify-between items-center shrink-0">
           <h2 className="text-lg font-semibold">Importa nel Repertorio</h2>
-          <button onClick={onClose} className="text-sage-500 hover:text-sage-700 text-xl leading-none">×</button>
+          <button onClick={onClose} className="text-sage-500 hover:text-sage-700 text-xl leading-none"><X size={20} /></button>
         </div>
 
         <div className="px-5 pt-4 pb-2 flex items-center gap-3 shrink-0">
@@ -169,7 +170,7 @@ export function ImportPgnModal({ repertoireId: _repertoireId, onImport, onImport
                 side === 'white' ? 'bg-sage-500 text-white' : 'bg-white text-sage-700 hover:bg-sage-50'
               }`}
             >
-              ⚪ Bianco
+              <Circle size={16} className="inline-block" fill="white" stroke="black" /> Bianco
             </button>
             <button
               onClick={() => setSide('black')}
@@ -177,7 +178,7 @@ export function ImportPgnModal({ repertoireId: _repertoireId, onImport, onImport
                 side === 'black' ? 'bg-sage-500 text-white' : 'bg-white text-sage-700 hover:bg-sage-50'
               }`}
             >
-              ⚫ Nero
+              <Circle size={16} className="inline-block" fill="black" stroke="black" /> Nero
             </button>
           </div>
         </div>

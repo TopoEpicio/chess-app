@@ -2,7 +2,31 @@ import { describe, it, expect } from 'vitest'
 import { MockApiClient } from '../mock-client.ts'
 import type { Puzzle } from '../../types'
 
+const defaultSettings = {
+  i18n: { default_locale: 'en', supported_locales: ['en', 'it'] },
+  theme: { default_theme: 'auto', default_board_theme: 'default' },
+  board: { square_opacity: 1.0, piece_shadow: true },
+}
+
 describe('MockApiClient', () => {
+  it('settings returns default settings structure', async () => {
+    const client = new MockApiClient()
+    const result = await client.settings()
+    expect(result).toEqual(defaultSettings)
+  })
+
+  it('settings returns configured settings', async () => {
+    const client = new MockApiClient()
+    client.setSettings({
+      i18n: { default_locale: 'it', supported_locales: ['it', 'en'] },
+      theme: { default_theme: 'dark', default_board_theme: 'blue' },
+      board: { square_opacity: 0.8, piece_shadow: false },
+    })
+    const result = await client.settings()
+    expect(result.i18n.default_locale).toBe('it')
+    expect(result.theme.default_theme).toBe('dark')
+    expect(result.board.square_opacity).toBe(0.8)
+  })
   it('health returns ok', async () => {
     const client = new MockApiClient()
     const result = await client.health()

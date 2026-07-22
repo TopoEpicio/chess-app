@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from 'react'
+import { PartyPopper, X, ThumbsUp, TrendingUp, BookOpen } from 'lucide-react'
 import { Chess } from 'chess.js'
-import { Chessboard } from 'react-chessboard'
+import { Chessboard } from '../board/ThemedBoard'
 import type { RepertoireNode } from '../../types'
 
 interface Props {
@@ -125,14 +126,12 @@ export function RepertoireQuiz({ nodes, startNodeId, onExit }: Props) {
               borderRadius: '8px',
               boxShadow: '0 2px 12px rgba(45, 53, 39, 0.08)',
             },
-            darkSquareStyle: { backgroundColor: '#7a9a6a' },
-            lightSquareStyle: { backgroundColor: '#edeed7' },
           }}
         />
         {feedback && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg">
             <div className="bg-white rounded-box shadow-xl p-6 mx-4 text-center max-w-xs">
-              <div className="text-red-600 font-semibold mb-2">✗ Mossa errata</div>
+              <div className="text-red-600 font-semibold mb-2"><X size={16} className="inline-block" /> Mossa errata</div>
               <p className="text-sm text-sage-700 mb-1">
                 La mossa corretta era:
               </p>
@@ -167,9 +166,9 @@ export function RepertoireQuiz({ nodes, startNodeId, onExit }: Props) {
       {isComplete && (
         <div className="bg-white rounded-box shadow-[0_2px_12px_rgba(45,53,39,0.08)] p-6 w-full max-w-md text-center">
           <div className="text-2xl font-bold mb-2">
-            {score === totalSteps ? '🎉 Perfetto!' :
-             score >= totalSteps * 0.7 ? '👏 Ottimo lavoro!' :
-             score >= totalSteps * 0.4 ? '💪 Continua così!' : '📚 Da ripassare'}
+            {score === totalSteps ? <><PartyPopper size={24} className="inline-block" /> Perfetto!</> :
+             score >= totalSteps * 0.7 ? <><ThumbsUp size={24} className="inline-block" /> Ottimo lavoro!</> :
+             score >= totalSteps * 0.4 ? <><TrendingUp size={24} className="inline-block" /> Continua così!</> : <><BookOpen size={24} className="inline-block" /> Da ripassare</>}
           </div>
           <div className="text-sage-700 mb-4">
             {score} / {totalSteps} mosse corrette ({Math.round((score / totalSteps) * 100)}%)

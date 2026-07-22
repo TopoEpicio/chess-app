@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 
 interface Props {
-  icon: string
+  icon: ReactNode
   title: string
   variant?: 'default' | 'success' | 'warning' | 'error'
   children: ReactNode
@@ -19,7 +19,7 @@ export function CoachCard({ icon, title, variant = 'default', children }: Props)
     <div className={`bg-white rounded-box shadow-[0_2px_12px_rgba(45,53,39,0.08)] overflow-hidden border-l-4 ${variantStyles[variant]}`}>
       <div className="px-4 py-3 border-b border-sage-100">
         <div className="flex items-center gap-2">
-          <span className="text-base leading-none">{icon}</span>
+          <span className="text-base leading-none flex items-center">{icon}</span>
           <h3 className="text-xs font-semibold uppercase tracking-wider text-sage-600">{title}</h3>
         </div>
       </div>

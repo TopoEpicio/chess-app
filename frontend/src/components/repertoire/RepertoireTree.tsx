@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { ChevronDown, ChevronRight, Trash2, Pencil, X } from 'lucide-react'
 import type { RepertoireNode } from '../../types'
 import { filterTree, buildTree } from '../../repertoire/tree'
 
@@ -58,7 +59,7 @@ function TreeNode({
           }}
           className={`p-0.5 rounded transition-colors duration-150 ${hasChildren ? '' : 'invisible'}`}
         >
-          {hasChildren ? (expanded ? '▼' : '▶') : ''}
+          {hasChildren ? (expanded ? <ChevronDown size={12} className="inline-block" /> : <ChevronRight size={12} className="inline-block" />) : ''}
         </button>
 
         <span
@@ -86,14 +87,14 @@ function TreeNode({
             className="p-1 text-sage-600 hover:bg-sage-100 rounded text-xs leading-none"
             title="Modifica"
           >
-            ✎
+            <Pencil size={12} />
           </button>
           <button
             onClick={e => { e.stopPropagation(); onDelete(node.id) }}
             className="p-1 text-red-500 hover:bg-red-50 rounded text-xs leading-none"
             title="Elimina"
           >
-            🗑
+            <Trash2 size={12} className="inline-block" />
           </button>
         </div>
       </div>
@@ -146,7 +147,7 @@ export function RepertoireTree({
             onClick={() => setSearch('')}
             className="absolute right-2 top-1/2 -translate-y-1/2 text-sage-400 hover:text-sage-600 text-xs"
           >
-            ✕
+            <X size={12} />
           </button>
         )}
       </div>

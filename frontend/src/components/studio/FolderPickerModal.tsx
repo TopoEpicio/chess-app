@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type JSX } from 'react'
 import { api } from '../../api/client'
 import type { StudyFolder } from '../../types'
+import { Folder } from 'lucide-react'
 
 interface FolderPickerModalProps {
   title: string
@@ -39,7 +40,7 @@ export function FolderPickerModal({ title, excludeId, onSelect, onClose }: Folde
         className="w-full text-left px-4 py-2 text-sm hover:bg-sage-50 transition-colors flex items-center gap-2"
         style={{ paddingLeft: 16 + depth * 20 }}
       >
-        <span>📁</span>
+        <Folder size={16} className="inline-block" />
         <span>{f.name}</span>
       </button>,
       ...renderTree(byParent[f.id] ?? [], depth + 1),
@@ -48,7 +49,7 @@ export function FolderPickerModal({ title, excludeId, onSelect, onClose }: Folde
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-box shadow-xl w-full max-w-md max-h-[70vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white-pure rounded-box shadow-xl w-full max-w-md max-h-[70vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="p-5 border-b border-sage-100">
           <h2 className="text-lg font-semibold">{title}</h2>
         </div>

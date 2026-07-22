@@ -2,11 +2,12 @@ import logging
 from contextlib import asynccontextmanager
 from typing import Optional
 
+import sqlalchemy as sa
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
-from app.config import get_settings
+from app.config import get_settings as get_app_settings
 from app.database import get_db
 from app.database import Base, engine, SessionLocal
 from app.exception_handlers import register_exception_handlers
@@ -19,7 +20,7 @@ from app.routers import analysis, import_bulk, openings, puzzles, recal, reperto
 from app.schemas.common import HealthDeepResponse, HealthResponse
 
 
-settings = get_settings()
+app_config = get_app_settings()
 
 # Configure structured logging
 configure_logging()
@@ -30,7 +31,7 @@ logger = get_logger(__name__)
 async def lifespan(app: FastAPI):
     """Application lifespan handler."""
     # Startup
-    logger.info("Starting Chess Trainer API", version=settings.app_version, environment=settings.environment)
+    logger.info("Starting Chess Trainer API", version=app_config.app_version, environment=app_config.environment)
 
     # Create tables (for SQLite dev; use Alembic for production)
     Base.metadata.create_all(bind=engine)
@@ -45,6 +46,10 @@ async def lifespan(app: FastAPI):
             "eco": "VARCHAR(8)",
             "event_date": "VARCHAR(16)",
             "opening_name": "VARCHAR(128)",
+            "white_accuracy": "FLOAT",
+            "black_accuracy": "FLOAT",
+            "analyzed_at": "DATETIME",
+            "analysis_status": "VARCHAR(16) DEFAULT 'none'",
         }
         with engine.connect() as conn:
             for col_name, col_type in new_columns.items():
@@ -97,18 +102,18 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title=settings.app_name,
-    version=settings.app_version,
+    title=app_config.app_name,
+    version=app_config.app_version,
     description="Chess Training API with puzzles, repertoire, analysis, and study tools",
     lifespan=lifespan,
-    docs_url="/docs" if settings.debug else None,
-    redoc_url="/redoc" if settings.debug else None,
+    docs_url="/docs" if app_config.debug else None,
+    redoc_url="/redoc" if app_config.debug else None,
 )
 
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,
+    allow_origins=app_config.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -139,7 +144,7 @@ async def health_check():
     """Basic liveness check - service is running."""
     return HealthResponse(
         status="ok",
-        version=settings.app_version,
+        version=app_config.app_version,
     )
 
 
@@ -157,7 +162,7 @@ async def readiness_check():
 
     return HealthResponse(
         status="ok" if db_status == "ok" else "degraded",
-        version=settings.app_version,
+        version=app_config.app_version,
         database=db_status,
     )
 
@@ -190,7 +195,7 @@ async def deep_health_check():
     redis_check = {"status": "ok"}
     try:
         import redis
-        r = redis.from_url(settings.redis_url)
+        r = redis.from_url(app_config.redis_url)
         r.ping()
     except Exception as e:
         redis_check = {"status": "down", "error": str(e)}
@@ -201,7 +206,7 @@ async def deep_health_check():
 
     return HealthDeepResponse(
         status=overall_status,
-        version=settings.app_version,
+        version=app_config.app_version,
         database=db_check,
         engine=engine_check,
         redis=redis_check,
@@ -212,8 +217,8 @@ async def deep_health_check():
 @app.get("/", tags=["root"])
 async def root():
     return {
-        "name": settings.app_name,
-        "version": settings.app_version,
+        "name": app_config.app_name,
+        "version": app_config.app_version,
         "docs": "/docs",
         "health": "/api/health",
     }

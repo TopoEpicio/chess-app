@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Chessboard } from 'react-chessboard'
+import { Chessboard } from '../board/ThemedBoard'
 import { Chess } from 'chess.js'
 import { useEngineAdapter } from '../../engine/EngineProvider'
 import { generateExplanation } from '../../engine/analysisEngine'
 import type { AnalysisExplanation } from '../../types/analysis'
+import { Zap, Pin, Crosshair, Target, Skull, Flag, ArrowUp, ChevronDown, Check, X } from 'lucide-react'
 
 interface PuzzleData {
   id: number
@@ -34,15 +35,15 @@ const THEME_LABELS: Record<string, string> = {
   promotion_threat: 'Promozione',
 }
 
-const THEME_ICONS: Record<string, string> = {
-  fork: '⚡',
-  pin: '📌',
-  skewer: '🔱',
-  double_attack: '🎯',
-  checkmate: '♛',
-  endgame: '🏁',
-  hanging_piece: '🎯',
-  promotion_threat: '⬆',
+const THEME_ICONS: Record<string, React.ReactNode> = {
+  fork: <Zap size={14} className="inline-block" />,
+  pin: <Pin size={14} className="inline-block" />,
+  skewer: <Crosshair size={14} className="inline-block" />,
+  double_attack: <Target size={14} className="inline-block" />,
+  checkmate: <Skull size={14} className="inline-block" />,
+  endgame: <Flag size={14} className="inline-block" />,
+  hanging_piece: <Target size={14} className="inline-block" />,
+  promotion_threat: <ArrowUp size={14} className="inline-block" />,
 }
 
 export function PuzzleSolver({ puzzle, onSolve, onNext, onBack }: Props) {
@@ -59,8 +60,8 @@ export function PuzzleSolver({ puzzle, onSolve, onNext, onBack }: Props) {
   const [autoPlaying, setAutoPlaying] = useState(false)
   const [animating, setAnimating] = useState(false)
   const { deepAnalyze } = useEngineAdapter()
-  const autoTimer = useRef<ReturnType<typeof setTimeout>>()
-  const animTimer = useRef<ReturnType<typeof setTimeout>>()
+  const autoTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const animTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   const turnColor = puzzle.fen.split(' ')[1] === 'w' ? 'white' : 'black'
 
@@ -248,7 +249,7 @@ export function PuzzleSolver({ puzzle, onSolve, onNext, onBack }: Props) {
             {THEME_ICONS[puzzle.theme] ?? ''} {THEME_LABELS[puzzle.theme] ?? puzzle.theme} · {puzzle.difficulty}/10
           </span>
           <span className="text-xs font-semibold px-2 py-1 rounded bg-sage-100 text-sage-700">
-            {turnColor === 'white' ? '♟ Muove il Bianco' : '♟ Muove il Nero'}
+            {turnColor === 'white' ? <><ChevronDown size={16} className="inline-block" /> Muove il Bianco</> : <><ChevronDown size={16} className="inline-block" /> Muove il Nero</>}
           </span>
         </div>
       </div>
@@ -264,8 +265,6 @@ export function PuzzleSolver({ puzzle, onSolve, onNext, onBack }: Props) {
                   onPieceDrop: onDrop,
                   boardOrientation: turnColor,
                   boardStyle: { borderRadius: '0', boxShadow: 'none' },
-                  darkSquareStyle: { backgroundColor: '#7a9a6a' },
-                  lightSquareStyle: { backgroundColor: '#edeed7' },
                 }}
               />
             </div>
@@ -313,7 +312,7 @@ export function PuzzleSolver({ puzzle, onSolve, onNext, onBack }: Props) {
         <div className="space-y-4">
           {status === 'correct' && !showSolution && (
             <div className="bg-green-50 border border-green-200 rounded-box p-4 text-center">
-              <div className="text-2xl mb-1">✓</div>
+              <div className="text-2xl mb-1"><Check size={16} className="text-green-500 inline-block" /></div>
               <div className="text-green-700 font-semibold">Risolto!</div>
               <div className="text-sm text-green-600 mt-1">
                 Tempo: {formatTime(elapsed)}
@@ -324,7 +323,7 @@ export function PuzzleSolver({ puzzle, onSolve, onNext, onBack }: Props) {
           {status === 'wrong' && (
             <div className="bg-red-50 border border-red-200 rounded-box p-4">
               <div className="text-center">
-                <div className="text-2xl mb-1">✗</div>
+                <div className="text-2xl mb-1"><X size={16} className="text-red-500 inline-block" /></div>
                 <div className="text-red-700 font-semibold">Mossa errata</div>
                 <div className="text-sm text-red-600 mt-1">
                   Hai giocato {wrongMove}
