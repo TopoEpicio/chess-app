@@ -1,12 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { InteractiveBoard } from '../components/board/ChessBoard';
+import { ChessBoard } from '../components/board/ChessBoard';
 import { PgnImporter } from '../components/analysis/PgnImporter';
-import { EducationalPanel } from '../components/analysis/EducationalPanel';
-import { EvaluationChart } from '../components/analysis/EvaluationChart';
-import { MoveClassificationTable } from '../components/analysis/MoveClassificationTable';
-import { ArrowControls } from '../components/analysis/ArrowControls';
 import { ProgressBar } from '../components/analysis/ProgressBar';
 import { TabNav } from '../components/analysis/TabNav';
+import { ArrowControls } from '../components/analysis/ArrowControls';
 import { api } from '../api/client';
 import { Chess } from 'chess.js';
 import { DifficultyCalculator } from '@chess-app/chess-domain';
@@ -15,8 +12,14 @@ import { generateExplanation } from '../engine/analysisEngine';
 import type { AnalysisExplanation, GameAnalysisResult, ArrowConfig, MoveAnalysisData } from '../types/analysis';
 import { DEFAULT_ARROW_CONFIG } from '../types/analysis';
 import { analyzeGameMoves, calculateAccuracy, countClassifications } from '../engine/gameAnalysisService';
-import { ArrowLeft, RotateCw } from 'lucide-react';
 import { useMoveNavigation, type MoveItem } from '../engine/useMoveNavigation';
+import { AnalysisLayout } from '../sections/analysis/AnalysisLayout';
+import { PanelHeader } from '../sections/analysis/panelHeader';
+import { PanelToolbar } from '../sections/analysis/panelToolbar';
+import { AnalysisTab } from '../sections/analysis/panelBody/analysisTab';
+import { GraphTab } from '../sections/analysis/panelBody/graphTab';
+import { ClassificationTab } from '../sections/analysis/panelBody/classificationTab';
+import { CoachTab } from '../sections/analysis/panelBody/coachTab';
 
 export function Analysis({ gameId, onBack }: { gameId?: number; onBack?: () => void }) {
   const [showPgnImport, setShowPgnImport] = useState(false);
@@ -30,8 +33,6 @@ export function Analysis({ gameId, onBack }: { gameId?: number; onBack?: () => v
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [selectedTab, setSelectedTab] = useState<'summary' | 'graph' | 'moves' | 'arrows' | 'coach'>('summary');
   const [arrowConfig, setArrowConfig] = useState<ArrowConfig>(DEFAULT_ARROW_CONFIG);
-  const [arrows, setArrows] = useState<{ startSquare: string; endSquare: string; color: string }[]>([]);
-  const [highlightedSquares, setHighlightedSquares] = useState<Record<string, React.CSSProperties>>({});
   const { currentIndex, goToMove, goNext, goPrev, canPrev, canNext } = useMoveNavigation(moves);
   const [generating, setGenerating] = useState(false);
   const [puzzleMsg, setPuzzleMsg] = useState('');
@@ -242,161 +243,91 @@ export function Analysis({ gameId, onBack }: { gameId?: number; onBack?: () => v
 
   const analysisMoves: MoveAnalysisData[] = gameResult?.moves ?? [];
 
-  const renderTabContent = () => {
-    switch (selectedTab) {
-      case 'summary':
-        return (
-          <div className="space-y-4">
-            <div className="text-center">
-              <button
-                onClick={startAnalysis}
-                disabled={!ready}
-                className="btn-primary px-4 py-2 rounded text-sm"
-              >
-                Analizza Partita
-              </button>
-              {gameResult && (
-                <button onClick={saveAnalysis} className="btn-ghost px-4 py-2 rounded text-sm">
-                  Salva analisi
-                </button>
-              )}
-            </div>
-            {gameResult && (
-              <div className="text-sm text-sage-700 space-y-2 bg-white rounded-box p-4 shadow-sm">
-                <div><strong>Precisione Bianco:</strong> {gameResult.white_accuracy?.toFixed(1) ?? 'N/A'}%</div>
-                <div><strong>Precisione Nero:</strong> {gameResult.black_accuracy?.toFixed(1) ?? 'N/A'}%</div>
-                <div><strong>Mosse analizzate:</strong> {gameResult.moves.length}</div>
-                <div><strong>Stato:</strong> {gameResult.status}</div>
-              </div>
-            )}
-          </div>
-        );
-      case 'graph':
-        return (
-          <div className="space-y-4">
-            <EvaluationChart moves={analysisMoves} />
-          </div>
-        );
-      case 'moves':
-        return (
-          <div className="space-y-4">
-            <MoveClassificationTable
-              moves={analysisMoves}
-              classificationCounts={gameResult?.total_classification_counts}
-              currentIndex={currentIndex}
-              onMoveSelect={(i) => goToMove(i)}
-            />
-          </div>
-        );
-      case 'arrows':
-        return (
-          <div className="space-y-4">
-            <ArrowControls config={arrowConfig} onChange={setArrowConfig} />
-          </div>
-        );
-      case 'coach':
-        return <EducationalPanel analysis={analysisResult} engineReady={ready} />;
-      default:
-        return null;
-    }
-  };
-
-  const renderBoard = () => (
-    <div className="space-y-4">
-      <InteractiveBoard
-        boardWidth={520}
-        showEval
-        fen={fen}
-        boardOrientation={boardFlipped ? 'black' : 'white'}
-        onMove={handleMove}
-        arrows={arrows}
-        highlightedSquares={highlightedSquares}
-      />
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => goToMove(currentIndex - 1)}
-            disabled={!canPrev}
-            className={`px-3 py-1 rounded text-sm transition-colors ${
-              canPrev ? 'bg-sage-500 text-white hover:bg-sage-700' : 'bg-sage-100 text-sage-400 cursor-not-allowed'
-            }`}
-          >
-            &larr; Precedente
-          </button>
-          <span className="text-sm text-sage-700">
-            {currentIndex + 1} / {moves.length}
-          </span>
-          <button
-            onClick={() => goToMove(currentIndex + 1)}
-            disabled={!canNext}
-            className={`px-3 py-1 rounded text-sm transition-colors ${
-              canNext ? 'bg-sage-500 text-white hover:bg-sage-700' : 'bg-sage-100 text-sage-400 cursor-not-allowed'
-            }`}
-          >
-            Successiva &rarr;
-          </button>
-        </div>
-        <button
-          onClick={() => setBoardFlipped(f => !f)}
-          className="px-3 py-1 rounded-box text-sm font-medium transition-colors bg-sage-100 hover:bg-sage-200"
-          title="Capovolgi scacchiera"
-        >
-          <RotateCw size={16} className="inline-block" />
-        </button>
-      </div>
-    </div>
-  );
-
-  const renderActions = () => (
-    <div className="mt-6 space-y-3">
-      <div className="text-xs font-semibold uppercase tracking-wider text-sage-500 mb-2">Azioni</div>
-      <div className="space-y-2">
-        <button className="btn-primary w-full" onClick={() => setShowPgnImport(true)}>Importa PGN</button>
-        <button className="btn-ghost w-full text-sm" onClick={resetBoard}>Nuova posizione</button>
-        <button className="btn-ghost w-full text-sm" onClick={playBotMove} disabled={playingBot || !ready || fen === undefined}>
-          {playingBot ? 'Bot sta pensando...' : 'Gioca contro bot'}
-        </button>
-        {fen && analysisResult && (
-          <button className="btn-ghost w-full text-sm text-amber-700 border border-amber-300 hover:bg-amber-50" onClick={createPuzzleFromPosition}>
-            Crea puzzle da questa posizione
-          </button>
-        )}
-        {currentGameId && moves.length > 0 && (
-          <button className="btn-ghost w-full text-sm text-amber-700 border border-amber-300 hover:bg-amber-50" onClick={generateAllPuzzles} disabled={generating}>
-            {generating ? 'Generazione in corso...' : 'Genera tutti i puzzle'}
-          </button>
-        )}
-      </div>
-      {importMsg && <div className="mt-2 text-sm text-sage-700 bg-sage-50 rounded-lg p-2 text-center">{importMsg}</div>}
-      {saveMsg && <div className="mt-2 text-sm text-green-700 bg-green-50 rounded-lg p-2 text-center">{saveMsg}</div>}
-      {puzzleMsg && <div className="mt-2 text-sm text-green-700 bg-green-50 rounded-lg p-2 text-center">{puzzleMsg}</div>}
-    </div>
-  );
-
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
-      {onBack && (
-        <button onClick={onBack} className="text-sm text-sage-600 hover:text-sage-900 mb-4 flex items-center gap-1">
-          <ArrowLeft size={16} className="inline-block" /> Torna indietro
-        </button>
-      )}
-      {gameId && <p className="text-sm text-sage-700 mb-4">Analisi partita #{gameId}</p>}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Analisi</h1>
-        <p className="text-sm text-sage-700">Analisi con Stockfish, spiegazioni e note del coach</p>
-      </div>
+      <PanelHeader
+        onBack={onBack}
+        gameId={gameId}
+        onImportPgn={() => setShowPgnImport(true)}
+        importMsg={importMsg}
+      />
 
-      <div style={{ display: 'table', width: '100%', tableLayout: 'fixed' }}>
-        <div style={{ display: 'table-cell', width: 636, verticalAlign: 'top', paddingRight: 24 }} className="space-y-4">
-          {renderBoard()}
-          {renderActions()}
-        </div>
-        <div style={{ display: 'table-cell', verticalAlign: 'top' }} className="space-y-4">
-          <ProgressBar progress={analysisProgress} />
-          <TabNav selected={selectedTab} onSelect={setSelectedTab} />
-          {renderTabContent()}
-        </div>
-      </div>
+      <AnalysisLayout
+        board={
+          <div className="space-y-4">
+            <ChessBoard
+              boardWidth={520}
+              showEval
+              position={fen}
+              boardOrientation={boardFlipped ? 'black' : 'white'}
+              onMove={handleMove}
+              moveData={gameResult?.moves?.[currentIndex] ?? null}
+            />
+            <PanelToolbar
+              currentIndex={currentIndex}
+              totalMoves={moves.length}
+              canPrev={canPrev}
+              canNext={canNext}
+              onPrev={() => goToMove(currentIndex - 1)}
+              onNext={() => goToMove(currentIndex + 1)}
+              boardFlipped={boardFlipped}
+              onFlip={() => setBoardFlipped(f => !f)}
+            />
+            <div className="space-y-3">
+              <div className="text-xs font-semibold uppercase tracking-wider text-sage-500 mb-2">Azioni</div>
+              <div className="space-y-2">
+                <button className="btn-ghost w-full text-sm" onClick={resetBoard}>Nuova posizione</button>
+                <button className="btn-ghost w-full text-sm" onClick={playBotMove} disabled={playingBot || !ready || fen === undefined}>
+                  {playingBot ? 'Bot sta pensando...' : 'Gioca contro bot'}
+                </button>
+                {fen && analysisResult && (
+                  <button className="btn-ghost w-full text-sm text-amber-700 border border-amber-300 hover:bg-amber-50" onClick={createPuzzleFromPosition}>
+                    Crea puzzle da questa posizione
+                  </button>
+                )}
+                {currentGameId && moves.length > 0 && (
+                  <button className="btn-ghost w-full text-sm text-amber-700 border border-amber-300 hover:bg-amber-50" onClick={generateAllPuzzles} disabled={generating}>
+                    {generating ? 'Generazione in corso...' : 'Genera tutti i puzzle'}
+                  </button>
+                )}
+              </div>
+              {saveMsg && <div className="mt-2 text-sm text-green-700 bg-green-50 rounded-lg p-2 text-center">{saveMsg}</div>}
+              {puzzleMsg && <div className="mt-2 text-sm text-green-700 bg-green-50 rounded-lg p-2 text-center">{puzzleMsg}</div>}
+            </div>
+          </div>
+        }
+        sidePanel={
+          <>
+            <ProgressBar progress={analysisProgress} />
+            <TabNav selected={selectedTab} onSelect={setSelectedTab} />
+            {selectedTab === 'summary' && (
+              <AnalysisTab
+                onStartAnalysis={startAnalysis}
+                canStart={ready}
+                onSaveAnalysis={saveAnalysis}
+                hasGameResult={!!gameResult}
+                whiteAccuracy={gameResult?.white_accuracy ?? null}
+                blackAccuracy={gameResult?.black_accuracy ?? null}
+                movesCount={analysisMoves.length}
+                status={gameResult?.status ?? ''}
+              />
+            )}
+            {selectedTab === 'graph' && <GraphTab moves={analysisMoves} />}
+            {selectedTab === 'moves' && (
+              <ClassificationTab
+                moves={analysisMoves}
+                classificationCounts={gameResult?.total_classification_counts}
+                currentIndex={currentIndex}
+                onMoveSelect={(i) => goToMove(i)}
+              />
+            )}
+            {selectedTab === 'arrows' && (
+              <ArrowControls config={arrowConfig} onChange={setArrowConfig} />
+            )}
+            {selectedTab === 'coach' && <CoachTab analysis={analysisResult} engineReady={ready} />}
+          </>
+        }
+      />
 
       {showPgnImport && (
         <PgnImporter onImport={handleImport} onClose={() => setShowPgnImport(false)} />

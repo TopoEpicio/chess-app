@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { ArrowLeft, Target, BookOpen, Plus } from 'lucide-react'
 import { Chess } from 'chess.js'
-import { InteractiveBoard } from '../board/ChessBoard'
+import { ChessBoard } from '../board/ChessBoard'
 import { RepertoireTree } from './RepertoireTree'
 import { RepertoireInfoPanel } from './RepertoireInfoPanel'
 import { RepertoireBoardControls } from './RepertoireBoardControls'
@@ -322,11 +322,11 @@ export function RepertoireViewer({
             {/* Panel 2: Board + Controls */}
             <div className="space-y-4 min-w-0 overflow-y-auto">
               <div className="flex justify-center">
-                <InteractiveBoard
+                <ChessBoard
                   boardWidth={520}
                   showEval={showEval}
                   boardOrientation={boardFlipped ? 'black' : 'white'}
-                  fen={selectedNode?.fen || 'start'}
+                  position={selectedNode?.fen || 'start'}
                   onMove={({ from, to, promotion }) => {
                     if (!selectedNode) return
                     const g = new Chess(selectedNode.fen || undefined)

@@ -1,57 +1,82 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useCallback, useState, useEffect, useRef } from 'react'
 import { Chess } from 'chess.js'
+import { useAtomValue } from 'jotai'
 import { Chessboard } from './ThemedBoard'
 import { EvalBar } from './EvalBar'
-import { useEngineAdapter } from '../../engine/EngineProvider'
+import { SquareRenderer } from './SquareRenderer'
+import { getBoardArrows } from './boardArrows'
+import { getSquareStyles, getClassificationIcons } from './boardStyles'
+import { arrowConfigAtom } from '../../state/atoms/engineAtoms'
+import type { MoveAnalysisData, MoveClassification } from '../../types/analysis'
 
-interface Arrow {
-  startSquare: string
-  endSquare: string
-  color: string
-}
-
-interface Props {
+interface ChessBoardProps {
+  position?: string
+  moveData?: MoveAnalysisData | null
+  classification?: MoveClassification
+  lastMoveUci?: string
+  boardOrientation?: 'white' | 'black'
   boardWidth?: number
   showEval?: boolean
-  fen?: string
-  boardOrientation?: 'white' | 'black'
   onMove?: (move: { from: string; to: string; promotion?: string }) => void
-  arrows?: Arrow[]
+  onSquareClick?: (square: string) => void
   highlightedSquares?: Record<string, React.CSSProperties>
 }
 
-export function InteractiveBoard({ boardWidth = 400, showEval = true, fen, boardOrientation, onMove, arrows, highlightedSquares }: Props) {
+export function ChessBoard({
+  position,
+  moveData,
+  classification,
+  lastMoveUci,
+  boardOrientation = 'white',
+  boardWidth = 400,
+  showEval = true,
+  onMove,
+  highlightedSquares,
+}: ChessBoardProps) {
   const [game] = useState(() => new Chess())
-  const [position, setPosition] = useState(fen || 'start')
-  const { evalInfo, analyze, ready, error } = useEngineAdapter()
+  const [internalPosition, setInternalPosition] = useState(position || 'start')
   const prevFenRef = useRef<string | undefined>(undefined)
+  const arrowConfig = useAtomValue(arrowConfigAtom)
+  const [rightClickHighlights, setRightClickHighlights] = useState<Record<string, React.CSSProperties>>({})
 
   useEffect(() => {
-    if (fen === undefined) {
+    if (position === undefined) {
       game.reset()
       prevFenRef.current = undefined
-      setPosition('start')
+      setInternalPosition('start')
       return
     }
-    if (fen === prevFenRef.current) return
-    prevFenRef.current = fen
+    if (position === prevFenRef.current) return
+    prevFenRef.current = position
 
     try {
-      game.load(fen)
+      game.load(position)
     } catch {
       return
     }
-    setPosition(fen)
-  }, [fen, game])
+    setInternalPosition(position)
+  }, [position, game])
 
-  useEffect(() => {
-    if (!ready) return
-      const fen =
-        position === 'start'
-          ? 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
-          : position
-    analyze(fen)
-  }, [position, ready, analyze])
+  const arrows = moveData
+    ? getBoardArrows(moveData, arrowConfig)
+    : []
+
+  const displayClassification = classification || moveData?.classification
+  const displayLastMoveUci = lastMoveUci || moveData?.best_move_uci
+
+  const squareStyles = {
+    ...getSquareStyles({
+      lastMoveUci: displayLastMoveUci,
+      classification: displayClassification,
+      rightClickHighlights,
+    }),
+    ...(highlightedSquares || {}),
+  }
+
+  const icons = getClassificationIcons({
+    classification: displayClassification,
+    lastMoveUci: displayLastMoveUci,
+  })
 
   const onDrop = useCallback(
     ({ piece, sourceSquare, targetSquare }: { piece: { pieceType: string }; sourceSquare: string; targetSquare: string | null }) => {
@@ -69,7 +94,7 @@ export function InteractiveBoard({ boardWidth = 400, showEval = true, fen, board
         if (!result) return false
 
         const newFen = game.fen()
-        setPosition(newFen)
+        setInternalPosition(newFen)
         onMove?.({ from: sourceSquare, to: targetSquare, promotion })
         return true
       } catch {
@@ -79,13 +104,25 @@ export function InteractiveBoard({ boardWidth = 400, showEval = true, fen, board
     [game, onMove]
   )
 
+  const handleRightClick = useCallback((square: string) => {
+    setRightClickHighlights((prev) => {
+      if (prev[square]) {
+        const next = { ...prev }
+        delete next[square]
+        return next
+      }
+      return { ...prev, [square]: { backgroundColor: 'rgba(255, 255, 0, 0.4)' } }
+    })
+  }, [])
+
   const chessOptions = {
     id: 'main-board',
-    position: position === 'start' ? undefined : position,
+    position: internalPosition === 'start' ? undefined : internalPosition,
     onPieceDrop: onDrop,
-    boardOrientation: boardOrientation || 'white',
-    ...(arrows && arrows.length > 0 ? { arrows } : {}),
-    ...(highlightedSquares ? { squareStyles: highlightedSquares } : {}),
+    onSquareRightClick: handleRightClick,
+    boardOrientation,
+    arrows: arrows.length > 0 ? arrows : undefined,
+    squareStyles: Object.keys(squareStyles).length > 0 ? squareStyles : undefined,
   }
 
   const evalWidth = 100
@@ -93,12 +130,13 @@ export function InteractiveBoard({ boardWidth = 400, showEval = true, fen, board
 
   return (
     <div style={{ width: totalWidth, display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-      <div style={{ width: boardWidth, aspectRatio: '1/1', flexShrink: 0 }}>
+      <div style={{ width: boardWidth, aspectRatio: '1/1', flexShrink: 0, position: 'relative' }}>
         <Chessboard options={chessOptions} />
+        <SquareRenderer icons={icons} boardWidth={boardWidth} />
       </div>
       {showEval && (
         <div style={{ width: evalWidth, height: boardWidth, flexShrink: 0 }}>
-          <EvalBar evalInfo={evalInfo} engineReady={ready} engineError={error} boardOrientation={boardOrientation} />
+          <EvalBar evalInfo={null} engineReady={false} boardOrientation={boardOrientation} />
         </div>
       )}
     </div>

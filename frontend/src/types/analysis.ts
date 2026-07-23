@@ -52,12 +52,16 @@ export type MoveClassification =
   | 'best'
   | 'excellent'
   | 'good'
+  | 'okay'
   | 'inaccuracy'
   | 'mistake'
   | 'blunder'
   | 'miss'
   | 'great'
   | 'forced'
+  | 'opening'
+  | 'perfect'
+  | 'splendid'
   | 'book'
 
 export interface ClassificationMeta {
@@ -68,15 +72,19 @@ export interface ClassificationMeta {
 
 export const CLASSIFICATION_META: Record<MoveClassification, ClassificationMeta> = {
   brilliant:  { symbol: '!!', color: '#00e5b0', label: 'Brillante' },
+  splendid:   { symbol: '!!', color: '#00e5b0', label: 'Splendido' },
+  perfect:    { symbol: '!!', color: '#00bcd4', label: 'Perfetto' },
   best:       { symbol: '',   color: '#4caf50', label: 'Miglior mossa' },
   excellent:  { symbol: '',   color: '#8bc34a', label: 'Eccellente' },
   good:       { symbol: '!',  color: '#cddc39', label: 'Buona' },
+  okay:       { symbol: '?',  color: '#ffc107', label: 'Ok' },
   inaccuracy: { symbol: '?!', color: '#ff9800', label: 'Imprecisione' },
   mistake:    { symbol: '?',  color: '#ff5722', label: 'Errore' },
   blunder:    { symbol: '??', color: '#f44336', label: 'Blunder' },
   miss:       { symbol: '☐', color: '#9c27b0', label: 'Occasione persa' },
   great:      { symbol: '!',  color: '#00bcd4', label: 'Grande mossa' },
   forced:     { symbol: '',   color: '#9e9e9e', label: 'Forzata' },
+  opening:    { symbol: '',   color: '#607d8b', label: 'Apertura' },
   book:       { symbol: '',   color: '#607d8b', label: 'Teoria' },
 }
 
