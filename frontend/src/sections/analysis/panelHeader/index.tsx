@@ -5,9 +5,10 @@ interface PanelHeaderProps {
   gameId?: number
   onImportPgn: () => void
   importMsg: string
+  openingName?: string
 }
 
-export function PanelHeader({ onBack, gameId, onImportPgn, importMsg }: PanelHeaderProps) {
+export function PanelHeader({ onBack, gameId, onImportPgn, importMsg, openingName }: PanelHeaderProps) {
   return (
     <>
       {onBack && (
@@ -20,6 +21,11 @@ export function PanelHeader({ onBack, gameId, onImportPgn, importMsg }: PanelHea
         <h1 className="text-2xl font-bold">Analisi</h1>
         <p className="text-sm text-sage-700">Analisi con Stockfish, spiegazioni e note del coach</p>
       </div>
+      {openingName && (
+        <div className="mb-4 flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 rounded-lg p-2">
+          <span className="font-medium">Apertura:</span> {openingName}
+        </div>
+      )}
       {importMsg && (
         <div className="mb-4 text-sm text-sage-700 bg-sage-50 rounded-lg p-2 text-center">{importMsg}</div>
       )}

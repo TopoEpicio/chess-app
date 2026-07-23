@@ -6,6 +6,7 @@ import { clsx } from 'clsx'
 interface Props {
   moves: MoveAnalysisData[]
   onMoveClick?: (moveIndex: number) => void
+  currentMoveIndex?: number
 }
 
 const PADDING = { top: 28, right: 24, bottom: 36, left: 52 }
@@ -22,7 +23,7 @@ function evalLabel(eval_: number): string {
   return eval_ > 0 ? `+${eval_.toFixed(1)}` : eval_.toFixed(1)
 }
 
-export function EvaluationChart({ moves, onMoveClick }: Props) {
+export function EvaluationChart({ moves, onMoveClick, currentMoveIndex }: Props) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null)
   const svgRef = useRef<SVGSVGElement>(null)
 
@@ -79,6 +80,19 @@ export function EvaluationChart({ moves, onMoveClick }: Props) {
               </g>
             )
           })}
+
+          {/* Reference line at current position */}
+          {currentMoveIndex !== undefined && currentMoveIndex >= 0 && currentMoveIndex < points.length && (
+            <line
+              x1={points[currentMoveIndex].x}
+              x2={points[currentMoveIndex].x}
+              y1={PADDING.top}
+              y2={PADDING.top + innerH}
+              stroke="#666"
+              strokeWidth={1.5}
+              strokeDasharray="4,4"
+            />
+          )}
 
           {/* Axis labels */}
           <text x={svgWidth / 2} y={totalH - 4} textAnchor="middle" className="text-[10px] fill-sage-400">

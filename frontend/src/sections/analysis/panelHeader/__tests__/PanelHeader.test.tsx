@@ -49,4 +49,9 @@ describe('PanelHeader', () => {
     render(<PanelHeader {...defaultProps} importMsg="Partita importata!" />)
     expect(screen.getByText('Partita importata!')).toBeInTheDocument()
   })
+
+  it('shows opening name when provided', () => {
+    render(<PanelHeader {...defaultProps} openingName="Sicilian Defense" />)
+    expect(screen.getByText(/Sicilian Defense/)).toBeInTheDocument()
+  })
 })

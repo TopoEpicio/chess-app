@@ -5,6 +5,7 @@ import { ProgressBar } from '../components/analysis/ProgressBar';
 import { TabNav } from '../components/analysis/TabNav';
 import { ArrowControls } from '../components/analysis/ArrowControls';
 import { api } from '../api/client';
+import { findOpeningByFen } from '../data/openings';
 import { Chess } from 'chess.js';
 import { DifficultyCalculator } from '@chess-app/chess-domain';
 import { useEngineAdapter } from '../engine/EngineProvider';
@@ -38,6 +39,7 @@ export function Analysis({ gameId, onBack }: { gameId?: number; onBack?: () => v
   const [puzzleMsg, setPuzzleMsg] = useState('');
   const [saveMsg, setSaveMsg] = useState('');
   const [localGameId, setLocalGameId] = useState<number | undefined>(gameId);
+  const [openingName, setOpeningName] = useState<string | undefined>();
   const { bestMove: getBestMove, deepAnalyze, ready } = useEngineAdapter();
   const gameRef = useRef(new Chess());
   const loadingMoves = useRef(false);
@@ -69,7 +71,10 @@ export function Analysis({ gameId, onBack }: { gameId?: number; onBack?: () => v
   useEffect(() => {
     if (currentIndex === -1) {
       gameRef.current.reset();
-      setFen(gameRef.current.fen());
+      const startFen = gameRef.current.fen();
+      setFen(startFen);
+      const opening = findOpeningByFen(startFen);
+      setOpeningName(opening?.name);
       return;
     }
     const storedFen = moves[currentIndex]?.fen;
@@ -77,11 +82,16 @@ export function Analysis({ gameId, onBack }: { gameId?: number; onBack?: () => v
       try {
         gameRef.current.load(storedFen);
         setFen(storedFen);
+        const opening = findOpeningByFen(storedFen);
+        setOpeningName(opening?.name);
         return;
       } catch {}
     }
     gameRef.current.reset();
-    setFen(gameRef.current.fen());
+    const resetFen = gameRef.current.fen();
+    setFen(resetFen);
+    const opening = findOpeningByFen(resetFen);
+    setOpeningName(opening?.name);
   }, [currentIndex, moves]);
 
   useEffect(() => {
@@ -250,6 +260,7 @@ export function Analysis({ gameId, onBack }: { gameId?: number; onBack?: () => v
         gameId={gameId}
         onImportPgn={() => setShowPgnImport(true)}
         importMsg={importMsg}
+        openingName={openingName}
       />
 
       <AnalysisLayout
@@ -312,7 +323,13 @@ export function Analysis({ gameId, onBack }: { gameId?: number; onBack?: () => v
                 status={gameResult?.status ?? ''}
               />
             )}
-            {selectedTab === 'graph' && <GraphTab moves={analysisMoves} />}
+            {selectedTab === 'graph' && (
+              <GraphTab
+                moves={analysisMoves}
+                currentMoveIndex={currentIndex}
+                onMoveClick={(i) => goToMove(i)}
+              />
+            )}
             {selectedTab === 'moves' && (
               <ClassificationTab
                 moves={analysisMoves}

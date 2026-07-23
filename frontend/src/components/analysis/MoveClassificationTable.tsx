@@ -51,7 +51,26 @@ export function MoveClassificationTable({ moves, classificationCounts, currentIn
         return wErr || bErr
       })
 
+  const [expandWhite, setExpandWhite] = useState<string | null>(null)
+  const [expandBlack, setExpandBlack] = useState<string | null>(null)
+
   const summaryOrder: MoveClassification[] = ['brilliant', 'good', 'inaccuracy', 'mistake', 'blunder']
+
+  function navigateToClassification(classification: string, isWhite: boolean) {
+    const startSearch = currentIndex === -1 ? 0 : currentIndex + 1
+    for (let i = startSearch; i < moves.length; i++) {
+      if (moves[i].classification === classification && moves[i].is_white === isWhite) {
+        onMoveSelect(i)
+        return
+      }
+    }
+    for (let i = 0; i < startSearch; i++) {
+      if (moves[i].classification === classification && moves[i].is_white === isWhite) {
+        onMoveSelect(i)
+        return
+      }
+    }
+  }
 
   return (
     <div className="bg-white rounded-box shadow-[0_2px_12px_rgba(45,53,39,0.08)] p-5">
@@ -169,10 +188,29 @@ export function MoveClassificationTable({ moves, classificationCounts, currentIn
             const meta = CLASSIFICATION_META[cls]
             const count = classificationCounts[cls] ?? 0
             if (count === 0 && cls !== 'good') return null
+            const whiteCount = moves.filter(m => m.is_white && m.classification === cls).length
+            const blackCount = moves.filter(m => !m.is_white && m.classification === cls).length
             return (
               <div key={cls} className="flex items-center gap-1 px-2 py-1 rounded-full bg-sage-50">
                 <span className="font-bold" style={{ color: meta.color }}>{meta.symbol || '✓'}</span>
-                <span className="text-sage-700">{count}</span>
+                {whiteCount > 0 && (
+                  <button
+                    onClick={() => navigateToClassification(cls, true)}
+                    className="text-sage-700 hover:text-emerald-600 hover:underline cursor-pointer"
+                    title={`Vai alla prima ${meta.label.toLowerCase()} del bianco`}
+                  >
+                    {whiteCount}W
+                  </button>
+                )}
+                {blackCount > 0 && (
+                  <button
+                    onClick={() => navigateToClassification(cls, false)}
+                    className="text-sage-700 hover:text-red-600 hover:underline cursor-pointer"
+                    title={`Vai alla prima ${meta.label.toLowerCase()} del nero`}
+                  >
+                    {blackCount}B
+                  </button>
+                )}
                 <span className="text-sage-500">{meta.label}</span>
               </div>
             )

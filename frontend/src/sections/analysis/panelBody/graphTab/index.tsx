@@ -3,12 +3,14 @@ import type { MoveAnalysisData } from '../../../../types/analysis'
 
 interface GraphTabProps {
   moves: MoveAnalysisData[]
+  currentMoveIndex?: number
+  onMoveClick?: (moveIndex: number) => void
 }
 
-export function GraphTab({ moves }: GraphTabProps) {
+export function GraphTab({ moves, currentMoveIndex, onMoveClick }: GraphTabProps) {
   return (
     <div className="space-y-4">
-      <EvaluationChart moves={moves} />
+      <EvaluationChart moves={moves} currentMoveIndex={currentMoveIndex} onMoveClick={onMoveClick} />
     </div>
   )
 }
