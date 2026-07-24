@@ -78,7 +78,7 @@ describe('Analysis page', () => {
 
   it('renders navigation toolbar', () => {
     render(<Analysis />)
-    expect(screen.getByText(/0 \/ 0/)).toBeInTheDocument()
+    expect(screen.getByText('Posizione libera')).toBeInTheDocument()
     expect(screen.getByTitle(/Capovolgi/)).toBeInTheDocument()
   })
 

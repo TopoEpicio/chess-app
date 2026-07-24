@@ -41,6 +41,7 @@ export function Analysis({ gameId, onBack }: { gameId?: number; onBack?: () => v
   const [localGameId, setLocalGameId] = useState<number | undefined>(gameId);
   const [openingName, setOpeningName] = useState<string | undefined>();
   const [openingEco, setOpeningEco] = useState<string | undefined>();
+  const [exploring, setExploring] = useState(false);
   const { bestMove, deepAnalyze, ready, evalInfo, error: engineError, analyze } = useUciEngine();
   const gameRef = useRef(new Chess());
   const loadingMoves = useRef(false);
@@ -185,8 +186,25 @@ export function Analysis({ gameId, onBack }: { gameId?: number; onBack?: () => v
     try {
       gameRef.current.move({ from, to, promotion });
       setFen(gameRef.current.fen());
-      goToMove(-1);
+      if (moves.length > 0) {
+        setExploring(true);
+      }
     } catch {}
+  };
+
+  const handleGoToMove = (index: number) => {
+    goToMove(index);
+    setExploring(false);
+  };
+
+  const handleGoPrev = () => {
+    goPrev();
+    setExploring(false);
+  };
+
+  const handleGoNext = () => {
+    goNext();
+    setExploring(false);
   };
 
   const playBotMove = async () => {
@@ -295,10 +313,12 @@ export function Analysis({ gameId, onBack }: { gameId?: number; onBack?: () => v
               totalMoves={moves.length}
               canPrev={canPrev}
               canNext={canNext}
-              onPrev={() => goToMove(currentIndex - 1)}
-              onNext={() => goToMove(currentIndex + 1)}
+              onPrev={handleGoPrev}
+              onNext={handleGoNext}
               boardFlipped={boardFlipped}
               onFlip={() => setBoardFlipped(f => !f)}
+              exploring={exploring}
+              onReset={() => { goToMove(currentIndex); setExploring(false); }}
             />
             <div className="space-y-3">
               <div className="text-xs font-semibold uppercase tracking-wider text-sage-500 mb-2">Azioni</div>
@@ -343,7 +363,7 @@ export function Analysis({ gameId, onBack }: { gameId?: number; onBack?: () => v
               <GraphTab
                 moves={analysisMoves}
                 currentMoveIndex={currentIndex}
-                onMoveClick={(i) => goToMove(i)}
+                onMoveClick={(i) => handleGoToMove(i)}
               />
             )}
             {selectedTab === 'moves' && (
@@ -351,7 +371,7 @@ export function Analysis({ gameId, onBack }: { gameId?: number; onBack?: () => v
                 moves={analysisMoves}
                 classificationCounts={gameResult?.total_classification_counts}
                 currentIndex={currentIndex}
-                onMoveSelect={(i) => goToMove(i)}
+                onMoveSelect={(i) => handleGoToMove(i)}
               />
             )}
             {selectedTab === 'arrows' && (
