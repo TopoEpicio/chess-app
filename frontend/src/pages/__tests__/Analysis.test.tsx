@@ -29,11 +29,14 @@ vi.mock('../../api/client', () => ({
   },
 }))
 
-vi.mock('../../engine/EngineProvider', () => ({
-  useEngineAdapter: () => ({
-    bestMove: vi.fn(),
+vi.mock('../../engine/useUciEngine', () => ({
+  useUciEngine: () => ({
+    bestMove: vi.fn().mockResolvedValue({ bestMove: '', evaluation: 0, mate: null, depth: 0 }),
     deepAnalyze: vi.fn().mockResolvedValue([]),
+    analyze: vi.fn(),
     ready: false,
+    evalInfo: null,
+    error: null,
   }),
 }))
 

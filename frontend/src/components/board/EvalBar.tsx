@@ -1,4 +1,4 @@
-import type { EvalInfo } from '../../engine/interface'
+import type { EvalInfo } from '../../types/analysis'
 
 interface Props {
   evalInfo: EvalInfo | null

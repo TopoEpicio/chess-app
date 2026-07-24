@@ -8,7 +8,7 @@ import { RepertoireBoardControls } from './RepertoireBoardControls'
 import { RepertoireNodeEditor } from './RepertoireNodeEditor'
 import { RepertoireQuiz } from './RepertoireQuiz'
 import { OpeningLesson } from './OpeningLesson'
-import { useEngineAdapter } from '../../engine/EngineProvider'
+import { useUciEngine } from '../../engine/useUciEngine'
 import { generateExplanation } from '../../engine/analysisEngine'
 import { normalizeNode, buildPathToNode, getDescendantIds } from '../../repertoire/tree'
 import type { RepertoireNode } from '../../types'
@@ -48,7 +48,7 @@ export function RepertoireViewer({
   const [loading, setLoading] = useState(true)
   const [showEval, setShowEval] = useState(true)
   const [boardFlipped, setBoardFlipped] = useState(side === 'black')
-  const { deepAnalyze, ready: sfReady } = useEngineAdapter()
+  const { deepAnalyze, ready: sfReady } = useUciEngine()
   const [nodeAnalysis, setNodeAnalysis] = useState<AnalysisExplanation | null>(null)
   const analysisTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
 

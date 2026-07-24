@@ -8,7 +8,7 @@ import { api } from '../api/client';
 import { findOpeningByFen } from '../data/openings';
 import { Chess } from 'chess.js';
 import { DifficultyCalculator } from '@chess-app/chess-domain';
-import { useEngineAdapter } from '../engine/EngineProvider';
+import { useUciEngine } from '../engine/useUciEngine';
 import { generateExplanation } from '../engine/analysisEngine';
 import type { AnalysisExplanation, GameAnalysisResult, ArrowConfig, MoveAnalysisData } from '../types/analysis';
 import { DEFAULT_ARROW_CONFIG } from '../types/analysis';
@@ -41,7 +41,7 @@ export function Analysis({ gameId, onBack }: { gameId?: number; onBack?: () => v
   const [localGameId, setLocalGameId] = useState<number | undefined>(gameId);
   const [openingName, setOpeningName] = useState<string | undefined>();
   const [openingEco, setOpeningEco] = useState<string | undefined>();
-  const { bestMove: getBestMove, deepAnalyze, ready } = useEngineAdapter();
+  const { bestMove, deepAnalyze, ready, evalInfo, error: engineError, analyze } = useUciEngine();
   const gameRef = useRef(new Chess());
   const loadingMoves = useRef(false);
   const analyzing = useRef(false);
@@ -97,6 +97,12 @@ export function Analysis({ gameId, onBack }: { gameId?: number; onBack?: () => v
     setOpeningName(opening?.name);
     setOpeningEco(opening?.eco);
   }, [currentIndex, moves]);
+
+  useEffect(() => {
+    if (fen !== undefined && ready) {
+      analyze(fen);
+    }
+  }, [fen, ready, analyze]);
 
   useEffect(() => {
     if (gameResult) return;
@@ -187,7 +193,8 @@ export function Analysis({ gameId, onBack }: { gameId?: number; onBack?: () => v
     if (playingBot || !ready || fen === undefined) return;
     setPlayingBot(true);
     const currentFen = gameRef.current.fen();
-    getBestMove(currentFen, () => { setPlayingBot(false); });
+    await bestMove(currentFen);
+    setPlayingBot(false);
   };
 
   const handleImport = async (pgn: string) => {
@@ -279,6 +286,9 @@ export function Analysis({ gameId, onBack }: { gameId?: number; onBack?: () => v
               boardOrientation={boardFlipped ? 'black' : 'white'}
               onMove={handleMove}
               moveData={gameResult?.moves?.[currentIndex] ?? null}
+              evalInfo={evalInfo}
+              engineReady={ready}
+              engineError={engineError}
             />
             <PanelToolbar
               currentIndex={currentIndex}

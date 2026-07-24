@@ -248,7 +248,7 @@ class StudyService:
             raise HTTPException(404, "Resource not found")
         if not res.file_path:
             raise HTTPException(400, "Resource has no file")
-        abs_path = os.path.join(self.UPLOAD_DIR, res.file_path)
+        abs_path = os.path.join(UPLOAD_DIR, res.file_path)
         if not os.path.exists(abs_path):
             raise HTTPException(404, "File not found on disk")
         media_types = {

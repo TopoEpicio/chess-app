@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { PuzzleCard } from './PuzzleCard'
-import { useEngineAdapter } from '../../engine/EngineProvider'
+import { useUciEngine } from '../../engine/useUciEngine'
 import { generateExplanation } from '../../engine/analysisEngine'
 import type { AnalysisExplanation } from '../../types/analysis'
 import type { Puzzle } from '../../types'
@@ -15,7 +15,7 @@ interface Props {
 }
 
 export function PuzzleList({ puzzles, loading, onSelect, onDelete, onSolve }: Props) {
-  const { deepAnalyze } = useEngineAdapter()
+  const { deepAnalyze } = useUciEngine()
   const [explanations, setExplanations] = useState<Record<string, AnalysisExplanation>>({})
 
   const getExplanation = useCallback(async (fen: string): Promise<AnalysisExplanation | null> => {

@@ -11,7 +11,7 @@ repos:
         name: oxlint
         entry: npx oxlint
         language: system
-        types: [typescript, tsx]
+        types: [ts, tsx]
 
   - repo: local
     hooks:

@@ -4,7 +4,6 @@ import './index.css'
 import './i18n'
 import App from './App'
 import { ApiProvider } from './api/provider'
-import { EngineProvider } from './engine/EngineProvider'
 import { ThemeProvider } from './stores/themeStore'
 import { EngineConfigProvider } from './stores/engineStore'
 
@@ -13,9 +12,7 @@ createRoot(document.getElementById('root')!).render(
     <ApiProvider>
       <ThemeProvider>
         <EngineConfigProvider>
-          <EngineProvider>
-            <App />
-          </EngineProvider>
+          <App />
         </EngineConfigProvider>
       </ThemeProvider>
     </ApiProvider>

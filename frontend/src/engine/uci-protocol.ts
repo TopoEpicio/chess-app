@@ -1,4 +1,4 @@
-import type { EvalInfo } from './interface.ts'
+import type { EvalInfo } from '../types/analysis'
 
 export interface UciScoreInfo {
   multipv: number

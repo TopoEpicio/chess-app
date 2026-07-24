@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { ArrowLeft, Bot, ChevronRight, ChevronLeft, RotateCw } from 'lucide-react'
 import { Chessboard } from '../board/ThemedBoard'
 import { EducationalPanel } from '../analysis/EducationalPanel'
-import { useEngineAdapter } from '../../engine/EngineProvider'
+import { useUciEngine } from '../../engine/useUciEngine'
 import { generateExplanation } from '../../engine/analysisEngine'
 import { getDescendantIds } from '../../repertoire/tree'
 import type { RepertoireNode } from '../../types'
@@ -66,7 +66,7 @@ export function OpeningLesson({ nodes, rootNodeId, openingName, side, onExit }: 
   const [currentStep, setCurrentStep] = useState(0)
   const [showCoach, setShowCoach] = useState(false)
   const [boardFlipped, setBoardFlipped] = useState(side === 'black')
-  const { deepAnalyze, ready: sfReady } = useEngineAdapter()
+  const { deepAnalyze, ready: sfReady } = useUciEngine()
   const [nodeAnalysis, setNodeAnalysis] = useState<AnalysisExplanation | null>(null)
 
   const currentNode = path[currentStep]

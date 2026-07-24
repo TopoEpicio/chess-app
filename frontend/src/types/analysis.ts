@@ -128,6 +128,13 @@ export interface GameAnalysisResult {
   total_moves: number | null
 }
 
+export interface EvalInfo {
+  bestMove: string
+  evaluation: number
+  mate: number | null
+  depth: number
+}
+
 export interface ArrowConfig {
   showBestMove: boolean
   showSecondBest: boolean

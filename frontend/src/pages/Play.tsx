@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Chess } from 'chess.js'
 import { Chessboard } from '../components/board/ThemedBoard'
-import { useEngineAdapter } from '../engine/EngineProvider'
+import { useUciEngine } from '../engine/useUciEngine'
 import { ArrowLeft, Bot, Crown, Dices, PartyPopper, Frown, Handshake, RotateCw, Flag, ChevronDown, ChevronUp } from 'lucide-react'
 import { useEngineConfig } from '../stores/engineStore'
 
@@ -24,12 +24,12 @@ export function Play({ onBack }: { onBack?: () => void }) {
   const [resultMsg, setResultMsg] = useState('')
   const [boardFlipped, setBoardFlipped] = useState(false)
   const [elo, setElo] = useState(1200)
-  const { bestMove: getBestMove, ready } = useEngineAdapter()
+  const { bestMove, ready } = useUciEngine()
   const engineCfg = useEngineConfig()
 
   const userColor = userSide === 'white' ? 'w' : 'b'
 
-  const triggerBotMove = useCallback(() => {
+  const triggerBotMove = useCallback(async () => {
     const game = gameRef.current
     if (game.isGameOver()) {
       setGameOver(true)
@@ -39,24 +39,24 @@ export function Play({ onBack }: { onBack?: () => void }) {
     if (game.turn() === userColor) return
 
     setBotThinking(true)
-    getBestMove(game.fen(), (info) => {
-      try {
-        const move = game.move(info.bestMove, { sloppy: true })
-        if (move) {
-          setFen(game.fen())
-          setMoves(prev => [...prev, move.san])
-        }
-      } catch (e) {
-        console.error('Bot move error:', e)
-      } finally {
-        setBotThinking(false)
-        if (game.isGameOver()) {
-          setGameOver(true)
-          setResultMsg(getResultMessage(game))
-        }
+    try {
+      const info = await bestMove(game.fen())
+      if (!info.bestMove) return
+      const move = game.move(info.bestMove, { sloppy: true })
+      if (move) {
+        setFen(game.fen())
+        setMoves(prev => [...prev, move.san])
       }
-    })
-  }, [getBestMove, userColor])
+    } catch (e) {
+      console.error('Bot move error:', e)
+    } finally {
+      setBotThinking(false)
+      if (game.isGameOver()) {
+        setGameOver(true)
+        setResultMsg(getResultMessage(game))
+      }
+    }
+  }, [bestMove, userColor])
 
   useEffect(() => {
     if (!userSide || gameOver || botThinking) return

@@ -8,6 +8,7 @@ import { getBoardArrows } from './boardArrows'
 import { getSquareStyles, getClassificationIcons } from './boardStyles'
 import { arrowConfigAtom } from '../../state/atoms/engineAtoms'
 import type { MoveAnalysisData, MoveClassification } from '../../types/analysis'
+import type { EvalInfo } from '../../types/analysis'
 
 interface ChessBoardProps {
   position?: string
@@ -17,6 +18,9 @@ interface ChessBoardProps {
   boardOrientation?: 'white' | 'black'
   boardWidth?: number
   showEval?: boolean
+  evalInfo?: EvalInfo | null
+  engineReady?: boolean
+  engineError?: string | null
   onMove?: (move: { from: string; to: string; promotion?: string }) => void
   onSquareClick?: (square: string) => void
   highlightedSquares?: Record<string, React.CSSProperties>
@@ -30,6 +34,9 @@ export function ChessBoard({
   boardOrientation = 'white',
   boardWidth = 400,
   showEval = true,
+  evalInfo,
+  engineReady = false,
+  engineError = null,
   onMove,
   highlightedSquares,
 }: ChessBoardProps) {
@@ -136,7 +143,7 @@ export function ChessBoard({
       </div>
       {showEval && (
         <div style={{ width: evalWidth, height: boardWidth, flexShrink: 0 }}>
-          <EvalBar evalInfo={null} engineReady={false} boardOrientation={boardOrientation} />
+          <EvalBar evalInfo={evalInfo} engineReady={engineReady} engineError={engineError} boardOrientation={boardOrientation} />
         </div>
       )}
     </div>

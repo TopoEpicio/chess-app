@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Chessboard } from '../board/ThemedBoard'
 import { Chess } from 'chess.js'
-import { useEngineAdapter } from '../../engine/EngineProvider'
+import { useUciEngine } from '../../engine/useUciEngine'
 import { generateExplanation } from '../../engine/analysisEngine'
 import type { AnalysisExplanation } from '../../types/analysis'
 import { Zap, Pin, Crosshair, Target, Skull, Flag, ArrowUp, ChevronDown, Check, X } from 'lucide-react'
@@ -59,7 +59,7 @@ export function PuzzleSolver({ puzzle, onSolve, onNext, onBack }: Props) {
   const [wrongMove, setWrongMove] = useState<string | null>(null)
   const [autoPlaying, setAutoPlaying] = useState(false)
   const [animating, setAnimating] = useState(false)
-  const { deepAnalyze } = useEngineAdapter()
+  const { deepAnalyze } = useUciEngine()
   const autoTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const animTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
 
