@@ -40,6 +40,7 @@ export function Analysis({ gameId, onBack }: { gameId?: number; onBack?: () => v
   const [saveMsg, setSaveMsg] = useState('');
   const [localGameId, setLocalGameId] = useState<number | undefined>(gameId);
   const [openingName, setOpeningName] = useState<string | undefined>();
+  const [openingEco, setOpeningEco] = useState<string | undefined>();
   const { bestMove: getBestMove, deepAnalyze, ready } = useEngineAdapter();
   const gameRef = useRef(new Chess());
   const loadingMoves = useRef(false);
@@ -75,6 +76,7 @@ export function Analysis({ gameId, onBack }: { gameId?: number; onBack?: () => v
       setFen(startFen);
       const opening = findOpeningByFen(startFen);
       setOpeningName(opening?.name);
+      setOpeningEco(opening?.eco);
       return;
     }
     const storedFen = moves[currentIndex]?.fen;
@@ -84,6 +86,7 @@ export function Analysis({ gameId, onBack }: { gameId?: number; onBack?: () => v
         setFen(storedFen);
         const opening = findOpeningByFen(storedFen);
         setOpeningName(opening?.name);
+        setOpeningEco(opening?.eco);
         return;
       } catch {}
     }
@@ -92,6 +95,7 @@ export function Analysis({ gameId, onBack }: { gameId?: number; onBack?: () => v
     setFen(resetFen);
     const opening = findOpeningByFen(resetFen);
     setOpeningName(opening?.name);
+    setOpeningEco(opening?.eco);
   }, [currentIndex, moves]);
 
   useEffect(() => {
@@ -261,6 +265,8 @@ export function Analysis({ gameId, onBack }: { gameId?: number; onBack?: () => v
         onImportPgn={() => setShowPgnImport(true)}
         importMsg={importMsg}
         openingName={openingName}
+        fen={fen}
+        eco={openingEco}
       />
 
       <AnalysisLayout

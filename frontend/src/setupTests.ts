@@ -61,28 +61,8 @@ Object.defineProperty(window, 'sessionStorage', {
   writable: true,
 })
 
-// Mock IndexedDB for Zustand persist
-Object.defineProperty(window, 'indexedDB', {
-  value: {
-    open: vi.fn().mockReturnValue({
-      onsuccess: null,
-      onerror: null,
-      onupgradeneeded: null,
-      result: {
-        createObjectStore: vi.fn(),
-        transaction: vi.fn().mockReturnValue({
-          objectStore: vi.fn().mockReturnValue({
-            put: vi.fn(),
-            get: vi.fn(),
-            delete: vi.fn(),
-            clear: vi.fn(),
-          }),
-        }),
-      },
-    }),
-  },
-  writable: true,
-})
+// Use fake-indexeddb for in-memory IndexedDB in tests
+import 'fake-indexeddb/auto'
 
 // Mock crypto.randomUUID
 Object.defineProperty(global, 'crypto', {

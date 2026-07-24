@@ -1,4 +1,6 @@
 import { ArrowLeft } from 'lucide-react'
+import { UserOpeningButton } from '../../../components/analysis/UserOpeningButton'
+import { StudyFolderDialog } from '../../../components/analysis/StudyFolderDialog'
 
 interface PanelHeaderProps {
   onBack?: () => void
@@ -6,9 +8,11 @@ interface PanelHeaderProps {
   onImportPgn: () => void
   importMsg: string
   openingName?: string
+  fen?: string
+  eco?: string
 }
 
-export function PanelHeader({ onBack, gameId, onImportPgn, importMsg, openingName }: PanelHeaderProps) {
+export function PanelHeader({ onBack, gameId, onImportPgn, importMsg, openingName, fen, eco }: PanelHeaderProps) {
   return (
     <>
       {onBack && (
@@ -22,8 +26,12 @@ export function PanelHeader({ onBack, gameId, onImportPgn, importMsg, openingNam
         <p className="text-sm text-sage-700">Analisi con Stockfish, spiegazioni e note del coach</p>
       </div>
       {openingName && (
-        <div className="mb-4 flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 rounded-lg p-2">
-          <span className="font-medium">Apertura:</span> {openingName}
+        <div className="mb-2 flex items-center justify-between text-sm text-emerald-700 bg-emerald-50 rounded-lg p-2">
+          <span><span className="font-medium">Apertura:</span> {openingName}</span>
+          <div className="flex items-center gap-3">
+            <UserOpeningButton openingName={openingName} fen={fen ?? ''} eco={eco} />
+            <StudyFolderDialog />
+          </div>
         </div>
       )}
       {importMsg && (
