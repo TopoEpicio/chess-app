@@ -4,10 +4,12 @@ import {
   listUserOpenings,
   isDuplicateFen,
   deleteUserOpening,
+  __resetDbForTest,
 } from '../userOpenings'
 import { openDB, deleteDB } from 'idb'
 
 async function clearStore() {
+  __resetDbForTest()
   await deleteDB('chess-app-user-openings')
 }
 

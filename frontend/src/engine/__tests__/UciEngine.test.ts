@@ -3,16 +3,8 @@ import { UciEngine } from '../UciEngine'
 import type { EngineWorker } from '../../types/engine'
 import type { EvaluateGameParams } from '../../types/eval'
 
-vi.mock('../worker', () => {
+const { mockSendCommands, mockWorkers } = vi.hoisted(() => {
   const mockWorkers: EngineWorker[] = []
-
-  const createMockWorker = (): EngineWorker => ({
-    isReady: true,
-    uci: vi.fn(),
-    listen: vi.fn(),
-    terminate: vi.fn(),
-  })
-
   const mockSendCommands = vi.fn()
   mockSendCommands.mockImplementation(
     (_worker: EngineWorker, _commands: string[], _finalMessage: string, onNewMessage?: (messages: string[]) => void) => {
@@ -25,6 +17,16 @@ vi.mock('../worker', () => {
       ])
     },
   )
+  return { mockSendCommands, mockWorkers }
+})
+
+vi.mock('../worker', () => {
+  const createMockWorker = (): EngineWorker => ({
+    isReady: true,
+    uci: vi.fn(),
+    listen: vi.fn(),
+    terminate: vi.fn(),
+  })
 
   return {
     getEngineWorker: vi.fn(() => {
@@ -138,13 +140,45 @@ describe('UciEngine', () => {
   })
 
   describe('getEngineNextMove', () => {
+    beforeEach(() => {
+      mockSendCommands.mockClear()
+    })
+
     it('returns a valid UCI move', async () => {
       const move = await engine.getEngineNextMove(
         'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-        1500,
       )
 
       expect(move).toBe('e2e4')
+    })
+
+    it('sends go movetime with default value', async () => {
+      await engine.getEngineNextMove(
+        'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+      )
+
+      const allCalls = mockSendCommands.mock.calls
+      const movetimeCall = allCalls.find(([, cmds]) =>
+        cmds.some((c: string) => c === 'go movetime 1500'),
+      )
+      expect(movetimeCall).toBeDefined()
+      const depthCall = allCalls.find(([, cmds]) =>
+        cmds.some((c: string) => c.startsWith('go depth')),
+      )
+      expect(depthCall).toBeUndefined()
+    })
+
+    it('accepts custom movetime', async () => {
+      await engine.getEngineNextMove(
+        'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+        600,
+      )
+
+      const allCalls = mockSendCommands.mock.calls
+      const movetimeCall = allCalls.find(([, cmds]) =>
+        cmds.some((c: string) => c === 'go movetime 600'),
+      )
+      expect(movetimeCall).toBeDefined()
     })
   })
 
@@ -165,3 +199,4 @@ describe('UciEngine', () => {
     })
   })
 })
+

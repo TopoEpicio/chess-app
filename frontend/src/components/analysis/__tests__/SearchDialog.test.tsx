@@ -56,4 +56,18 @@ describe('SearchDialog', () => {
       expect(codes.length).toBeGreaterThan(0)
     })
   })
+
+  it('has dialog role and aria-modal', () => {
+    render(<SearchDialog onSelect={vi.fn()} onClose={vi.fn()} />)
+    const dialog = screen.getByRole('dialog')
+    expect(dialog).toHaveAttribute('aria-modal', 'true')
+    expect(dialog).toHaveAttribute('aria-labelledby', 'search-dialog-title')
+  })
+
+  it('closes on Escape key', () => {
+    const onClose = vi.fn()
+    render(<SearchDialog onSelect={vi.fn()} onClose={onClose} />)
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(onClose).toHaveBeenCalled()
+  })
 })

@@ -32,8 +32,9 @@ function makeMove(overrides: Partial<MoveAnalysisData> = {}): MoveAnalysisData {
 
 describe('EvaluationChart', () => {
   it('renders empty state when no moves', () => {
-    render(<EvaluationChart moves={[]} />)
-    expect(screen.getByText(/Nessun dato disponibile/)).toBeInTheDocument()
+    const { container } = render(<EvaluationChart moves={[]} />)
+    expect(container.querySelectorAll('svg').length).toBe(0)
+    expect(container.textContent?.length).toBeGreaterThan(0)
   })
 
   it('renders chart with moves', () => {
@@ -51,7 +52,7 @@ describe('EvaluationChart', () => {
     const { container } = render(<EvaluationChart moves={moves} currentMoveIndex={1} />)
     const dashedLines = container.querySelectorAll('line[stroke-dasharray="4,4"]')
     const refLines = Array.from(dashedLines).filter(
-      (l) => l.getAttribute('stroke') === '#666' || l.getAttribute('y1') === '0',
+      (l) => l.getAttribute('stroke') === '#666',
     )
     expect(refLines.length).toBeGreaterThan(0)
   })

@@ -6,11 +6,13 @@ import {
   deleteFolder,
   addOpeningToFolder,
   removeOpeningFromFolder,
+  __resetDbForTest,
 } from '../studyFolders'
 import { deleteDB } from 'idb'
 
 describe('studyFolders', () => {
   beforeEach(async () => {
+    __resetDbForTest()
     await deleteDB('chess-app-study-folders')
   })
 
@@ -67,6 +69,19 @@ describe('studyFolders', () => {
     await removeOpeningFromFolder(folder.id!, 2)
     const all = await listFolders()
     expect(all[0].openingIds).toEqual([1, 3])
+  })
+
+  it('handles concurrent create and list without "Database closed" errors', async () => {
+    const [folder1, list1, folder2, list2] = await Promise.all([
+      createFolder({ name: 'A' }),
+      listFolders(),
+      createFolder({ name: 'B' }),
+      listFolders(),
+    ])
+    expect(folder1.name).toBe('A')
+    expect(folder2.name).toBe('B')
+    expect(list1.some((f) => f.name === 'A')).toBe(true)
+    expect(list2.some((f) => f.name === 'B')).toBe(true)
   })
 
   it('handles empty folder list', async () => {

@@ -69,7 +69,7 @@ describe('useUciEngine', () => {
     })
   })
 
-  it('bestMove returns EvalInfo from getEngineNextMove', async () => {
+  it('bestMove returns EvalInfo from getEngineNextMove at default ELO', async () => {
     const { useUciEngine } = await import('../useUciEngine')
     const { result } = renderHook(() => useUciEngine())
 
@@ -83,6 +83,79 @@ describe('useUciEngine', () => {
 
     expect(info.bestMove).toBe('e2e4')
     expect(mockEngine.getEngineNextMove).toHaveBeenCalledOnce()
+  })
+
+  it('bestMove calls engine with correct movetime for given ELO', async () => {
+    vi.spyOn(Math, 'random').mockReturnValue(1)
+    const { useUciEngine } = await import('../useUciEngine')
+    const { result } = renderHook(() => useUciEngine())
+
+    await waitFor(() => {
+      expect(result.current.ready).toBe(true)
+    })
+
+    await result.current.bestMove(
+      'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+      1500,
+    )
+
+    expect(mockEngine.getEngineNextMove).toHaveBeenCalledWith(
+      'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+      1125,
+    )
+    vi.mocked(Math.random).mockRestore()
+  })
+
+  it('returns random move at low ELO when Math.random is low', async () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    const { useUciEngine } = await import('../useUciEngine')
+    const { result } = renderHook(() => useUciEngine())
+
+    await waitFor(() => {
+      expect(result.current.ready).toBe(true)
+    })
+
+    const info = await result.current.bestMove(
+      'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+      200,
+    )
+
+    // Should NOT call the engine (random move takes priority)
+    expect(mockEngine.getEngineNextMove).not.toHaveBeenCalled()
+    // Should return a random UCI move string
+    expect(info.bestMove).toBeTruthy()
+    expect(info.bestMove.length).toBeGreaterThanOrEqual(4)
+    vi.mocked(Math.random).mockRestore()
+  })
+
+  it('calls engine at low ELO when Math.random is high', async () => {
+    vi.spyOn(Math, 'random').mockReturnValue(1)
+    const { useUciEngine } = await import('../useUciEngine')
+    const { result } = renderHook(() => useUciEngine())
+
+    await waitFor(() => {
+      expect(result.current.ready).toBe(true)
+    })
+
+    await result.current.bestMove(
+      'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+      200,
+    )
+
+    expect(mockEngine.getEngineNextMove).toHaveBeenCalled()
+    vi.mocked(Math.random).mockRestore()
+  })
+
+  it('creates exactly one engine when multiple components mount concurrently', async () => {
+    const { useUciEngine } = await import('../useUciEngine')
+
+    const hooks = Array.from({ length: 5 }, () => renderHook(() => useUciEngine()))
+
+    await waitFor(() => {
+      expect(hooks.every(h => h.result.current.ready)).toBe(true)
+    })
+
+    expect(mockCreate).toHaveBeenCalledTimes(1)
   })
 
   it('sets error when engine creation fails', async () => {

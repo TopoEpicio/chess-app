@@ -13,7 +13,7 @@ declare global {
 }
 
 export const getEngineWorker = (enginePath: string): EngineWorker => {
-  // Native Web Worker (Stockfish.js as Worker)
+  // Native Web Worker path (for non-Stockfish engines)
   if (enginePath.endsWith('.js')) {
     const worker = new window.Worker(enginePath)
     const engineWorker: EngineWorker = {
@@ -25,35 +25,60 @@ export const getEngineWorker = (enginePath: string): EngineWorker => {
     worker.onmessage = (event) => {
       engineWorker.listen(event.data)
     }
+    worker.onerror = (event) => {
+      console.error('Worker error:', event.message)
+    }
     return engineWorker
   }
 
-  // WASM-based Stockfish via window.Stockfish factory
+  // WASM-based Stockfish via window.Stockfish factory (main thread)
   if (enginePath.includes('.wasm') || enginePath === 'wasm') {
     const StockfishFactory = window.Stockfish
     if (typeof StockfishFactory !== 'function') {
-      throw new Error('window.Stockfish is not available')
+      throw new Error('window.Stockfish is not available. Ensure stockfish.js is loaded via <script> tag.')
     }
 
-    const engine = StockfishFactory({
+    const opts: Record<string, unknown> = {
       locateFile: (path: string) => `/${path}`,
-    })
+    }
+
+    StockfishFactory(opts)
+    const cmdQueue: string[] = []
+    let firstOutputReceived = false
 
     const engineWorker: EngineWorker = {
       isReady: false,
-      uci: (command: string) => engine.postMessage(command),
+      uci: (command: string) => {
+        if (firstOutputReceived) {
+          ;(opts.postMessage as (cmd: string) => void)?.(command)
+        } else {
+          cmdQueue.push(command)
+        }
+      },
       listen: () => {},
-      terminate: () => engine.terminate?.(),
+      terminate: () => (opts.terminate as () => void)?.(),
     }
 
-    engine.addMessageListener((event: string) => {
-      engineWorker.listen(event)
+    ;(opts.addMessageListener as (fn: (event: string) => void) => void)?.((
+      event: string,
+    ) => {
+      const cleaned = event.replace(/^Thread \d+: /, '')
+      
+      if (!firstOutputReceived) {
+        firstOutputReceived = true
+        for (const cmd of cmdQueue) {
+          ;(opts.postMessage as (cmd: string) => void)?.(cmd)
+        }
+        cmdQueue.length = 0
+      }
+      
+      engineWorker.listen(cleaned)
     })
 
     return engineWorker
   }
 
-  throw new Error(`Unknown engine path: ${enginePath}. Use .js for Web Worker or .wasm for WASM.`)
+  throw new Error(`Unknown engine path: ${enginePath}. Use .js for Web Worker or 'wasm' for Stockfish.`)
 }
 
 export const sendCommandsToWorker = (

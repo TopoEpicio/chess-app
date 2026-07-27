@@ -14,11 +14,11 @@ export interface Opening {
   variations: OpeningVariation[]
 }
 
-function computeFens(moves: string[], boardOnly = true): string {
+function computeFens(moves: string[]): string {
   const game = new Chess()
   for (const m of moves) game.move(m)
   const fen = game.fen()
-  return boardOnly ? fen.split(' ')[0] : fen
+  return fen.split(' ').slice(0, 4).join(' ')
 }
 
 interface RawOpening {
@@ -1243,14 +1243,14 @@ function buildOpenings(): Opening[] {
 export const openings: Opening[] = buildOpenings()
 
 export function findOpeningByFen(fen: string): Opening | undefined {
-  const boardFen = fen.split(' ')[0]
-  return openings.find((o) => o.fen === boardFen || o.variations.some((v) => v.fen === boardFen))
+  const key = fen.split(' ').slice(0, 4).join(' ')
+  return openings.find((o) => o.fen === key || o.variations.some((v) => v.fen === key))
 }
 
 export function findOpeningVariation(fen: string): { opening: Opening; variation: OpeningVariation } | undefined {
-  const boardFen = fen.split(' ')[0]
+  const key = fen.split(' ').slice(0, 4).join(' ')
   for (const opening of openings) {
-    const variation = opening.variations.find((v) => v.fen === boardFen)
+    const variation = opening.variations.find((v) => v.fen === key)
     if (variation) return { opening, variation }
   }
   return undefined

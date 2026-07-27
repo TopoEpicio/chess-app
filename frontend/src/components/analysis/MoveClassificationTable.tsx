@@ -5,7 +5,7 @@ import { clsx } from 'clsx'
 
 interface Props {
   moves: MoveAnalysisData[]
-  classificationCounts: Record<string, number>
+  classificationCounts?: Record<string, number>
   currentIndex: number
   onMoveSelect: (moveIndex: number) => void
 }
@@ -17,7 +17,7 @@ function evalDisplay(eval_: number): string {
   return eval_ > 0 ? `+${eval_.toFixed(1)}` : eval_.toFixed(1)
 }
 
-export function MoveClassificationTable({ moves, classificationCounts, currentIndex, onMoveSelect }: Props) {
+export function MoveClassificationTable({ moves, classificationCounts = {}, currentIndex, onMoveSelect }: Props) {
   const [filter, setFilter] = useState<FilterMode>('all')
   const [tooltipIdx, setTooltipIdx] = useState<number | null>(null)
 
@@ -54,6 +54,13 @@ export function MoveClassificationTable({ moves, classificationCounts, currentIn
   const [expandWhite, setExpandWhite] = useState<string | null>(null)
   const [expandBlack, setExpandBlack] = useState<string | null>(null)
 
+  const countsByClassification = moves.reduce<Record<string, { white: number; black: number }>>((acc, m) => {
+    if (!acc[m.classification]) acc[m.classification] = { white: 0, black: 0 }
+    if (m.is_white) acc[m.classification].white++
+    else acc[m.classification].black++
+    return acc
+  }, {})
+
   const summaryOrder: MoveClassification[] = ['brilliant', 'good', 'inaccuracy', 'mistake', 'blunder']
 
   function navigateToClassification(classification: string, isWhite: boolean) {
@@ -64,7 +71,7 @@ export function MoveClassificationTable({ moves, classificationCounts, currentIn
         return
       }
     }
-    for (let i = 0; i < startSearch; i++) {
+    for (let i = 0; i < currentIndex; i++) {
       if (moves[i].classification === classification && moves[i].is_white === isWhite) {
         onMoveSelect(i)
         return
@@ -188,8 +195,9 @@ export function MoveClassificationTable({ moves, classificationCounts, currentIn
             const meta = CLASSIFICATION_META[cls]
             const count = classificationCounts[cls] ?? 0
             if (count === 0 && cls !== 'good') return null
-            const whiteCount = moves.filter(m => m.is_white && m.classification === cls).length
-            const blackCount = moves.filter(m => !m.is_white && m.classification === cls).length
+            const cc = countsByClassification[cls]
+            const whiteCount = cc?.white ?? 0
+            const blackCount = cc?.black ?? 0
             return (
               <div key={cls} className="flex items-center gap-1 px-2 py-1 rounded-full bg-sage-50">
                 <span className="font-bold" style={{ color: meta.color }}>{meta.symbol || '✓'}</span>

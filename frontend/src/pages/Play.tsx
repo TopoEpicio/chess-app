@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, Fragment } from 'react'
 import { Chess } from 'chess.js'
 import { Chessboard } from '../components/board/ThemedBoard'
 import { useUciEngine } from '../engine/useUciEngine'
@@ -37,10 +37,11 @@ export function Play({ onBack }: { onBack?: () => void }) {
       return
     }
     if (game.turn() === userColor) return
+    if (!ready) return
 
     setBotThinking(true)
     try {
-      const info = await bestMove(game.fen())
+      const info = await bestMove(game.fen(), elo)
       if (!info.bestMove) return
       const move = game.move(info.bestMove, { sloppy: true })
       if (move) {
@@ -56,12 +57,12 @@ export function Play({ onBack }: { onBack?: () => void }) {
         setResultMsg(getResultMessage(game))
       }
     }
-  }, [bestMove, userColor])
+  }, [bestMove, userColor, ready, elo])
 
   useEffect(() => {
     if (!userSide || gameOver || botThinking) return
     triggerBotMove()
-  }, [userSide, fen, gameOver, botThinking, triggerBotMove])
+  }, [userSide, fen, gameOver, botThinking, triggerBotMove, ready])
 
   const handleDrop = useCallback(({ sourceSquare, targetSquare }: { sourceSquare: string; targetSquare: string | null }): boolean => {
     if (!targetSquare || botThinking || gameOver || !userSide) return false
@@ -247,11 +248,11 @@ export function Play({ onBack }: { onBack?: () => void }) {
                     const w = moves[i * 2]
                     const b = moves[i * 2 + 1]
                     return (
-                      <>
-                        <span key={`n-${i}`} className="text-sage-400 text-xs pt-0.5">{i + 1}.</span>
-                        <span key={`w-${i}`} className={`${moves[i * 2] === w ? 'text-sage-900' : ''}`}>{w}</span>
-                        <span key={`b-${i}`} className={`${b ? 'text-sage-900' : ''}`}>{b || ''}</span>
-                      </>
+                      <Fragment key={`move-row-${i}`}>
+                        <span className="text-sage-400 text-xs pt-0.5">{i + 1}.</span>
+                        <span className={`${moves[i * 2] === w ? 'text-sage-900' : ''}`}>{w}</span>
+                        <span className={`${b ? 'text-sage-900' : ''}`}>{b || ''}</span>
+                      </Fragment>
                     )
                   })}
                 </div>

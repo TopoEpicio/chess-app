@@ -21,7 +21,6 @@ export class UciEngine {
   private enginePath: string
   private customEngineInit?: (worker: EngineWorker) => Promise<void>
   private multiPv = 3
-  private elo: number | undefined
 
   private constructor(
     engineName: string,
@@ -84,26 +83,6 @@ export class UciEngine {
     )
 
     this.multiPv = multiPv
-  }
-
-  private async setElo(elo: number) {
-    if (elo === this.elo) return
-
-    if (elo < 1320 || elo > 3190) {
-      throw new Error(`Invalid Elo value: ${elo}`)
-    }
-
-    await this.sendCommandsToEachWorker(
-      ['setoption name UCI_LimitStrength value true', 'isready'],
-      'readyok',
-    )
-
-    await this.sendCommandsToEachWorker(
-      [`setoption name UCI_Elo value ${elo}`, 'isready'],
-      'readyok',
-    )
-
-    this.elo = elo
   }
 
   getIsReady(): boolean {
@@ -346,14 +325,13 @@ export class UciEngine {
     return parseEvaluationResults(results, fen)
   }
 
-  async getEngineNextMove(fen: string, elo: number, depth = 16): Promise<string | undefined> {
+  async getEngineNextMove(fen: string, movetimeMs = 1500): Promise<string | undefined> {
     this.throwErrorIfNotReady()
 
     await this.stopAllCurrentJobs()
-    await this.setElo(elo)
 
     const results = await this.sendCommands(
-      [`position fen ${fen}`, `go depth ${depth}`],
+      [`position fen ${fen}`, `go movetime ${movetimeMs}`],
       'bestmove',
     )
 

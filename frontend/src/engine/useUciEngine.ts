@@ -1,29 +1,29 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
+import { Chess } from 'chess.js'
 import { UciEngine } from './UciEngine'
 import type { EvalInfo, MultiPvLine } from '../types/analysis'
 import { positionEvalToMultiPvLines } from './convertEval'
 
-let singletonEngine: UciEngine | null = null
+let enginePromise: Promise<UciEngine> | null = null
 let refCount = 0
 
 async function getOrCreate(): Promise<UciEngine> {
-  if (!singletonEngine) {
-    singletonEngine = await UciEngine.create('Stockfish', '/stockfish.js')
+  if (!enginePromise) {
+    enginePromise = UciEngine.create('Stockfish', 'wasm')
   }
-  return singletonEngine
+  return enginePromise
 }
 
 /** @internal - only for testing */
 export function __resetSingletonForTest(): void {
-  singletonEngine = null
+  enginePromise = null
   refCount = 0
 }
 
 function destroySingleton(): void {
-  if (singletonEngine) {
-    singletonEngine.shutdown()
-    singletonEngine = null
-  }
+  // Stockfish's Emscripten module shares global state (B = PThread) across
+  // all factory calls. Shutting down one engine's workers via B.bc() kills
+  // ALL workers including any other engine's. The singleton lives forever.
 }
 
 export function useUciEngine() {
@@ -80,15 +80,36 @@ export function useUciEngine() {
     return positionEvalToMultiPvLines(fen, result)
   }, [])
 
-  const bestMove = useCallback(async (fen: string): Promise<EvalInfo> => {
+  const bestMove = useCallback(async (fen: string, elo?: number): Promise<EvalInfo> => {
     const engine = engineRef.current
     if (!engine) return { bestMove: '', evaluation: 0, mate: null, depth: 0 }
-    const uci = await engine.getEngineNextMove(fen, 2800, 22)
+
+    const targetElo = elo ?? 2800
+    const movetimeMs = Math.min(1500, Math.max(300, Math.round(targetElo * 0.75)))
+
+    const game = new Chess(fen)
+    const legalMoves = game.moves({ verbose: true })
+    if (legalMoves.length === 0) return { bestMove: '', evaluation: 0, mate: null, depth: 0 }
+
+    const effectiveness = Math.min(1, Math.max(0, (targetElo - 200) / (2800 - 200)))
+    const blunderProb = (1 - effectiveness) * 0.85
+
+    if (Math.random() < blunderProb) {
+      const randomMove = legalMoves[Math.floor(Math.random() * legalMoves.length)]
+      return {
+        bestMove: randomMove.from + randomMove.to + (randomMove.promotion ?? ''),
+        evaluation: 0,
+        mate: null,
+        depth: 0,
+      }
+    }
+
+    const uci = await engine.getEngineNextMove(fen, movetimeMs)
     return {
       bestMove: uci ?? '',
       evaluation: 0,
       mate: null,
-      depth: 22,
+      depth: 0,
     }
   }, [])
 

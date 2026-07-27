@@ -3,11 +3,11 @@ import { findOpeningByFen, searchOpenings, openings } from '../openings'
 import { Chess } from 'chess.js'
 
 describe('openings database', () => {
-  it('finds opening by FEN', () => {
+  it('finds opening by full FEN', () => {
     const game = new Chess()
     const moves = ['e4', 'e5', 'Nf3', 'Nc6', 'Bc4', 'Nf6']
     for (const m of moves) game.move(m)
-    const fen = game.fen().split(' ')[0]
+    const fen = game.fen()
 
     const result = findOpeningByFen(fen)
     expect(result).toBeDefined()
@@ -19,10 +19,16 @@ describe('openings database', () => {
     expect(result).toBeUndefined()
   })
 
-  it('matches board-only FEN (ignoring metadata)', () => {
+  it('matches FEN including castling metadata', () => {
     const fen = 'r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4'
     const result = findOpeningByFen(fen)
     expect(result).toBeDefined()
+  })
+
+  it('does not match positions with different castling rights', () => {
+    const sameBoardNoCastling = 'r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w - - 4 4'
+    const result = findOpeningByFen(sameBoardNoCastling)
+    expect(result).toBeUndefined()
   })
 
   it('searches openings by name (case-insensitive)', () => {
