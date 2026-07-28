@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, Fragment } from 'react'
+import { useState, useEffect, useRef, useCallback, Fragment, useMemo } from 'react'
 import { Chess } from 'chess.js'
 import { Chessboard } from '../components/board/ThemedBoard'
 import { useUciEngine } from '../engine/useUciEngine'
@@ -27,6 +27,16 @@ export function Play({ onBack }: { onBack?: () => void }) {
   const { bestMove, ready } = useUciEngine()
   const engineCfg = useEngineConfig()
 
+  const premoveRef = useRef<{ from: string; to: string; promotion?: string } | null>(null)
+  const premoveSourceRef = useRef<string | null>(null)
+  const [pmDisplay, setPmDisplay] = useState<{ from: string; to: string } | null>(null)
+
+  const clearPremove = useCallback(() => {
+    premoveRef.current = null
+    premoveSourceRef.current = null
+    setPmDisplay(null)
+  }, [])
+
   const userColor = userSide === 'white' ? 'w' : 'b'
 
   const triggerBotMove = useCallback(async () => {
@@ -52,6 +62,23 @@ export function Play({ onBack }: { onBack?: () => void }) {
       console.error('Bot move error:', e)
     } finally {
       setBotThinking(false)
+      premoveSourceRef.current = null
+
+      if (premoveRef.current && !game.isGameOver() && game.turn() === userColor) {
+        const pm = premoveRef.current
+        premoveRef.current = null
+        setPmDisplay(null)
+        try {
+          const move = game.move({ from: pm.from, to: pm.to, promotion: pm.promotion ?? 'q' })
+          if (move) {
+            setFen(game.fen())
+            setMoves(prev => [...prev, move.san])
+          }
+        } catch {
+          // Invalid premove, silently discard
+        }
+      }
+
       if (game.isGameOver()) {
         setGameOver(true)
         setResultMsg(getResultMessage(game))
@@ -72,6 +99,7 @@ export function Play({ onBack }: { onBack?: () => void }) {
     try {
       const move = game.move({ from: sourceSquare, to: targetSquare, promotion: 'q' })
       if (!move) return false
+      clearPremove()
       setFen(game.fen())
       setMoves(prev => [...prev, move.san])
       if (game.isGameOver()) {
@@ -84,7 +112,67 @@ export function Play({ onBack }: { onBack?: () => void }) {
     }
   }, [botThinking, gameOver, userSide, userColor])
 
+  const handleSquareClick = useCallback(({ piece, square }: { piece: { pieceType: string } | null; square: string }) => {
+    if (!userSide || gameOver) return
+    const game = gameRef.current
+    const isMyTurn = game.turn() === userColor
+
+    const isOwn = piece !== null && (
+      userColor === 'w' ? piece.pieceType === piece.pieceType.toUpperCase()
+      : piece.pieceType === piece.pieceType.toLowerCase()
+    )
+
+    if (isMyTurn) {
+      if (premoveSourceRef.current) {
+        if (square === premoveSourceRef.current) {
+          premoveSourceRef.current = null
+          setPmDisplay(null)
+          return
+        }
+        try {
+          const move = game.move({ from: premoveSourceRef.current, to: square, promotion: 'q' })
+          if (move) {
+            premoveRef.current = null
+            premoveSourceRef.current = null
+            setPmDisplay(null)
+            setFen(game.fen())
+            setMoves(prev => [...prev, move.san])
+            if (game.isGameOver()) {
+              setGameOver(true)
+              setResultMsg(getResultMessage(game))
+            }
+          } else {
+            premoveSourceRef.current = null
+            setPmDisplay(null)
+          }
+        } catch {
+          premoveSourceRef.current = null
+          setPmDisplay(null)
+        }
+      } else if (isOwn) {
+        premoveSourceRef.current = square
+        premoveRef.current = null
+        setPmDisplay({ from: square, to: '' })
+      }
+    } else {
+      if (premoveSourceRef.current) {
+        if (square === premoveSourceRef.current) {
+          premoveSourceRef.current = null
+          setPmDisplay(null)
+          return
+        }
+        premoveRef.current = { from: premoveSourceRef.current, to: square, promotion: 'q' }
+        premoveSourceRef.current = null
+        setPmDisplay({ from: premoveRef.current.from, to: premoveRef.current.to })
+      } else if (isOwn) {
+        premoveSourceRef.current = square
+        setPmDisplay({ from: square, to: '' })
+      }
+    }
+  }, [gameOver, userSide, userColor])
+
   const startGame = (side: 'white' | 'black') => {
+    clearPremove()
     engineCfg.setSkillElo(elo)
     gameRef.current = new Chess()
     setFen('start')
@@ -97,9 +185,30 @@ export function Play({ onBack }: { onBack?: () => void }) {
   }
 
   const resign = () => {
+    clearPremove()
     setGameOver(true)
     setResultMsg('Hai abbandonato')
   }
+
+  const squareStyles = useMemo(() => {
+    if (!pmDisplay) return undefined
+    const isMyTurn = gameRef.current.turn() === userColor
+    const isPremove = !isMyTurn && !!pmDisplay.to
+    const styles: Record<string, React.CSSProperties> = {}
+    if (pmDisplay.from) {
+      styles[pmDisplay.from] = {
+        background: isPremove ? 'rgba(100, 150, 255, 0.45)' : 'rgba(200, 200, 80, 0.35)',
+        borderRadius: '50%',
+      }
+    }
+    if (pmDisplay.to) {
+      styles[pmDisplay.to] = {
+        background: 'rgba(100, 150, 255, 0.45)',
+        borderRadius: '50%',
+      }
+    }
+    return styles
+  }, [pmDisplay, userColor])
 
   if (!userSide) {
     const diffLabel = elo <= 600 ? 'Principiante' : elo <= 1200 ? 'Intermedio' : elo <= 2000 ? 'Avanzato' : elo <= 2800 ? 'Esperto' : 'Maestro'
@@ -174,6 +283,8 @@ export function Play({ onBack }: { onBack?: () => void }) {
                 position: fen === 'start' ? undefined : fen,
                 boardOrientation: boardFlipped ? 'black' : 'white',
                 onPieceDrop: handleDrop,
+                onSquareClick: handleSquareClick,
+                squareStyles,
                 boardStyle: { borderRadius: '8px', boxShadow: '0 2px 12px rgba(45,53,39,0.08)' },
               }}
             />
@@ -230,6 +341,7 @@ export function Play({ onBack }: { onBack?: () => void }) {
               <div className="flex items-center justify-between pt-2 border-t border-sage-100 text-xs text-sage-500">
                 Stato: <span className="font-medium text-sage-700">
                   {gameOver ? resultMsg : botThinking ? 'Bot al pensiero...' : turn === userColor ? 'Tocca a te!' : 'In corso'}
+                  {pmDisplay?.to ? ` · Premossa: ${pmDisplay.from}→${pmDisplay.to}` : ''}
                 </span>
               </div>
             </div>
