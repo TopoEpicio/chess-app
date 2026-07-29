@@ -58,6 +58,73 @@ describe('Play', () => {
     expect(screen.getByTestId('chessboard')).toBeInTheDocument()
   })
 
+  it('click own piece during turn reassigns selection', async () => {
+    render(<Play />)
+    fireEvent.click(screen.getByText('Bianco'))
+    await waitFor(() => expect(screen.getByTestId('chessboard')).toBeInTheDocument())
+
+    act(() => {
+      squareClickHandler?.({ piece: { pieceType: 'P' }, square: 'e2' })
+    })
+    // Click another own piece (knight) should reassign selection
+    act(() => {
+      squareClickHandler?.({ piece: { pieceType: 'N' }, square: 'g1' })
+    })
+    // Now click empty square for the knight move
+    act(() => {
+      squareClickHandler?.({ piece: null, square: 'f3' })
+    })
+    await waitFor(() => expect(screen.getByText('Nf3')).toBeInTheDocument())
+  })
+
+  it('click own piece during premode reassigns source', async () => {
+    let deferredResolve: (v: unknown) => void
+    let callIdx = 0
+
+    mockBestMove.mockImplementation(async (fen: string) => {
+      callIdx++
+      if (callIdx === 2) {
+        await new Promise((resolve) => { deferredResolve = resolve })
+      }
+      return firstLegalMove(fen)
+    })
+
+    render(<Play />)
+    fireEvent.click(screen.getByText('Bianco'))
+    await waitFor(() => expect(screen.getByTestId('chessboard')).toBeInTheDocument())
+
+    // Make first two human moves
+    act(() => {
+      squareClickHandler?.({ piece: { pieceType: 'P' }, square: 'e2' })
+      squareClickHandler?.({ piece: null, square: 'e4' })
+    })
+    await waitFor(() => expect(screen.getByText('e4')).toBeInTheDocument())
+
+    act(() => {
+      squareClickHandler?.({ piece: { pieceType: 'P' }, square: 'd2' })
+      squareClickHandler?.({ piece: null, square: 'd4' })
+    })
+    await waitFor(() => expect(screen.getByText('d4')).toBeInTheDocument())
+
+    // Bot's turn: click pawn, then click knight (own piece) → reassigns source
+    act(() => {
+      squareClickHandler?.({ piece: { pieceType: 'P' }, square: 'e2' })
+    })
+    act(() => {
+      squareClickHandler?.({ piece: { pieceType: 'N' }, square: 'g1' })
+    })
+    // Now click empty square to set premove from knight
+    act(() => {
+      squareClickHandler?.({ piece: null, square: 'f3' })
+    })
+    expect(screen.getByText(/Premossa/)).toBeInTheDocument()
+
+    await act(async () => { deferredResolve(undefined) })
+    await waitFor(() => {
+      expect(screen.queryByText(/Premossa/)).not.toBeInTheDocument()
+    })
+  })
+
   it('stores premove during bot turn and executes after bot moves', async () => {
     let deferredResolve: (v: unknown) => void
     let callIdx = 0

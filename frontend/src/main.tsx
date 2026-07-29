@@ -6,13 +6,16 @@ import App from './App'
 import { ApiProvider } from './api/provider'
 import { ThemeProvider } from './stores/themeStore'
 import { EngineConfigProvider } from './stores/engineStore'
+import { UciEngineProvider } from './engine/useUciEngine'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ApiProvider>
       <ThemeProvider>
         <EngineConfigProvider>
-          <App />
+          <UciEngineProvider>
+            <App />
+          </UciEngineProvider>
         </EngineConfigProvider>
       </ThemeProvider>
     </ApiProvider>

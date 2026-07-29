@@ -19,7 +19,7 @@ export function positionEvalToMultiPvLines(fen: string, positionEval: PositionEv
     rank: line.multiPv,
     san: sanFromUci(fen, line.pv[0]),
     uci: line.pv[0] ?? '',
-    evaluation: line.mate !== undefined ? 0 : (line.cp ?? 0) / 100,
+    evaluation: line.mate !== undefined ? (line.mate > 0 ? 10 : -10) : (line.cp ?? 0) / 100,
     mate: line.mate ?? null,
     depth: line.depth,
     pv: line.pv,

@@ -145,11 +145,11 @@ export function Settings() {
       </section>
 
       <section className="bg-white dark:bg-dark-surface rounded-xl p-5 border border-sage-100 dark:border-dark-border space-y-4">
-        <h2 className="text-lg font-semibold text-sage-800 dark:text-dark-text">Motore scacchistico</h2>
+        <h2 className="text-lg font-semibold text-sage-800 dark:text-dark-text">{t('settings.engine')}</h2>
 
         <div className="space-y-2">
           <label className="flex justify-between text-sm text-sage-700 dark:text-dark-text">
-            <span>Profondità analisi</span>
+            <span>{t('settings.depth')}</span>
             <span>{engineCfg.depth}</span>
           </label>
           <input type="range" min="1" max="48" value={engineCfg.depth}
@@ -160,7 +160,7 @@ export function Settings() {
 
         <div className="space-y-2">
           <label className="flex justify-between text-sm text-sage-700 dark:text-dark-text">
-            <span>Memoria Hash</span>
+            <span>{t('settings.hash')}</span>
             <span>{engineCfg.hash} MB</span>
           </label>
           <input type="range" min="16" max="512" value={engineCfg.hash}
@@ -171,7 +171,7 @@ export function Settings() {
 
         <div className="space-y-2">
           <label className="flex justify-between text-sm text-sage-700 dark:text-dark-text">
-            <span>Thread</span>
+            <span>{t('settings.threads')}</span>
             <span>{engineCfg.threads}</span>
           </label>
           <input type="range" min="1" max="16" value={engineCfg.threads}
@@ -182,7 +182,7 @@ export function Settings() {
 
         <div className="space-y-2">
           <label className="flex justify-between text-sm text-sage-700 dark:text-dark-text">
-            <span>Linee multiple (MultiPV)</span>
+            <span>{t('settings.multiPv')}</span>
             <span>{engineCfg.multiPv}</span>
           </label>
           <input type="range" min="1" max="10" value={engineCfg.multiPv}

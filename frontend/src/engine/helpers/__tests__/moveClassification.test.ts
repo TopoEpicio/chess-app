@@ -77,6 +77,18 @@ describe('getMovesClassification', () => {
     expect(result[1].moveClassification).toBe(MoveClassification.Forced)
   })
 
+  it('classifies as Opening when FEN matches an opening in the database', () => {
+    // Italian Game after 1.e4 e5 2.Nf3 Nc6 3.Bc4
+    const fenItalian =
+      'r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3'
+    const positions: PositionEval[] = [
+      pos2({ bestMove: 'e2e4' }),
+      { lines: [{ pv: ['e7e5'], depth: 18, multiPv: 1, cp: 20 }] },
+    ]
+    const result = getMovesClassification(positions, ['e2e4'], [fenStart, fenItalian])
+    expect(result[1].moveClassification).toBe(MoveClassification.Opening)
+  })
+
   it('classifies as Inaccuracy when win% drops between 5-10%', () => {
     // cp 300 → ~89.5%, cp 50 → ~54.6%, diff ~35% but from black perspective
     const positions: PositionEval[] = [

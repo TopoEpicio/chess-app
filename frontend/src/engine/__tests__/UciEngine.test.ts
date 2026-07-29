@@ -139,52 +139,97 @@ describe('UciEngine', () => {
     })
   })
 
-  describe('getEngineNextMove', () => {
+  describe('stopAllCurrentJobs', () => {
+    it('resolves without error', async () => {
+      await expect(engine.stopAllCurrentJobs()).resolves.toBeUndefined()
+    })
+  })
+
+  describe('getEngineNextMoveWithEval', () => {
     beforeEach(() => {
       mockSendCommands.mockClear()
     })
 
-    it('returns a valid UCI move', async () => {
-      const move = await engine.getEngineNextMove(
+    it('returns depth and evaluation from info lines', async () => {
+      mockSendCommands.mockResolvedValue([
+        'info depth 18 multipv 1 score cp 30 pv e2e4',
+        'bestmove e2e4',
+      ])
+      const info = await engine.getEngineNextMoveWithEval(
         'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
       )
+      expect(info.bestMove).toBe('e2e4')
+      expect(info.evaluation).toBe(0.3)
+      expect(info.depth).toBe(18)
+      expect(info.mate).toBeNull()
+    })
 
-      expect(move).toBe('e2e4')
+    it('parses mate correctly', async () => {
+      mockSendCommands.mockResolvedValue([
+        'info depth 10 multipv 1 score mate 3 pv Qh7 Kf8',
+        'bestmove Qh7',
+      ])
+      const info = await engine.getEngineNextMoveWithEval(
+        'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+      )
+      expect(info.mate).toBe(3)
+      expect(info.evaluation).toBe(10)
+    })
+
+    it('handles (none) bestmove', async () => {
+      mockSendCommands.mockResolvedValue([
+        'bestmove (none)',
+      ])
+      const info = await engine.getEngineNextMoveWithEval(
+        'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+      )
+      expect(info.bestMove).toBe('')
     })
 
     it('sends go movetime with default value', async () => {
-      await engine.getEngineNextMove(
+      await engine.getEngineNextMoveWithEval(
         'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
       )
-
       const allCalls = mockSendCommands.mock.calls
       const movetimeCall = allCalls.find(([, cmds]) =>
-        cmds.some((c: string) => c === 'go movetime 1500'),
-      )
-      expect(movetimeCall).toBeDefined()
-      const depthCall = allCalls.find(([, cmds]) =>
-        cmds.some((c: string) => c.startsWith('go depth')),
-      )
-      expect(depthCall).toBeUndefined()
-    })
-
-    it('accepts custom movetime', async () => {
-      await engine.getEngineNextMove(
-        'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-        600,
-      )
-
-      const allCalls = mockSendCommands.mock.calls
-      const movetimeCall = allCalls.find(([, cmds]) =>
-        cmds.some((c: string) => c === 'go movetime 600'),
+        cmds.includes('go movetime 1500'),
       )
       expect(movetimeCall).toBeDefined()
     })
   })
 
-  describe('stopAllCurrentJobs', () => {
-    it('resolves without error', async () => {
-      await expect(engine.stopAllCurrentJobs()).resolves.toBeUndefined()
+  describe('setHashAndThreads', () => {
+    it('sends hash and threads options', async () => {
+      mockSendCommands.mockClear()
+      await engine.setHashAndThreads(128, 2)
+      const allCalls = mockSendCommands.mock.calls
+      const hashCall = allCalls.find(([, cmds]) =>
+        cmds.includes('setoption name Hash value 128'),
+      )
+      const threadsCall = allCalls.find(([, cmds]) =>
+        cmds.includes('setoption name Threads value 2'),
+      )
+      expect(hashCall).toBeDefined()
+      expect(threadsCall).toBeDefined()
+    })
+
+    it('skips if hash and threads unchanged', async () => {
+      mockSendCommands.mockClear()
+      await engine.setHashAndThreads(64, 1)
+      expect(mockSendCommands).not.toHaveBeenCalledWith(
+        expect.anything(),
+        expect.arrayContaining(['setoption name Hash value 64']),
+        expect.anything(),
+      )
+    })
+  })
+
+  describe('create with custom options', () => {
+    it('passes custom hash and threads', async () => {
+      mockSendCommands.mockClear()
+      const customEngine = await UciEngine.create('test-custom', 'test.js', { hashSize: 128, threads: 2, multiPv: 5 })
+      expect(customEngine.name).toBe('test-custom')
+      customEngine.shutdown()
     })
   })
 

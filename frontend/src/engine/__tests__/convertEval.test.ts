@@ -42,7 +42,7 @@ describe('positionEvalToMultiPvLines', () => {
       rank: 1,
       san: 'e4',
       uci: 'e2e4',
-      evaluation: 0,
+      evaluation: 10,
       mate: 3,
       depth: 12,
       pv: ['e2e4'],

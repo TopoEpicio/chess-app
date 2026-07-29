@@ -1,3 +1,4 @@
+import type { EvalInfo } from '../types/analysis'
 import type { EngineWorker, WorkerJob } from '../types/engine'
 import type {
   EvaluateGameParams,
@@ -13,6 +14,12 @@ import { getMovesClassification } from './helpers/moveClassification'
 import { computeEstimatedElo } from './helpers/estimateElo'
 import { getEngineWorker, sendCommandsToWorker } from './worker'
 
+export interface UciEngineOptions {
+  hashSize?: number
+  threads?: number
+  multiPv?: number
+}
+
 export class UciEngine {
   public readonly name: string
   private workers: EngineWorker[] = []
@@ -21,23 +28,30 @@ export class UciEngine {
   private enginePath: string
   private customEngineInit?: (worker: EngineWorker) => Promise<void>
   private multiPv = 3
+  private hashSize = 64
+  private threads = 1
 
   private constructor(
     engineName: string,
     enginePath: string,
+    options?: UciEngineOptions,
     customEngineInit?: (worker: EngineWorker) => Promise<void>,
   ) {
     this.name = engineName
     this.enginePath = enginePath
     this.customEngineInit = customEngineInit
+    if (options?.hashSize !== undefined) this.hashSize = options.hashSize
+    if (options?.threads !== undefined) this.threads = options.threads
+    if (options?.multiPv !== undefined) this.multiPv = options.multiPv
   }
 
   static async create(
     engineName: string,
     enginePath: string,
+    options?: UciEngineOptions,
     customEngineInit?: (worker: EngineWorker) => Promise<void>,
   ): Promise<UciEngine> {
-    const engine = new UciEngine(engineName, enginePath, customEngineInit)
+    const engine = new UciEngine(engineName, enginePath, options, customEngineInit)
     await engine.addNewWorker()
     engine.isReady = true
     return engine
@@ -73,7 +87,7 @@ export class UciEngine {
   private async setMultiPv(multiPv: number) {
     if (multiPv === this.multiPv) return
 
-    if (multiPv < 2 || multiPv > 6) {
+    if (multiPv < 1 || multiPv > 6) {
       throw new Error(`Invalid MultiPV value: ${multiPv}`)
     }
 
@@ -173,7 +187,12 @@ export class UciEngine {
     await sendCommandsToWorker(worker, ['uci'], 'uciok')
     await sendCommandsToWorker(
       worker,
-      [`setoption name MultiPV value ${this.multiPv}`, 'isready'],
+      [
+        `setoption name Hash value ${this.hashSize}`,
+        `setoption name Threads value ${this.threads}`,
+        `setoption name MultiPV value ${this.multiPv}`,
+        'isready',
+      ],
       'readyok',
     )
     await this.customEngineInit?.(worker)
@@ -181,6 +200,16 @@ export class UciEngine {
 
     this.workers.push(worker)
     this.releaseWorker(worker)
+  }
+
+  async setHashAndThreads(hash: number, threads: number): Promise<void> {
+    if (hash === this.hashSize && threads === this.threads) return
+    await this.sendCommandsToEachWorker(
+      [`setoption name Hash value ${hash}`, `setoption name Threads value ${threads}`, 'isready'],
+      'readyok',
+    )
+    this.hashSize = hash
+    this.threads = threads
   }
 
   private async setWorkersNb(workersNb: number) {
@@ -325,7 +354,10 @@ export class UciEngine {
     return parseEvaluationResults(results, fen)
   }
 
-  async getEngineNextMove(fen: string, movetimeMs = 1500): Promise<string | undefined> {
+  async getEngineNextMoveWithEval(
+    fen: string,
+    movetimeMs = 1500,
+  ): Promise<EvalInfo> {
     this.throwErrorIfNotReady()
 
     await this.stopAllCurrentJobs()
@@ -335,12 +367,16 @@ export class UciEngine {
       'bestmove',
     )
 
-    const moveResult = results.find((result) => result.startsWith('bestmove'))
-    const move = getResultProperty(moveResult ?? '', 'bestmove')
-    if (!move) {
-      throw new Error('No move found')
-    }
+    const positionEval = parseEvaluationResults(results, fen)
+    const bestLine = positionEval.lines[0]
+    const moveResult = results.find((r) => r.startsWith('bestmove'))
+    const bestMove = getResultProperty(moveResult ?? '', 'bestmove') ?? ''
 
-    return move === '(none)' ? undefined : move
+    return {
+      bestMove: bestMove === '(none)' ? '' : bestMove,
+      evaluation: bestLine?.mate !== undefined ? (bestLine.mate > 0 ? 10 : -10) : (bestLine?.cp ?? 0) / 100,
+      mate: bestLine?.mate ?? null,
+      depth: bestLine?.depth ?? 0,
+    }
   }
 }

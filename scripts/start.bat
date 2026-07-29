@@ -36,4 +36,3 @@ echo  [OK] Backend  su http://localhost:8003/api/health
 echo.
 echo  Chiudi le finestre del terminale per fermare i server.
 echo.
-pause

@@ -30,7 +30,7 @@ export const getMovesClassification = (
   const positions = rawPositions.map((rawPosition, index) => {
     if (index === 0) return rawPosition
 
-    const currentFen = fens[index].split(' ')[0]
+    const currentFen = fens[index].split(' ').slice(0, 4).join(' ')
     const opening = openings.find((opening) => opening.fen === currentFen)
     if (opening) {
       currentOpening = opening.name
@@ -131,7 +131,7 @@ export const getMovesClassification = (
   return positions
 }
 
-const getMoveBasicClassification = (
+export const getMoveBasicClassification = (
   lastPositionWinPercentage: number,
   positionWinPercentage: number,
   isWhiteMove: boolean,

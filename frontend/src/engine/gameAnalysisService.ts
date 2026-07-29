@@ -1,6 +1,7 @@
 import { Chess } from 'chess.js'
 import type { MultiPvLine, MoveAnalysisData, MoveClassification } from '../types/analysis'
 import type { MoveItem } from './useMoveNavigation'
+import { getMoveBasicClassification } from './helpers/moveClassification'
 
 export interface AnalysisProgress {
   currentMove: number
@@ -10,20 +11,6 @@ export interface AnalysisProgress {
 
 function evalToWinProbability(evalInPawns: number): number {
   return 1 / (1 + Math.pow(10, -evalInPawns / 4))
-}
-
-function classifyMove(
-  evalSwingPawns: number,
-  isBestMove: boolean,
-  isTactical: boolean,
-): MoveClassification {
-  if (isBestMove && isTactical && evalSwingPawns < 0.3) return 'brilliant'
-  if (isBestMove) return 'best'
-  if (evalSwingPawns < 0.50) return 'excellent'
-  if (evalSwingPawns < 1.00) return 'good'
-  if (evalSwingPawns < 3.00) return 'inaccuracy'
-  if (evalSwingPawns < 5.00) return 'mistake'
-  return 'blunder'
 }
 
 export async function analyzeGameMoves(
@@ -84,7 +71,9 @@ export async function analyzeGameMoves(
     const san = move.san
     const isBest = san === best.san
     const isTactical = san.includes('x') || san.includes('+') || san.includes('#') || san.includes('=')
-    const classification = classifyMove(evalSwing, isBest, isTactical)
+    const classification: MoveClassification = isBest
+      ? (isTactical && evalSwing < 0.3 ? 'brilliant' : 'best')
+      : (getMoveBasicClassification(wpBefore * 100, wpAfter * 100, isWhite) as unknown as MoveClassification)
 
     results.push({
       move_number: move.move_number,

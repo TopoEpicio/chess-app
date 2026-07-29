@@ -1,6 +1,5 @@
-from collections import defaultdict
-
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import text, bindparam
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -11,28 +10,22 @@ router = APIRouter()
 
 
 def _build_descendant_counts(db: Session, roots: set[int]) -> dict[int, int]:
-    """Given a set of starting_node_ids, return {node_id: total_descendant_count}
-    for each root using a single query and BFS in memory."""
-    all_nodes = db.query(RepertoireNode).all()
-    children_of: dict[int, list[int]] = defaultdict(list)
-    for node in all_nodes:
-        if node.parent_id is not None:
-            children_of[node.parent_id].append(node.id)
-
-    counts: dict[int, int] = {}
-    for root in roots:
-        total = 0
-        stack = list(children_of.get(root, []))
-        visited = {root}
-        while stack:
-            nid = stack.pop()
-            if nid in visited:
-                continue
-            visited.add(nid)
-            total += 1
-            stack.extend(c for c in children_of.get(nid, []) if c not in visited)
-        counts[root] = total
-    return counts
+    if not roots:
+        return {}
+    cte = text("""
+        WITH RECURSIVE tree AS (
+            SELECT id, parent_id AS root_id
+            FROM repertoire_nodes
+            WHERE parent_id IN :roots
+            UNION ALL
+            SELECT n.id, t.root_id
+            FROM repertoire_nodes n
+            JOIN tree t ON n.parent_id = t.id
+        ) SELECT root_id, COUNT(*) AS cnt FROM tree
+          GROUP BY root_id
+    """).bindparams(bindparam("roots", expanding=True))
+    rows = db.execute(cte, {"roots": list(roots)}).fetchall()
+    return {root_id: cnt for root_id, cnt in rows}
 
 
 @router.get("/", response_model=list[OpeningOut])

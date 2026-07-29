@@ -1,14 +1,18 @@
+import { logger } from '../lib/logger'
 import type { EngineWorker } from '../types/engine'
+
+/** Stockfish factory mutates an opts object passed as argument and returns a Promise. */
+interface StockfishEngine {
+  postMessage: (msg: string) => void
+  addMessageListener: (listener: (event: string) => void) => void
+  removeMessageListener: (listener: (event: string) => void) => void
+  ready?: Promise<void>
+  terminate?: () => void
+}
 
 declare global {
   interface Window {
-    Stockfish?: (opts?: { locateFile?: (path: string) => string }) => {
-      postMessage: (msg: string) => void
-      addMessageListener: (listener: (event: string) => void) => void
-      removeMessageListener: (listener: (event: string) => void) => void
-      ready?: Promise<void>
-      terminate?: () => void
-    }
+    Stockfish?: (opts: Record<string, unknown>) => Promise<void>
   }
 }
 
@@ -26,7 +30,7 @@ export const getEngineWorker = (enginePath: string): EngineWorker => {
       engineWorker.listen(event.data)
     }
     worker.onerror = (event) => {
-      console.error('Worker error:', event.message)
+      logger.error('Worker error:', event.message)
     }
     return engineWorker
   }
@@ -38,18 +42,40 @@ export const getEngineWorker = (enginePath: string): EngineWorker => {
       throw new Error('window.Stockfish is not available. Ensure stockfish.js is loaded via <script> tag.')
     }
 
-    const opts: Record<string, unknown> = {
-      locateFile: (path: string) => `/${path}`,
+    const opts: Record<string, unknown> = {}
+    let readyPromise: Promise<void> | undefined
+    try {
+      readyPromise = StockfishFactory(opts) as Promise<void> | undefined
+    } catch (err) {
+      throw new Error(`Failed to initialize Stockfish engine: ${err}`)
+    }
+    const cmdQueue: string[] = []
+    let firstOutputFlushed = false
+
+    function flushCmdQueue() {
+      if (firstOutputFlushed) return
+      firstOutputFlushed = true
+      for (const cmd of cmdQueue) {
+        ;(opts.postMessage as (cmd: string) => void)?.(cmd)
+      }
+      cmdQueue.length = 0
     }
 
-    StockfishFactory(opts)
-    const cmdQueue: string[] = []
-    let firstOutputReceived = false
+    ;(opts.ready as Promise<void> | undefined)?.then(flushCmdQueue)
+    readyPromise?.then(flushCmdQueue)
+
+    ;(opts.addMessageListener as (fn: (event: string) => void) => void)?.((
+      event: string,
+    ) => {
+      flushCmdQueue()
+      const cleaned = event.replace(/^Thread \d+: /, '')
+      engineWorker.listen(cleaned)
+    })
 
     const engineWorker: EngineWorker = {
       isReady: false,
       uci: (command: string) => {
-        if (firstOutputReceived) {
+        if (firstOutputFlushed) {
           ;(opts.postMessage as (cmd: string) => void)?.(command)
         } else {
           cmdQueue.push(command)
@@ -58,22 +84,6 @@ export const getEngineWorker = (enginePath: string): EngineWorker => {
       listen: () => {},
       terminate: () => (opts.terminate as () => void)?.(),
     }
-
-    ;(opts.addMessageListener as (fn: (event: string) => void) => void)?.((
-      event: string,
-    ) => {
-      const cleaned = event.replace(/^Thread \d+: /, '')
-      
-      if (!firstOutputReceived) {
-        firstOutputReceived = true
-        for (const cmd of cmdQueue) {
-          ;(opts.postMessage as (cmd: string) => void)?.(cmd)
-        }
-        cmdQueue.length = 0
-      }
-      
-      engineWorker.listen(cleaned)
-    })
 
     return engineWorker
   }

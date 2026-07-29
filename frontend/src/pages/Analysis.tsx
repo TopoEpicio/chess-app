@@ -113,7 +113,7 @@ export function Analysis({ gameId, onBack }: { gameId?: number; onBack?: () => v
     }
     const timer = setTimeout(async () => {
       try {
-        const multiPv = await deepAnalyze(fen, 3, 10);
+        const multiPv = await deepAnalyze(fen, 3, 18);
         const result = generateExplanation({ multiPv, fen });
         setAnalysisResult(result);
       } catch {
@@ -130,7 +130,7 @@ export function Analysis({ gameId, onBack }: { gameId?: number; onBack?: () => v
 
     try {
       if (moves.length > 0) {
-        const analyzedMoves = await analyzeGameMoves(moves, (fen, pv) => deepAnalyze(fen, pv, 10), (p) => {
+        const analyzedMoves = await analyzeGameMoves(moves, (fen, pv) => deepAnalyze(fen, pv, 18), (p) => {
           setAnalysisProgress(Math.round((p.currentMove / p.totalMoves) * 100));
         });
         const acc = calculateAccuracy(analyzedMoves);
@@ -150,7 +150,7 @@ export function Analysis({ gameId, onBack }: { gameId?: number; onBack?: () => v
           } catch {}
         }
       } else {
-        const multiPv = await deepAnalyze(fen, 3, 10);
+        const multiPv = await deepAnalyze(fen, 3, 18);
         const result = generateExplanation({ multiPv, fen });
         setAnalysisResult(result);
       }
