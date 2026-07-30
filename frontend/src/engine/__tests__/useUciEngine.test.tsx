@@ -179,6 +179,41 @@ describe('useUciEngine', () => {
     vi.mocked(Math.random).mockRestore()
   })
 
+  it('bestMove accepts random parameter for deterministic behavior', async () => {
+    const { result } = renderHook(() => useUciEngine(), { wrapper: UciEngineProvider })
+
+    await waitFor(() => {
+      expect(result.current.ready).toBe(true)
+    })
+
+    // random=1 means never blunder (always use engine)
+    const info = await result.current.bestMove(
+      'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+      200,
+      () => 1,
+    )
+
+    expect(mockEngine.getEngineNextMoveWithEval).toHaveBeenCalled()
+    expect(info.bestMove).toBe('e2e4')
+  })
+
+  it('bestMove with random=0 always blunders (skips engine)', async () => {
+    const { result } = renderHook(() => useUciEngine(), { wrapper: UciEngineProvider })
+
+    await waitFor(() => {
+      expect(result.current.ready).toBe(true)
+    })
+
+    const info = await result.current.bestMove(
+      'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+      200,
+      () => 0,
+    )
+
+    expect(mockEngine.getEngineNextMoveWithEval).not.toHaveBeenCalled()
+    expect(info.bestMove).toBeTruthy()
+  })
+
   it('creates exactly one engine', async () => {
     const { result } = renderHook(() => useUciEngine(), { wrapper: UciEngineProvider })
 

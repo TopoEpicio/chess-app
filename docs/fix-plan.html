@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fix Implementation Plan — Code Review Results</title>
+<style>
+  :root {
+    --p0: #dc2626;
+    --p1: #ea580c;
+    --p2: #ca8a04;
+    --p3: #6b7280;
+    --sage-50: #f6f7f4;
+    --sage-100: #e2e5de;
+    --sage-200: #c5cbbf;
+    --sage-500: #7c8a70;
+    --sage-700: #4a5442;
+    --sage-900: #1e231b;
+    --white: #ffffff;
+    --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+    --shadow-lg: 0 4px 24px rgba(0,0,0,.1);
+    --radius: 8px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--sage-50);
+    color: var(--sage-900);
+    line-height: 1.6;
+    padding: 2rem;
+  }
+
+  .container { max-width: 960px; margin: 0 auto; }
+
+  h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: .25rem;
+    color: var(--sage-900);
+  }
+
+  .subtitle {
+    font-size: 1rem;
+    color: var(--sage-500);
+    margin-bottom: 2rem;
+  }
+
+  .summary-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }
+
+  .summary-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    box-shadow: var(--shadow);
+    text-align: center;
+  }
+
+  .summary-card .count { font-size: 2rem; font-weight: 700; }
+  .summary-card .label { font-size: .8rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; margin-top: .25rem; }
+  .card-p0 .count { color: var(--p0); } .card-p1 .count { color: var(--p1); }
+  .card-p2 .count { color: var(--p2); } .card-p3 .count { color: var(--p3); }
+
+  .phase {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+    margin-bottom: 2rem;
+    overflow: hidden;
+  }
+
+  .phase-header {
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border-bottom: 1px solid var(--sage-100);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .phase-header:hover { background: var(--sage-50); }
+
+  .phase-number {
+    width: 2.25rem; height: 2.25rem;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: .9rem;
+    color: var(--white);
+    flex-shrink: 0;
+  }
+  .phase-0 .phase-number { background: var(--p0); }
+  .phase-1 .phase-number { background: var(--p1); }
+  .phase-2 .phase-number { background: var(--p2); }
+  .phase-3 .phase-number { background: var(--p3); }
+  .phase-4 .phase-number { background: #2563eb; }
+
+  .phase-title { flex: 1; }
+  .phase-title h2 { font-size: 1.1rem; font-weight: 600; }
+  .phase-title .meta { font-size: .8rem; color: var(--sage-500); }
+
+  .phase-tag {
+    font-size: .7rem; font-weight: 700;
+    padding: .2rem .6rem;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+
+  .tag-p0 { background: #fef2f2; color: #dc2626; }
+  .tag-p1 { background: #fff7ed; color: #ea580c; }
+  .tag-p2 { background: #fefce8; color: #ca8a04; }
+  .tag-p3 { background: #f3f4f6; color: #6b7280; }
+
+  .phase-body { padding: 1.5rem; }
+
+  .finding {
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--sage-100);
+    background: var(--sage-50);
+  }
+
+  .finding:last-child { margin-bottom: 0; }
+
+  .finding-header {
+    display: flex; align-items: flex-start; gap: .75rem;
+    margin-bottom: .75rem;
+  }
+
+  .finding-priority {
+    font-size: .7rem; font-weight: 700;
+    padding: .2rem .5rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    flex-shrink: 0;
+    margin-top: .15rem;
+  }
+  .f-p0 { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+  .f-p1 { background: #fff7ed; color: #ea580c; border: 1px solid #fed7aa; }
+  .f-p2 { background: #fefce8; color: #ca8a04; border: 1px solid #fef08a; }
+  .f-p3 { background: #f3f4f6; color: #6b7280; border: 1px solid #d1d5db; }
+
+  .finding-title {
+    flex: 1;
+    font-weight: 600;
+    font-size: .95rem;
+  }
+
+  .finding-meta {
+    display: flex; flex-wrap: wrap;
+    gap: .5rem;
+    margin-bottom: .75rem;
+    font-size: .8rem;
+  }
+
+  .finding-meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    padding: .15rem .5rem;
+    border-radius: 4px;
+    background: var(--white);
+    border: 1px solid var(--sage-100);
+    color: var(--sage-700);
+  }
+
+  .finding-meta code { font-size: .78rem; color: #2563eb; }
+
+  .finding-desc {
+    font-size: .88rem;
+    color: var(--sage-700);
+    margin-bottom: .75rem;
+  }
+
+  .finding-desc p { margin-bottom: .5rem; }
+  .finding-desc p:last-child { margin-bottom: 0; }
+
+  .steps {
+    list-style: none;
+    padding: 0;
+    counter-reset: step;
+  }
+
+  .steps li {
+    counter-increment: step;
+    padding: .5rem .75rem .5rem 2rem;
+    font-size: .85rem;
+    position: relative;
+    border-bottom: 1px solid var(--sage-100);
+  }
+
+  .steps li:last-child { border-bottom: none; }
+
+  .steps li::before {
+    content: counter(step);
+    position: absolute;
+    left: .5rem;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    background: var(--sage-200);
+    color: var(--sage-700);
+    font-size: .65rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    top: .6rem;
+  }
+
+  .steps li strong { color: var(--sage-900); }
+  .steps li code {
+    font-size: .8rem;
+    padding: .1rem .3rem;
+    background: var(--sage-100);
+    border-radius: 3px;
+  }
+
+  .files-affected {
+    margin-top: .75rem;
+    padding: .75rem;
+    background: var(--white);
+    border-radius: 6px;
+    border: 1px dashed var(--sage-200);
+  }
+
+  .files-affected .label {
+    font-size: .7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--sage-500);
+    margin-bottom: .35rem;
+  }
+
+  .files-affected ul {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem;
+  }
+
+  .files-affected li {
+    font-size: .8rem;
+    font-family: 'SF Mono', 'Consolas', monospace;
+    padding: .15rem .4rem;
+    border-radius: 3px;
+    background: var(--sage-50);
+    border: 1px solid var(--sage-100);
+  }
+
+  .acceptance {
+    margin-top: .75rem;
+    padding: .75rem;
+    background: #f0fdf4;
+    border-radius: 6px;
+    border: 1px solid #bbf7d0;
+    font-size: .82rem;
+    color: #166534;
+  }
+
+  .acceptance strong { font-size: .78rem; text-transform: uppercase; letter-spacing: .02em; }
+
+  .timeline {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .timeline h3 { font-size: 1rem; margin-bottom: 1rem; }
+  .timeline table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+  .timeline th, .timeline td { text-align: left; padding: .5rem .75rem; border-bottom: 1px solid var(--sage-100); }
+  .timeline th { font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; color: var(--sage-500); font-weight: 600; }
+  .timeline tr:last-child td { border-bottom: none; }
+
+  .bar {
+    height: .5rem;
+    border-radius: 99px;
+    background: var(--sage-100);
+    overflow: hidden;
+    position: relative;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 99px;
+    transition: width .3s;
+  }
+  .bg-p0 { background: var(--p0); }
+  .bg-p1 { background: var(--p1); }
+  .bg-p2 { background: #ca8a04; }
+  .bg-p3 { background: var(--p3); }
+  .bg-blue { background: #2563eb; }
+
+  @media (max-width: 640px) {
+    body { padding: 1rem; }
+    .summary-cards { grid-template-columns: repeat(2, 1fr); }
+    .finding-header { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<h1>Fix Implementation Plan</h1>
+<p class="subtitle">Code review results for <code>chess-app</code> — prioritized &amp; actionable fixes</p>
+
+<div class="summary-cards">
+  <div class="summary-card card-p0">
+    <div class="count">2</div>
+    <div class="label">P0 · Critical</div>
+  </div>
+  <div class="summary-card card-p1">
+    <div class="count">3</div>
+    <div class="label">P1 · High</div>
+  </div>
+  <div class="summary-card card-p2">
+    <div class="count">2</div>
+    <div class="label">P2 · Medium</div>
+  </div>
+  <div class="summary-card card-p3">
+    <div class="count">4</div>
+    <div class="label">P3 · Low</div>
+  </div>
+</div>
+
+<div class="timeline">
+  <h3>Effort Estimate</h3>
+  <table>
+    <thead>
+      <tr><th>Phase</th><th>Fixes</th><th>Est.</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Phase 0</strong> — Setup</td>
+        <td>Branch, baseline tests</td>
+        <td>30 min</td>
+        <td><div class="bar"><div class="bar-fill bg-blue" style="width:10%"></div></div></td>
+      </tr>
+      <tr>
+        <td><strong>Phase 1</strong> — P0 Critical</td>
+        <td>Race condition, IndexedDB leaks</td>
+        <td>2-3 h</td>
+        <td><div class="bar"><div class="bar-fill bg-p0" style="width:30%"></div></div></td>
+      </tr>
+      <tr>
+        <td><strong>Phase 2</strong> — P1 High</td>
+        <td>Classification, FEN metadata, test fix</td>
+        <td>2-3 h</td>
+        <td><div class="bar"><div class="bar-fill bg-p1" style="width:30%"></div></div></td>
+      </tr>
+      <tr>
+        <td><strong>Phase 3</strong> — P2 Medium</td>
+        <td>Accessibility, test robustness</td>
+        <td>1.5 h</td>
+        <td><div class="bar"><div class="bar-fill bg-p2" style="width:20%"></div></div></td>
+      </tr>
+      <tr>
+        <td><strong>Phase 4</strong> — P3 Low</td>
+        <td>JSON extraction, config, formatting</td>
+        <td>2-3 h</td>
+        <td><div class="bar"><div class="bar-fill bg-p3" style="width:30%"></div></div></td>
+      </tr>
+      <tr>
+        <td><strong>Phase 5</strong> — Validation</td>
+        <td>Tests + typecheck + manual QA</td>
+        <td>1-2 h</td>
+        <td><div class="bar"><div class="bar-fill bg-blue" style="width:20%"></div></div></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Phase 0 -->
+<div class="phase phase-0">
+  <div class="phase-header">
+    <div class="phase-number">0</div>
+    <div class="phase-title">
+      <h2>Preparation &amp; Baseline</h2>
+      <div class="meta">30 min · Branch, config, test snapshot</div>
+    </div>
+    <span class="phase-tag tag-p3">Setup</span>
+  </div>
+  <div class="phase-body">
+    <ol class="steps">
+      <li><strong>Create branch</strong> <code>fix/code-review-issues</code> from <code>main</code></li>
+      <li><strong>Baseline tests</strong> — <code>cd frontend && npm run test</code> (expect 320 pass)</li>
+      <li><strong>Typecheck baseline</strong> — <code>npx tsc -b --noEmit</code> (document pre-existing errors)</li>
+      <li><strong>Commit</strong> baseline snapshot</li>
+    </ol>
+  </div>
+</div>
+
+<!-- Phase 1 -->
+<div class="phase phase-1">
+  <div class="phase-header">
+    <div class="phase-number">1</div>
+    <div class="phase-title">
+      <h2>P0 — Critical Bugs</h2>
+      <div class="meta">2-3 hours · Engine race condition, IndexedDB connection leaks</div>
+    </div>
+    <span class="phase-tag tag-p0">P0</span>
+  </div>
+  <div class="phase-body">
+
+    <div class="finding">
+      <div class="finding-header">
+        <span class="finding-priority f-p0">P0</span>
+        <div class="finding-title">useUciEngine singleton race condition</div>
+      </div>
+      <div class="finding-meta">
+        <span><code>src/engine/useUciEngine.ts:9-57</code></span>
+        <span>Concurrency</span>
+        <span>Risk: OOM from duplicate Stockfish instances</span>
+      </div>
+      <div class="finding-desc">
+        <p>Multiple components mounting simultaneously (e.g. Analysis + Play + PuzzleList) can all see <code>singletonEngine === null</code> and create duplicate engine instances, each spawning separate Web Workers (~5-10MB each).</p>
+      </div>
+      <div class="files-affected">
+        <div class="label">Files</div>
+        <ul>
+          <li>src/engine/useUciEngine.ts</li>
+          <li>src/engine/__tests__/useUciEngine.test.tsx</li>
+        </ul>
+      </div>
+      <ol class="steps">
+        <li><strong>Add promise guard:</strong> module-level <code>initPromise: Promise&lt;UciEngine&gt; | null = null</code></li>
+        <li><strong>Refactor <code>getOrCreate()</code>:</strong> if <code>initPromise</code> exists, await it — never call <code>UciEngine.create()</code> twice</li>
+        <li><strong>Test:</strong> spawn 5 concurrent <code>useUciEngine</code> hooks with <code>Promise.all</code>, verify single engine created</li>
+        <li><strong>Verify refCount cleanup:</strong> engine shuts down when last component unmounts</li>
+      </ol>
+      <div class="acceptance">
+        <strong>✓ Acceptance:</strong> No duplicate Stockfish instances under concurrent component mount. All 320+ tests pass.
+      </div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-header">
+        <span class="finding-priority f-p0">P0</span>
+        <div class="finding-title">IndexedDB connection management leaks</div>
+      </div>
+      <div class="finding-meta">
+        <span><code>src/data/studyFolders.ts</code></span>
+        <span><code>src/data/userOpenings.ts</code></span>
+        <span>Risk: "Database closed" errors, data loss</span>
+      </div>
+      <div class="finding-desc">
+        <p>Every function opens a DB connection and calls <code>db.close()</code> in <code>finally</code>. The <code>idb</code> library manages connection pooling internally — manual <code>close()</code> breaks other in-flight operations.</p>
+      </div>
+      <div class="files-affected">
+        <div class="label">Files</div>
+        <ul>
+          <li>src/data/studyFolders.ts</li>
+          <li>src/data/userOpenings.ts</li>
+          <li>src/data/__tests__/studyFolders.test.ts</li>
+          <li>src/data/__tests__/userOpenings.test.ts</li>
+        </ul>
+      </div>
+      <ol class="steps">
+        <li><strong>Remove all <code>db.close()</code></strong> calls from both files</li>
+        <li><strong>Remove <code>finally { db.close() }</code></strong> blocks (the <code>try</code> can become function body)</li>
+        <li><strong>Add test:</strong> concurrent <code>createFolder</code> + <code>listFolders</code> — no errors</li>
+        <li><strong>Verify <code>deleteDB</code></strong> in test <code>beforeEach</code> still works for isolation</li>
+      </ol>
+      <div class="acceptance">
+        <strong>✓ Acceptance:</strong> No manual connection management. Concurrent operations succeed without errors.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Phase 2 -->
+<div class="phase phase-2">
+  <div class="phase-header">
+    <div class="phase-number">2</div>
+    <div class="phase-title">
+      <h2>P1 — High Priority Bugs</h2>
+      <div class="meta">2-3 hours · Classification navigation, FEN matching, test correctness</div>
+    </div>
+    <span class="phase-tag tag-p1">P1</span>
+  </div>
+  <div class="phase-body">
+
+    <div class="finding">
+      <div class="finding-header">
+        <span class="finding-priority f-p1">P1</span>
+        <div class="finding-title">navigateToClassification O(n²) + wrap logic bug</div>
+      </div>
+      <div class="finding-meta">
+        <span><code>src/components/analysis/MoveClassificationTable.tsx:154-168</code></span>
+        <span>Performance + correctness</span>
+      </div>
+      <div class="finding-desc">
+        <p><code>moves.filter()</code> called inside render loop (line 177-178) creates O(n²) behavior. The wrap logic in <code>navigateToClassification</code> skips the current index. No fallback when no match found.</p>
+      </div>
+      <div class="files-affected">
+        <ul>
+          <li>src/components/analysis/MoveClassificationTable.tsx</li>
+        </ul>
+      </div>
+      <ol class="steps">
+        <li><strong>Memoize counts:</strong> move <code>whiteCount</code>/<code>blackCount</code> computation to <code>useMemo</code></li>
+        <li><strong>Fix wrap:</strong> change second loop to <code>for (let i = 0; i &lt;= currentIndex; i++)</code></li>
+        <li><strong>Add fallback:</strong> if no match found, show a toast notification</li>
+        <li><strong>Test:</strong> classification at index 0, last index, wrap-around from middle</li>
+      </ol>
+      <div class="acceptance">
+        <strong>✓ Acceptance:</strong> O(n) per render, correct wrap navigation at all positions.
+      </div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-header">
+        <span class="finding-priority f-p1">P1</span>
+        <div class="finding-title">EvaluationChart test asserts wrong Y coordinate</div>
+      </div>
+      <div class="finding-meta">
+        <span><code>src/components/analysis/__tests__/EvaluationChart.test.tsx:574</code></span>
+        <span>Test correctness</span>
+      </div>
+      <div class="finding-desc">
+        <p>The test checks for <code>y1 === '0'</code> but implementation uses <code>y1 = PADDING.top</code> (28). Test passes by accident — no matching line exists.</p>
+      </div>
+      <div class="files-affected">
+        <ul>
+          <li>src/components/analysis/__tests__/EvaluationChart.test.tsx</li>
+        </ul>
+      </div>
+      <ol class="steps">
+        <li><strong>Fix assertion:</strong> update <code>y1</code> check to match actual code (<code>PADDING.top</code> = 28)</li>
+        <li><strong>Boundary test:</strong> add test for <code>currentMoveIndex</code> at 0 and last index</li>
+      </ol>
+      <div class="acceptance">
+        <strong>✓ Acceptance:</strong> Tests validate actual reference line position.
+      </div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-header">
+        <span class="finding-priority f-p1">P1</span>
+        <div class="finding-title">Opening FEN comparison ignores metadata</div>
+      </div>
+      <div class="finding-meta">
+        <span><code>src/data/openings.ts:2467-2479</code></span>
+        <span>Incorrect matching</span>
+      </div>
+      <div class="finding-desc">
+        <p><code>fen.split(' ')[0]</code> strips castling rights, en passant, move clocks. Two positions with same piece layout but different castling/ep rights match incorrectly.</p>
+      </div>
+      <div class="files-affected">
+        <ul>
+          <li>src/data/openings.ts</li>
+          <li>src/data/__tests__/openings.test.ts</li>
+        </ul>
+      </div>
+      <ol class="steps">
+        <li><strong>Widen comparison:</strong> compare <code>fen.split(' ').slice(0, 4).join(' ')</code> — includes board + castling + ep</li>
+        <li><strong>Add regression test:</strong> same board, different castling rights → no match</li>
+      </ol>
+      <div class="acceptance">
+        <strong>✓ Acceptance:</strong> Positions with different castling/ep don't match.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Phase 3 -->
+<div class="phase phase-3">
+  <div class="phase-header">
+    <div class="phase-number">3</div>
+    <div class="phase-title">
+      <h2>P2 — Medium Priority</h2>
+      <div class="meta">1.5 hours · Accessibility, test robustness</div>
+    </div>
+    <span class="phase-tag tag-p2">P2</span>
+  </div>
+  <div class="phase-body">
+
+    <div class="finding">
+      <div class="finding-header">
+        <span class="finding-priority f-p2">P2</span>
+        <div class="finding-title">SearchDialog missing accessibility attributes</div>
+      </div>
+      <div class="finding-meta">
+        <span><code>src/components/analysis/SearchDialog.tsx:236-283</code></span>
+      </div>
+      <div class="files-affected">
+        <ul>
+          <li>src/components/analysis/SearchDialog.tsx</li>
+        </ul>
+      </div>
+      <ol class="steps">
+        <li>Add <code>role="dialog" aria-modal="true" aria-labelledby="search-title"</code></li>
+        <li>Add <code>id="search-title"</code> to the heading</li>
+        <li>Add Escape key handler → <code>onClose</code></li>
+        <li>Add focus trap: on mount focus input, on Tab cycle within dialog</li>
+      </ol>
+      <div class="acceptance">
+        <strong>✓ Acceptance:</strong> Screen readers announce as modal, keyboard users can dismiss with Escape.
+      </div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-header">
+        <span class="finding-priority f-p2">P2</span>
+        <div class="finding-title">EvaluationChart test depends on implementation text</div>
+      </div>
+      <div class="finding-meta">
+        <span><code>src/components/analysis/__tests__/EvaluationChart.test.tsx:556</code></span>
+      </div>
+      <div class="finding-desc">
+        <p><code>expect(screen.getByText(/Nessun dato disponibile/))</code> breaks if Italian text changes. Should test for structural emptiness (no SVG data rendered).</p>
+      </div>
+      <div class="files-affected">
+        <ul>
+          <li>src/components/analysis/__tests__/EvaluationChart.test.tsx</li>
+        </ul>
+      </div>
+      <ol class="steps">
+        <li><strong>Refactor test:</strong> check for absence of SVG path/circle elements instead of text</li>
+        <li><strong>Alternative:</strong> add <code>data-testid="chart-empty"</code> and check that</li>
+      </ol>
+      <div class="acceptance">
+        <strong>✓ Acceptance:</strong> Tests survive i18n text changes.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Phase 4 -->
+<div class="phase phase-4">
+  <div class="phase-header">
+    <div class="phase-number">4</div>
+    <div class="phase-title">
+      <h2>P3 — Code Quality &amp; Maintainability</h2>
+      <div class="meta">2-3 hours · JSON extraction, config wiring, formatting</div>
+    </div>
+    <span class="phase-tag tag-p3">P3</span>
+  </div>
+  <div class="phase-body">
+
+    <div class="finding">
+      <div class="finding-header">
+        <span class="finding-priority f-p3">P3</span>
+        <div class="finding-title">Extract openings data to external JSON</div>
+      </div>
+      <div class="finding-meta">
+        <span><code>src/data/openings.ts</code> — 1268 lines</span>
+      </div>
+      <div class="finding-desc">
+        <p>1268 lines of inline chess opening data bloat the JS bundle. Should be externalized.</p>
+      </div>
+      <div class="files-affected">
+        <ul>
+          <li>src/data/openings.ts (refactor)</li>
+          <li>public/data/openings.json (new)</li>
+        </ul>
+      </div>
+      <ol class="steps">
+        <li>Extract <code>RAW_OPENINGS</code> array to <code>public/data/openings.json</code></li>
+        <li>Fetch JSON at module init: <code>const response = await fetch('/data/openings.json')</code></li>
+        <li>Fallback to empty array on fetch failure</li>
+        <li>Remove <code>RAW_OPENINGS</code> from build bundle</li>
+      </ol>
+      <div class="acceptance">
+        <strong>✓ Acceptance:</strong> ~40KB removed from JS bundle. Openings load asynchronously.
+      </div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-header">
+        <span class="finding-priority f-p3">P3</span>
+        <div class="finding-title">useUciEngine hardcodes elo=2800, depth=22</div>
+      </div>
+      <div class="finding-meta">
+        <span><code>src/engine/useUciEngine.ts:86, 91</code></span>
+      </div>
+      <div class="finding-desc">
+        <p>Should use user settings from <code>engineStore</code> instead of hardcoded values.</p>
+      </div>
+      <div class="files-affected">
+        <ul>
+          <li>src/engine/useUciEngine.ts</li>
+        </ul>
+      </div>
+      <ol class="steps">
+        <li>Import <code>useEngineConfig</code> from <code>../stores/engineStore</code></li>
+        <li>Replace <code>2800</code> with <code>config.skillElo</code></li>
+        <li>Replace <code>22</code> with <code>config.depth</code></li>
+        <li>Pass <code>config.multiPv</code> to <code>evaluatePositionWithUpdate</code></li>
+      </ol>
+      <div class="acceptance">
+        <strong>✓ Acceptance:</strong> Engine respects user-configured ELO, depth, and MultiPV.
+      </div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-header">
+        <span class="finding-priority f-p3">P3</span>
+        <div class="finding-title">Missing trailing newlines in new files</div>
+      </div>
+      <div class="finding-meta">
+        <span><code>UserOpeningButton.tsx:514</code> and others</span>
+      </div>
+      <div class="finding-desc">
+        <p>Multiple new files are missing final newline. This creates noise in diffs and lint warnings.</p>
+      </div>
+      <div class="files-affected">
+        <ul>
+          <li>All new .tsx/.ts files in diff</li>
+        </ul>
+      </div>
+      <ol class="steps">
+        <li>Run <code>npx prettier --write 'src/**/*.{ts,tsx}'</code></li>
+        <li>Verify pre-commit hook catches future violations</li>
+      </ol>
+      <div class="acceptance">
+        <strong>✓ Acceptance:</strong> All files end with newline. Prettier passes.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Phase 5 -->
+<div class="phase phase-4">
+  <div class="phase-header">
+    <div class="phase-number" style="background:#2563eb">5</div>
+    <div class="phase-title">
+      <h2>Integration Testing &amp; Validation</h2>
+      <div class="meta">1-2 hours · Run suite, typecheck, manual QA</div>
+    </div>
+    <span class="phase-tag tag-p3">QA</span>
+  </div>
+  <div class="phase-body">
+    <ol class="steps">
+      <li><strong>Full test suite:</strong> <code>cd frontend && npm run test</code> — all 320+ tests pass</li>
+      <li><strong>Type check:</strong> <code>npx tsc -b --noEmit</code> — zero new errors beyond pre-existing</li>
+      <li><strong>Lint:</strong> <code>npm run lint</code> — zero warnings</li>
+      <li><strong>Manual QA — Analysis page:</strong> load game, navigate moves, play free lines, explore mode</li>
+      <li><strong>Manual QA — Engine:</strong> open Analysis + Play + Puzzles simultaneously, verify single engine in DevTools</li>
+      <li><strong>Manual QA — Persistence:</strong> create study folder, save opening, reload page, verify data persists</li>
+      <li><strong>Commit &amp; push</strong> all changes to <code>fix/code-review-issues</code></li>
+    </ol>
+  </div>
+</div>
+
+</div>
+
+</body>
+</html>

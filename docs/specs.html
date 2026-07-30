@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Specifiche implementative — Stockfish Engine Optimization</title>
+<style>
+  :root {
+    --bg: #f8f9fa;
+    --surface: #ffffff;
+    --text: #1a1a2e;
+    --text-secondary: #555;
+    --border: #e0e0e0;
+    --accent: #2d6a4f;
+    --accent-light: #d8f3dc;
+    --warn: #e9c46a;
+    --warn-bg: #fff3cd;
+    --danger: #e63946;
+    --danger-bg: #f8d7da;
+    --code-bg: #1e1e2e;
+    --code-text: #cdd6f4;
+    --diff-add: #d1fae5;
+    --diff-del: #fee2e2;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 2rem;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, #1a1a2e 0%, #2d6a4f 100%);
+    color: white;
+    padding: 3rem 2.5rem;
+    border-radius: 16px;
+    margin-bottom: 2rem;
+  }
+  .header h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; }
+  .header .subtitle { font-size: 1.1rem; opacity: 0.85; }
+  .header .meta { margin-top: 1.5rem; display: flex; gap: 2rem; flex-wrap: wrap; font-size: 0.9rem; }
+  .header .meta span { opacity: 0.8; }
+  .header .meta strong { opacity: 1; }
+
+  /* TOC */
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem 2rem;
+    margin-bottom: 2rem;
+  }
+  .toc h2 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); margin-bottom: 0.75rem; }
+  .toc ol { columns: 2; column-gap: 2rem; list-style: none; counter-reset: toc; }
+  .toc li { counter-increment: toc; margin-bottom: 0.35rem; }
+  .toc li::before { content: counter(toc) "."; color: var(--accent); font-weight: 600; margin-right: 0.4rem; }
+  .toc a { color: var(--accent); text-decoration: none; font-size: 0.9rem; }
+  .toc a:hover { text-decoration: underline; }
+
+  /* Sections */
+  section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem 2.5rem;
+    margin-bottom: 1.5rem;
+  }
+  section h2 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--accent-light);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  section h2 .phase { font-size: 0.75rem; background: var(--accent); color: white; padding: 0.15rem 0.6rem; border-radius: 99px; }
+  section h2 .effort { font-size: 0.7rem; background: var(--bg); color: var(--text-secondary); padding: 0.15rem 0.6rem; border-radius: 99px; margin-left: auto; }
+  section h3 { font-size: 1.05rem; font-weight: 600; margin-top: 1.25rem; margin-bottom: 0.5rem; }
+  section h4 { font-size: 0.95rem; font-weight: 600; margin-top: 1rem; margin-bottom: 0.25rem; color: var(--text-secondary); }
+
+  p, li { font-size: 0.95rem; }
+  p { margin-bottom: 0.75rem; }
+  ul, ol { padding-left: 1.5rem; margin-bottom: 0.75rem; }
+  li { margin-bottom: 0.3rem; }
+
+  /* Tags */
+  .tag {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.15rem 0.5rem;
+    border-radius: 99px;
+    margin-right: 0.3rem;
+  }
+  .tag-frontend { background: #e0f2fe; color: #0369a1; }
+  .tag-backend { background: #fef3c7; color: #92400e; }
+  .tag-config { background: #f3e8ff; color: #6b21a8; }
+  .tag-infra { background: #fce7f3; color: #9d174d; }
+  .tag-test { background: #d1fae5; color: #065f46; }
+  .tag-risky { background: var(--danger-bg); color: var(--danger); }
+
+  .risk-low { color: #059669; }
+  .risk-med { color: #d97706; }
+  .risk-high { color: var(--danger); }
+
+  /* Cards */
+  .info-card {
+    background: var(--accent-light);
+    border-left: 4px solid var(--accent);
+    padding: 1rem 1.25rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+  }
+  .info-card strong { color: var(--accent); }
+
+  .warn-card {
+    background: var(--warn-bg);
+    border-left: 4px solid var(--warn);
+    padding: 1rem 1.25rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+  }
+  .warn-card strong { color: #92400e; }
+
+  .critical-card {
+    background: var(--danger-bg);
+    border-left: 4px solid var(--danger);
+    padding: 1rem 1.25rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+  }
+
+  /* Code */
+  code { font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.85rem; background: var(--bg); padding: 0.15rem 0.4rem; border-radius: 4px; }
+  pre {
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 1rem 1.25rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+  }
+  pre .comment { color: #6c7086; }
+  pre .keyword { color: #cba6f7; }
+  pre .string { color: #a6e3a1; }
+  pre .type { color: #89b4fa; }
+  pre .fn { color: #f9e2af; }
+
+  .diff-add { background: var(--diff-add); color: #065f46; padding: 0.15rem 0.4rem; border-radius: 4px; font-family: monospace; font-size: 0.85rem; }
+  .diff-del { background: var(--diff-del); color: #991b1b; padding: 0.15rem 0.4rem; border-radius: 4px; font-family: monospace; font-size: 0.85rem; }
+
+  /* Files table */
+  .files-table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; font-size: 0.9rem; }
+  .files-table th { text-align: left; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); padding: 0.5rem 0.75rem; border-bottom: 2px solid var(--border); }
+  .files-table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); }
+  .files-table tr:hover td { background: var(--bg); }
+  .files-table .status-new { color: #059669; font-weight: 600; }
+  .files-table .status-mod { color: #d97706; font-weight: 600; }
+
+  /* Timeline */
+  .timeline { position: relative; padding-left: 2rem; margin-bottom: 1.5rem; }
+  .timeline::before { content: ''; position: absolute; left: 0.5rem; top: 0; bottom: 0; width: 2px; background: var(--border); }
+  .timeline-item { position: relative; margin-bottom: 1rem; padding-left: 1rem; }
+  .timeline-item::before { content: ''; position: absolute; left: -1.5rem; top: 0.5rem; width: 0.75rem; height: 0.75rem; border-radius: 50%; background: var(--accent); border: 2px solid var(--accent-light); }
+  .timeline-item .order { font-size: 0.75rem; font-weight: 700; color: var(--accent); }
+  .timeline-item .title { font-weight: 600; }
+  .timeline-item .desc { font-size: 0.85rem; color: var(--text-secondary); }
+
+  @media (max-width: 768px) {
+    body { padding: 1rem; }
+    section { padding: 1.25rem; }
+    .header { padding: 2rem 1.5rem; }
+    .header h1 { font-size: 1.5rem; }
+    .toc ol { columns: 1; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+  <h1>Specifiche implementative</h1>
+  <div class="subtitle">Stockfish Engine Optimization &amp; Architettura</div>
+  <div class="meta">
+    <span>Progetto: <strong>chess-app</strong></span>
+    <span>Stato: <strong>Approvato</strong></span>
+    <span>Ultima revisione: <strong>28 Luglio 2026</strong></span>
+    <span>Effort stimato: <strong>~18 ore</strong></span>
+  </div>
+</div>
+
+<div class="toc">
+  <h2>Indice</h2>
+  <ol>
+    <li><a href="#phase-D">Logger strutturato</a></li>
+    <li><a href="#phase-6">Play UX + EvalBar</a></li>
+    <li><a href="#phase-G">Backend openings.py</a></li>
+    <li><a href="#phase-1">Fix worker.ts (WASM factory)</a></li>
+    <li><a href="#phase-2">UciEngine hash/threads</a></li>
+    <li><a href="#phase-3">bestMove valutazione reale</a></li>
+    <li><a href="#phase-4">Integrazione engineConfig</a></li>
+    <li><a href="#phase-5">destroySingleton pulito</a></li>
+    <li><a href="#phase-H">COOP/COEP headers</a></li>
+    <li><a href="#phase-8">Test</a></li>
+    <li><a href="#phase-7">Web Worker (post-verifica)</a></li>
+    <li><a href="#execution">Ordine di esecuzione</a></li>
+  </ol>
+</div>
+
+<!-- ============================================================ -->
+<!-- FASE D -->
+<!-- ============================================================ -->
+<section id="phase-D">
+<h2>
+  <span class="phase">Fase D</span>
+  Logger strutturato
+  <span class="effort">15 min</span>
+</h2>
+
+<div class="info-card">
+  <strong>Prerequisito trasversale.</strong> Utility usata da Fase 1, Fase 6, e da tutto il codebase engine.
+  Va implementata per prima.
+</div>
+
+<h3>File da creare</h3>
+<p><code>frontend/src/lib/logger.ts</code> <span class="tag tag-frontend">frontend</span></p>
+
+<h3>Comportamento</h3>
+<ul>
+  <li>In <strong>development</strong> (<code>import.meta.env.DEV === true</code>): stampa a console con prefisso <code>[Engine]</code></li>
+  <li>In <strong>production</strong>: nessun output a console (prepara terreno per eventuale reporting service esterno)</li>
+</ul>
+
+<h3>API</h3>
+<pre><span class="keyword">export const</span> <span class="fn">logger</span> = {
+  <span class="fn">error</span>: (<span class="fn">msg</span>: <span class="type">string</span>, ...<span class="fn">args</span>: <span class="type">unknown</span>[]) => <span class="type">void</span>,
+  <span class="fn">warn</span>: (<span class="fn">msg</span>: <span class="type">string</span>, ...<span class="fn">args</span>: <span class="type">unknown</span>[]) => <span class="type">void</span>,
+  <span class="fn">info</span>: (<span class="fn">msg</span>: <span class="type">string</span>, ...<span class="fn">args</span>: <span class="type">unknown</span>[]) => <span class="type">void</span>,
+}</pre>
+
+<h3>Sostituzioni</h3>
+<ul>
+  <li><code>worker.ts:29</code> — <span class="diff-del">console.error('Worker error:', ...)</span> → <span class="diff-add">logger.error('Worker error:', ...)</span></li>
+  <li><code>Play.tsx:62</code> — <span class="diff-del">console.error('Bot move error:', ...)</span> → <span class="diff-add">logger.error('Bot move error:', ...)</span></li>
+</ul>
+</section>
+
+<!-- ============================================================ -->
+<!-- FASE 6 -->
+<!-- ============================================================ -->
+<section id="phase-6">
+<h2>
+  <span class="phase">Fase 6</span>
+  Play.tsx — UX fix + EvalBar
+  <span class="effort">2-3 ore</span>
+</h2>
+
+<span class="tag tag-frontend">frontend</span>
+<span class="tag risk-low">rischio basso</span>
+
+<h3>6.1 Click-to-move: riassegna selezione su proprio pezzo</h3>
+
+<p><strong>File:</strong> <code>frontend/src/pages/Play.tsx</code>, funzione <code>handleSquareClick</code> (righe 125-171)</p>
+
+<p><strong>Problema:</strong> Quando un pezzo è già selezionato (sourceRef) e l'utente clicca su un proprio pezzo diverso,
+il codice tenta <code>game.move({ from: A, to: B })</code> che fallisce (cattura di pezzo proprio).
+La selezione viene cancellata e l'utente deve cliccare due volte.</p>
+
+<p><strong>Fix — ramo <code>isMyTurn</code> (righe 125-156):</strong></p>
+<pre><span class="keyword">if</span> (<span class="fn">premoveSourceRef</span>.<span class="fn">current</span>) {
+  <span class="keyword">if</span> (<span class="fn">square</span> === <span class="fn">premoveSourceRef</span>.<span class="fn">current</span>) {
+    <span class="comment">// Stesso quadrato → deseleziona</span>
+    <span class="fn">premoveSourceRef</span>.<span class="fn">current</span> = <span class="keyword">null</span>
+    <span class="fn">setPmDisplay</span>(<span class="keyword">null</span>)
+    <span class="keyword">return</span>
+  }
+  <span class="comment">// NUOVO: click su proprio pezzo → riassegna selezione</span>
+  <span class="keyword">if</span> (<span class="fn">isOwn</span>) {
+    <span class="fn">premoveSourceRef</span>.<span class="fn">current</span> = <span class="fn">square</span>
+    <span class="fn">setPmDisplay</span>({ <span class="fn">from</span>: <span class="fn">square</span>, <span class="fn">to</span>: <span class="string">''</span> })
+    <span class="keyword">return</span>
+  }
+  <span class="comment">// Tenta la mossa (cattura/ spostamento su casa vuota)</span>
+  <span class="keyword">try</span> { <span class="keyword">const</span> <span class="fn">move</span> = <span class="fn">game</span>.<span class="fn">move</span>({ ... }) } ...
+}</pre>
+
+<p><strong>Fix — ramo <code>!isMyTurn</code> (premove, righe 157-171):</strong></p>
+<pre><span class="keyword">if</span> (<span class="fn">premoveSourceRef</span>.<span class="fn">current</span>) {
+  <span class="keyword">if</span> (<span class="fn">square</span> === <span class="fn">premoveSourceRef</span>.<span class="fn">current</span>) {
+    <span class="comment">// Stesso quadrato → deseleziona premove</span>
+    ...
+    <span class="keyword">return</span>
+  }
+  <span class="comment">// NUOVO: click su proprio pezzo → riassegna source premove</span>
+  <span class="keyword">if</span> (<span class="fn">isOwn</span>) {
+    <span class="fn">premoveSourceRef</span>.<span class="fn">current</span> = <span class="fn">square</span>
+    <span class="fn">setPmDisplay</span>({ <span class="fn">from</span>: <span class="fn">square</span>, <span class="fn">to</span>: <span class="string">''</span> })
+    <span class="keyword">return</span>
+  }
+  <span class="comment">// Salva premossa verso casa avversaria/ vuota</span>
+  <span class="fn">premoveRef</span>.<span class="fn">current</span> = { <span class="fn">from</span>: <span class="fn">premoveSourceRef</span>.<span class="fn">current</span>, <span class="fn">to</span>: <span class="fn">square</span>, ... }
+}</pre>
+
+<h3>6.2 isOwn check</h3>
+<p><strong>Verifica necessaria:</strong> Durante l'implementazione, ispezionare la struttura dell'oggetto <code>piece</code> passato
+dalla libreria <code>react-chessboard</code>. Se include <code>piece.color</code>, usare quello per determinare
+il colore invece del case-comparison su <code>pieceType</code>. Se non disponibile, mantenere l'attuale.</p>
+
+<h3>6.3 EvalBar in Play</h3>
+
+<p><strong>Obiettivo:</strong> Mostrare valutazione e depth in tempo reale durante la partita contro il bot, con toggle ON/OFF.</p>
+
+<h4>Stato aggiuntivo in Play</h4>
+<pre><span class="keyword">const</span> [<span class="fn">showEval</span>, <span class="fn">setShowEval</span>] = <span class="fn">useState</span>(<span class="keyword">false</span>)
+<span class="keyword">const</span> [<span class="fn">lastEval</span>, <span class="fn">setLastEval</span>] = <span class="fn">useState</span>&lt;<span class="type">EvalInfo</span> | <span class="keyword">null</span>&gt;(<span class="keyword">null</span>)</pre>
+
+<p><strong>Recuperare eval da <code>bestMove</code></strong> — dopo Fase 3, <code>bestMove</code> restituirà <code>EvalInfo</code>
+con evaluation e depth reali. Salvare il risultato in <code>setLastEval(info)</code> dentro <code>triggerBotMove</code>.</p>
+
+<p><strong>Componente EvalBar:</strong> Riutilizzare o creare versione per Play:</p>
+<pre>&lt;<span class="fn">div</span> style={{ <span class="fn">display</span>: <span class="fn">showEval</span> ? <span class="string">'flex'</span> : <span class="string">'none'</span> }}&gt;
+  &lt;<span class="fn">EvalBar</span> <span class="fn">evalInfo</span>={<span class="fn">lastEval</span>} <span class="fn">orientation</span>={<span class="fn">boardFlipped</span> ? <span class="string">'black'</span> : <span class="string">'white'</span>} /&gt;
+&lt;/<span class="fn">div</span>&gt;</pre>
+
+<p><strong>Toggle button:</strong> Aggiungere un pulsante nell'area comandi (vicino a "Capovolgi", "Nuova partita"):</p>
+<pre>&lt;<span class="fn">button</span> onClick={() => <span class="fn">setShowEval</span>(f => !f)}&gt;
+  {<span class="fn">showEval</span> ? <span class="string">'Nascondi valutazione'</span> : <span class="string">'Mostra valutazione'</span>}
+&lt;/<span class="fn">button</span>&gt;</pre>
+
+<h4>Layout previsto</h4>
+<pre>[EvalBar 40px] [Scacchiera 520px] [Sidebar: partita, mosse, pezzi catturati]</pre>
+
+<h3>Cosa NON toccare</h3>
+<ul>
+  <li>Riga 365: <code>moves[i * 2] === w</code> — condizione tautologica innocua. Lasciata com'è.</li>
+</ul>
+</section>
+
+<!-- ============================================================ -->
+<!-- FASE G -->
+<!-- ============================================================ -->
+<section id="phase-G">
+<h2>
+  <span class="phase">Fase G</span>
+  Backend — ottimizzare <code>_build_descendant_counts</code>
+  <span class="effort">1 ora</span>
+</h2>
+
+<span class="tag tag-backend">backend</span>
+<span class="tag risk-low">rischio basso</span>
+
+<p><strong>File:</strong> <code>backend/app/routers/openings.py</code>, funzione <code>_build_descendant_counts</code> (righe 13-35)</p>
+
+<p><strong>Problema:</strong> <code>db.query(RepertoireNode).all()</code> carica l'intera tabella in memoria
+anche quando servono solo pochi nodi radice. Per database con decine di migliaia di nodi, spreco di memoria e I/O.</p>
+
+<p><strong>Soluzione:</strong> Sostituire con query batch che carica solo i figli dei nodi non ancora visitati:</p>
+
+<pre><span class="keyword">def</span> <span class="fn">_build_descendant_counts</span>(<span class="fn">db</span>: <span class="type">Session</span>, <span class="fn">roots</span>: <span class="type">set[int]</span>) -> <span class="type">dict[int, int]</span>:
+    <span class="comment"># Carica solo i nodi rilevanti (figli dei roots o dei loro discendenti)</span>
+    <span class="comment"># invece di caricare l'intera tabella</span>
+    <span class="fn">children_of</span>: <span class="type">dict[int, list[int]]</span> = <span class="fn">defaultdict</span>(<span class="fn">list</span>)
+    <span class="fn">counts</span>: <span class="type">dict[int, int]</span> = {}
+    <span class="fn">to_visit</span>: <span class="type">set[int]</span> = <span class="fn">set</span>(<span class="fn">roots</span>)
+
+    <span class="keyword">while</span> <span class="fn">to_visit</span>:
+        <span class="fn">batch</span> = <span class="fn">db</span>.<span class="fn">query</span>(<span class="type">RepertoireNode</span>.<span class="fn">id</span>, <span class="type">RepertoireNode</span>.<span class="fn">parent_id</span>) \
+                 .<span class="fn">filter</span>(<span class="type">RepertoireNode</span>.<span class="fn">parent_id</span>.<span class="fn">in_</span>(<span class="fn">to_visit</span>)).<span class="fn">all</span>()
+        <span class="fn">to_visit</span>.<span class="fn">clear</span>()
+        <span class="keyword">for</span> <span class="fn">node_id</span>, <span class="fn">parent_id</span> <span class="keyword">in</span> <span class="fn">batch</span>:
+            <span class="fn">children_of</span>[<span class="fn">parent_id</span>].<span class="fn">append</span>(<span class="fn">node_id</span>)
+            <span class="fn">to_visit</span>.<span class="fn">add</span>(<span class="fn">node_id</span>)
+
+    <span class="keyword">for</span> <span class="fn">root</span> <span class="keyword">in</span> <span class="fn">roots</span>:
+        <span class="fn">total</span> = <span class="number">0</span>
+        <span class="fn">stack</span> = <span class="fn">list</span>(<span class="fn">children_of</span>.<span class="fn">get</span>(<span class="fn">root</span>, []))
+        <span class="fn">visited_bfs</span> = {<span class="fn">root</span>}
+        <span class="keyword">while</span> <span class="fn">stack</span>:
+            <span class="fn">nid</span> = <span class="fn">stack</span>.<span class="fn">pop</span>()
+            <span class="keyword">if</span> <span class="fn">nid</span> <span class="keyword">in</span> <span class="fn">visited_bfs</span>: <span class="keyword">continue</span>
+            <span class="fn">visited_bfs</span>.<span class="fn">add</span>(<span class="fn">nid</span>)
+            <span class="fn">total</span> += <span class="number">1</span>
+            <span class="fn">stack</span>.<span class="fn">extend</span>(<span class="fn">c</span> <span class="keyword">for</span> <span class="fn">c</span> <span class="keyword">in</span> <span class="fn">children_of</span>.<span class="fn">get</span>(<span class="fn">nid</span>, []) <span class="keyword">if</span> <span class="fn">c</span> <span class="keyword">not in</span> <span class="fn">visited_bfs</span>)
+        <span class="fn">counts</span>[<span class="fn">root</span>] = <span class="fn">total</span>
+
+    <span class="keyword">return</span> <span class="fn">counts</span></pre>
+
+<div class="info-card">
+  <strong>Vantaggio:</strong> Per un albero con N nodi totali e R roots, la query carica al
+  massimo N righe (come prima) ma le carica <strong>a lotti</strong> (~1 query per livello di profondità).
+  Per alberi piccoli o pochi roots, il numero di righe caricate è molto minore di N.
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- FASE 1 -->
+<!-- ============================================================ -->
+<section id="phase-1">
+<h2>
+  <span class="phase">Fase 1</span>
+  Fix <code>worker.ts</code> — WASM factory + command queue
+  <span class="effort">2 ore</span>
+</h2>
+
+<span class="tag tag-frontend">frontend</span>
+<span class="tag risk-med">rischio medio</span>
+<span class="tag-risky">⚠ non testato in produzione</span>
+
+<p><strong>File:</strong> <code>frontend/src/engine/worker.ts</code>, ramo WASM (righe 35-78)</p>
+
+<h3>1.1 Catturare factory return value</h3>
+
+<p><strong>Problema:</strong> <code>StockfishFactory(opts)</code> (riga 45) viene chiamato ma il return value
+viene scartato. Il codice accede a <code>opts.postMessage</code> che, sebbene funzioni per side-effect
+di Emscripten (che muta <code>opts</code>), è fragile e non corrisponde alle type declaration.</p>
+
+<p><strong>Fix:</strong></p>
+<pre><span class="diff-del">StockfishFactory(opts)</span>
+<span class="diff-add">const engine = StockfishFactory(opts)</span></pre>
+
+<p><strong>Conseguenza:</strong> Tutte le occorrenze di <code>opts.postMessage</code>, <code>opts.terminate</code>,
+<code>opts.addMessageListener</code> devono essere sostituite con <code>engine.*</code>.</p>
+
+<h3>1.2 Rimuovere parametri superflui</h3>
+
+<p><code>locateFile</code> non serve perché i file sono nella root di <code>public/</code> e serviti da nginx
+con path <code>/stockfish.wasm</code> (predefinito di Emscripten).</p>
+
+<pre><span class="diff-del">const opts: Record&lt;string, unknown&gt; = { locateFile: (path: string) => `/${path}` }
+StockfishFactory(opts)</span>
+<span class="diff-add">const engine = StockfishFactory()</span></pre>
+
+<div class="warn-card">
+  <strong>Da verificare durante l'implementazione:</strong> Assicurarsi che <code>StockfishFactory()</code>
+  senza parametri carichi <code>stockfish.wasm</code> da <code>/stockfish.wasm</code>. Il path predefinito
+  di Emscripten è derivato dallo script path (<code>stockfish.js</code> → <code>/stockfish.wasm</code>).
+</div>
+
+<h3>1.3 Fix command queue race condition</h3>
+
+<p><strong>Problema:</strong> <code>firstOutputReceived</code> viene impostato su <code>true</code> solo al
+primo messaggio ricevuto via <code>addMessageListener</code>. Se Stockfish non produce output prima
+di ricevere comandi, la coda non viene mai svuotata.</p>
+
+<p><strong>Soluzione:</strong> Usare la Promise <code>engine.ready</code> (esposta da Emscripten) come
+trigger primario per svuotare la coda, con fallback sul primo messaggio:</p>
+
+<pre><span class="keyword">let</span> <span class="fn">firstOutputFlushed</span> = <span class="keyword">false</span>
+
+<span class="keyword">function</span> <span class="fn">flushCmdQueue</span>() {
+  <span class="keyword">if</span> (<span class="fn">firstOutputFlushed</span>) <span class="keyword">return</span>
+  <span class="fn">firstOutputFlushed</span> = <span class="keyword">true</span>
+  <span class="keyword">for</span> (<span class="keyword">const</span> <span class="fn">cmd</span> <span class="keyword">of</span> <span class="fn">cmdQueue</span>) {
+    <span class="fn">engine</span>.<span class="fn">postMessage</span>(<span class="fn">cmd</span>)
+  }
+  <span class="fn">cmdQueue</span>.<span class="fn">length</span> = <span class="number">0</span>
+}
+
+<span class="comment">// Trigger primario: engine.ready (Promise Emscripten)</span>
+<span class="fn">engine</span>.<span class="fn">ready</span>?.<span class="fn">then</span>(<span class="fn">flushCmdQueue</span>)
+
+<span class="comment">// Fallback: primo messaggio in arrivo da Stockfish</span>
+<span class="fn">engine</span>.<span class="fn">addMessageListener</span>(<span class="fn">event</span> => {
+  <span class="fn">flushCmdQueue</span>()
+  <span class="comment">// ... process message ...</span>
+})</pre>
+
+<h3>1.4 Schema finale del ramo WASM</h3>
+
+<pre><span class="keyword">const</span> <span class="fn">StockfishFactory</span> = <span class="fn">window.Stockfish</span>
+<span class="keyword">if</span> (<span class="keyword">typeof</span> <span class="fn">StockfishFactory</span> !== <span class="string">'function'</span>) {
+  <span class="keyword">throw new</span> <span class="type">Error</span>(<span class="string">'window.Stockfish is not available.'</span>)
+}
+
+<span class="keyword">const</span> <span class="fn">engine</span> = <span class="fn">StockfishFactory</span>()
+<span class="keyword">const</span> <span class="fn">cmdQueue</span>: <span class="type">string</span>[] = []
+<span class="keyword">let</span> <span class="fn">firstOutputFlushed</span> = <span class="keyword">false</span>
+
+<span class="keyword">function</span> <span class="fn">flushCmdQueue</span>() { <span class="comment">/* come sopra */</span> }
+<span class="fn">engine</span>.<span class="fn">ready</span>?.<span class="fn">then</span>(<span class="fn">flushCmdQueue</span>)
+<span class="fn">engine</span>.<span class="fn">addMessageListener</span>(<span class="fn">event</span> => {
+  <span class="fn">flushCmdQueue</span>()
+  <span class="keyword">const</span> <span class="fn">cleaned</span> = <span class="fn">event</span>.<span class="fn">replace</span>(<span class="regex">/^Thread \d+: /</span>, <span class="string">''</span>)
+  <span class="fn">engineWorker</span>.<span class="fn">listen</span>(<span class="fn">cleaned</span>)
+})
+
+<span class="keyword">const</span> <span class="fn">engineWorker</span>: <span class="type">EngineWorker</span> = {
+  <span class="fn">isReady</span>: <span class="keyword">false</span>,
+  <span class="fn">uci</span>: (<span class="fn">command</span>: <span class="type">string</span>) => {
+    <span class="keyword">if</span> (<span class="fn">firstOutputFlushed</span>) {
+      <span class="fn">engine</span>.<span class="fn">postMessage</span>(<span class="fn">command</span>)
+    } <span class="keyword">else</span> {
+      <span class="fn">cmdQueue</span>.<span class="fn">push</span>(<span class="fn">command</span>)
+    }
+  },
+  <span class="fn">listen</span>: () => {},
+  <span class="fn">terminate</span>: () => <span class="fn">engine</span>.<span class="fn">terminate</span>?.(),
+}</pre>
+</section>
+
+<!-- ============================================================ -->
+<!-- FASE 2 -->
+<!-- ============================================================ -->
+<section id="phase-2">
+<h2>
+  <span class="phase">Fase 2</span>
+  <code>UciEngine.ts</code> — Hash e Threads configurabili
+  <span class="effort">2 ore</span>
+</h2>
+
+<span class="tag tag-frontend">frontend</span>
+<span class="tag risk-low">rischio basso</span>
+
+<p><strong>File:</strong> <code>frontend/src/engine/UciEngine.ts</code></p>
+
+<h3>2.1 Nuova interfaccia opzioni</h3>
+
+<pre><span class="keyword">export interface</span> <span class="type">UciEngineOptions</span> {
+  <span class="fn">hashSize</span>?: <span class="type">number</span>  <span class="comment">// default 64</span>
+  <span class="fn">threads</span>?: <span class="type">number</span>   <span class="comment">// default 1, configurabile</span>
+  <span class="fn">multiPv</span>?: <span class="type">number</span>  <span class="comment">// default 3</span>
+}</pre>
+
+<h3>2.2 Modifiche alla classe</h3>
+
+<ul>
+  <li>Aggiungere campi privati <code>private hashSize = 64</code> e <code>private threads = 1</code></li>
+  <li>Modificare <code>create()</code> per accettare <code>UciEngineOptions</code></li>
+  <li>In <code>addNewWorker()</code>, dopo il comando <code>uci</code>, inviare anche:
+    <pre><span class="fn">setoption name Hash value</span> ${this.hashSize}
+<span class="fn">setoption name Threads value</span> ${this.threads}</pre>
+  </li>
+</ul>
+
+<h3>2.3 Nuovo metodo pubblico</h3>
+
+<pre><span class="keyword">async</span> <span class="fn">setHashAndThreads</span>(<span class="fn">hash</span>: <span class="type">number</span>, <span class="fn">threads</span>: <span class="type">number</span>): <span class="type">Promise</span>&lt;<span class="type">void</span>&gt; {
+  <span class="keyword">if</span> (<span class="fn">hash</span> === <span class="keyword">this</span>.<span class="fn">hashSize</span> && <span class="fn">threads</span> === <span class="keyword">this</span>.<span class="fn">threads</span>) <span class="keyword">return</span>
+  <span class="keyword">await</span> <span class="keyword">this</span>.<span class="fn">sendCommandsToEachWorker</span>(
+    [<span class="string">`setoption name Hash value ${hash}`</span>,
+     <span class="string">`setoption name Threads value ${threads}`</span>,
+     <span class="string">'isready'</span>],
+    <span class="string">'readyok'</span>,
+  )
+  <span class="keyword">this</span>.<span class="fn">hashSize</span> = <span class="fn">hash</span>
+  <span class="keyword">this</span>.<span class="fn">threads</span> = <span class="fn">threads</span>
+}</pre>
+
+<h3>2.4 MultiPV in Play</h3>
+
+<p><strong>Decisione:</strong> Nella pagina Play, <code>bestMove</code> usa <code>go movetime</code> (non <code>go depth</code>).
+MultiPV ha un impatto sulle performance (Stockfish deve mantenere più linee di ricerca).
+Per Play NON impostiamo MultiPV — usiamo il default dell'engine (MultiPV=1).
+MultiPV rimane attivo solo per la pagina Analysis.</p>
+</section>
+
+<!-- ============================================================ -->
+<!-- FASE 3 -->
+<!-- ============================================================ -->
+<section id="phase-3">
+<h2>
+  <span class="phase">Fase 3</span>
+  <code>bestMove</code> con valutazione reale
+  <span class="effort">1.5 ore</span>
+</h2>
+
+<span class="tag tag-frontend">frontend</span>
+<span class="tag risk-low">rischio basso</span>
+
+<h3>3.1 Nuovo metodo in <code>UciEngine.ts</code></h3>
+
+<pre><span class="keyword">async</span> <span class="fn">getEngineNextMoveWithEval</span>(
+  <span class="fn">fen</span>: <span class="type">string</span>,
+  <span class="fn">movetimeMs</span>: <span class="type">number</span> = <span class="number">1500</span>,
+): <span class="type">Promise</span>&lt;<span class="type">EvalInfo</span>&gt; {
+  <span class="keyword">this</span>.<span class="fn">throwErrorIfNotReady</span>()
+  <span class="keyword">await</span> <span class="keyword">this</span>.<span class="fn">stopAllCurrentJobs</span>()
+
+  <span class="keyword">const</span> <span class="fn">results</span> = <span class="keyword">await</span> <span class="keyword">this</span>.<span class="fn">sendCommands</span>(
+    [<span class="string">`position fen ${fen}`</span>, <span class="string">`go movetime ${movetimeMs}`</span>],
+    <span class="string">'bestmove'</span>,
+  )
+
+  <span class="comment">// Parse delle info lines per depth, cp, mate</span>
+  <span class="keyword">const</span> <span class="fn">positionEval</span> = <span class="fn">parseEvaluationResults</span>(<span class="fn">results</span>, <span class="fn">fen</span>)
+  <span class="keyword">const</span> <span class="fn">bestLine</span> = <span class="fn">positionEval</span>.<span class="fn">lines</span>[<span class="number">0</span>]
+  <span class="keyword">const</span> <span class="fn">moveResult</span> = <span class="fn">results</span>.<span class="fn">find</span>(<span class="fn">r</span> => <span class="fn">r</span>.<span class="fn">startsWith</span>(<span class="string">'bestmove'</span>))
+  <span class="keyword">const</span> <span class="fn">bestMove</span> = <span class="fn">getResultProperty</span>(<span class="fn">moveResult</span> ?? <span class="string">''</span>, <span class="string">'bestmove'</span>) ?? <span class="string">''</span>
+
+  <span class="keyword">return</span> {
+    <span class="fn">bestMove</span>: <span class="fn">bestMove</span> === <span class="string">'(none)'</span> ? <span class="string">''</span> : <span class="fn">bestMove</span>,
+    <span class="fn">evaluation</span>: <span class="fn">bestLine</span>?.<span class="fn">cp</span> !== <span class="keyword">undefined</span> ? <span class="fn">bestLine</span>.<span class="fn">cp</span> / <span class="number">100</span> : <span class="number">0</span>,
+    <span class="fn">mate</span>: <span class="fn">bestLine</span>?.<span class="fn">mate</span> ?? <span class="keyword">null</span>,
+    <span class="fn">depth</span>: <span class="fn">bestLine</span>?.<span class="fn">depth</span> ?? <span class="number">0</span>,
+  }
+}</pre>
+
+<h3>3.2 Modificare <code>bestMove()</code> in <code>useUciEngine.ts</code></h3>
+
+<p>Sostituire la chiamata a <code>getEngineNextMove</code> con <code>getEngineNextMoveWithEval</code>,
+eliminando la costruzione manuale di <code>EvalInfo</code> con valori hardcoded.</p>
+
+<pre><span class="diff-del">const uci = await engine.getEngineNextMove(fen, movetimeMs)
+return {
+  bestMove: uci ?? '',
+  evaluation: 0,
+  mate: null,
+  depth: 0,
+}</span>
+
+<span class="diff-add">return engine.getEngineNextMoveWithEval(fen, movetimeMs)</span></pre>
+
+<h3>3.3 Impatto su test</h3>
+
+<p><strong>File: <code>useUciEngine.test.tsx</code></strong></p>
+<ul>
+  <li>Il mock di <code>getEngineNextMove</code> (riga 19, valore <code>'e2e4'</code>) va sostituito con
+  mock di <code>getEngineNextMoveWithEval</code> che restituisce <code>EvalInfo</code>:</li>
+</ul>
+<pre><span class="fn">mockEngine</span>.<span class="fn">getEngineNextMoveWithEval</span> = <span class="fn">vi</span>.<span class="fn">fn</span>().<span class="fn">mockResolvedValue</span>({
+  <span class="fn">bestMove</span>: <span class="string">'e2e4'</span>,
+  <span class="fn">evaluation</span>: <span class="number">0.3</span>,
+  <span class="fn">mate</span>: <span class="keyword">null</span>,
+  <span class="fn">depth</span>: <span class="number">18</span>,
+})</pre>
+
+<p><strong>File: <code>Play.test.tsx</code></strong> — il mock di <code>firstLegalMove</code> (riga 34-35)
+restituisce già un oggetto <code>EvalInfo</code>-like, che è compatibile con il nuovo tipo.
+Nessuna modifica necessaria.</p>
+</section>
+
+<!-- ============================================================ -->
+<!-- FASE 4 -->
+<!-- ============================================================ -->
+<section id="phase-4">
+<h2>
+  <span class="phase">Fase 4</span>
+  Integrare <code>engineConfig</code> in <code>useUciEngine</code>
+  <span class="effort">1.5 ore</span>
+</h2>
+
+<span class="tag tag-frontend">frontend</span>
+<span class="tag risk-med">rischio medio</span>
+
+<p><strong>File:</strong> <code>frontend/src/engine/useUciEngine.ts</code></p>
+
+<h3>4.1 Modificare singleton pattern</h3>
+
+<p>Il singleton <code>enginePromise</code> deve tenere traccia delle opzioni e ricrearsi quando cambiano:</p>
+
+<pre><span class="keyword">let</span> <span class="fn">enginePromise</span>: <span class="type">Promise</span>&lt;<span class="type">UciEngine</span>&gt; | <span class="keyword">null</span> = <span class="keyword">null</span>
+<span class="keyword">let</span> <span class="fn">currentOptions</span>: <span class="type">UciEngineOptions</span> | <span class="keyword">null</span> = <span class="keyword">null</span>
+
+<span class="keyword">async function</span> <span class="fn">getOrCreate</span>(<span class="fn">options</span>: <span class="type">UciEngineOptions</span>): <span class="type">Promise</span>&lt;<span class="type">UciEngine</span>&gt; {
+  <span class="comment">// Se le opzioni sono cambiate, riavvia l'engine</span>
+  <span class="keyword">if</span> (<span class="fn">enginePromise</span> && <span class="fn">currentOptions</span> && !<span class="fn">shallowEqual</span>(<span class="fn">currentOptions</span>, <span class="fn">options</span>)) {
+    <span class="keyword">const</span> <span class="fn">engine</span> = <span class="keyword">await</span> <span class="fn">enginePromise</span>
+    <span class="fn">engine</span>.<span class="fn">shutdown</span>()
+    <span class="fn">enginePromise</span> = <span class="keyword">null</span>
+  }
+
+  <span class="keyword">if</span> (!<span class="fn">enginePromise</span>) {
+    <span class="fn">currentOptions</span> = <span class="fn">options</span>
+    <span class="fn">enginePromise</span> = <span class="type">UciEngine</span>.<span class="fn">create</span>(<span class="string">'Stockfish'</span>, <span class="string">'wasm'</span>, <span class="fn">options</span>)
+  }
+  <span class="keyword">return</span> <span class="fn">enginePromise</span>
+}
+
+<span class="comment">// Utility per confronto shallow</span>
+<span class="keyword">function</span> <span class="fn">shallowEqual</span>(<span class="fn">a</span>: <span class="type">Record</span>&lt;<span class="type">string</span>, <span class="type">unknown</span>&gt;, <span class="fn">b</span>: <span class="type">Record</span>&lt;<span class="type">string</span>, <span class="type">unknown</span>&gt;): <span class="type">boolean</span> {
+  <span class="keyword">for</span> (<span class="keyword">const</span> <span class="fn">k</span> <span class="keyword">of</span> <span class="type">Object</span>.<span class="fn">keys</span>(<span class="fn">a</span>)) { <span class="keyword">if</span> (<span class="fn">a</span>[<span class="fn">k</span>] !== <span class="fn">b</span>[<span class="fn">k</span>]) <span class="keyword">return</span> <span class="keyword">false</span> }
+  <span class="keyword">return</span> <span class="type">Object</span>.<span class="fn">keys</span>(<span class="fn">a</span>).<span class="fn">length</span> === <span class="type">Object</span>.<span class="fn">keys</span>(<span class="fn">b</span>).<span class="fn">length</span>
+}</pre>
+
+<h3>4.2 Leggere engineStore nell'hook</h3>
+
+<pre><span class="keyword">export function</span> <span class="fn">useUciEngine</span>() {
+  <span class="keyword">const</span> { <span class="fn">hash</span>, <span class="fn">threads</span>, <span class="fn">multiPv</span> } = <span class="fn">useEngineConfig</span>()
+  <span class="comment">// ... stato locale ...</span>
+
+  <span class="fn">useEffect</span>(() => {
+    <span class="keyword">let</span> <span class="fn">cancelled</span> = <span class="keyword">false</span>
+    <span class="fn">refCount</span>++
+
+    <span class="fn">getOrCreate</span>({ <span class="fn">hashSize</span>: <span class="fn">hash</span>, <span class="fn">threads</span>, <span class="fn">multiPv</span> })
+      .<span class="fn">then</span>(<span class="fn">engine</span> => {
+        <span class="keyword">if</span> (<span class="fn">cancelled</span>) <span class="keyword">return</span>
+        <span class="fn">engineRef</span>.<span class="fn">current</span> = <span class="fn">engine</span>
+        <span class="fn">setReady</span>(<span class="fn">engine</span>.<span class="fn">getIsReady</span>())
+      })
+      .<span class="fn">catch</span>(<span class="fn">err</span> => { <span class="keyword">if</span> (!<span class="fn">cancelled</span>) <span class="fn">setError</span>(<span class="type">String</span>(<span class="fn">err</span>)) })
+
+    <span class="keyword">return</span> () => {
+      <span class="fn">cancelled</span> = <span class="keyword">true</span>
+      <span class="fn">refCount</span>--
+      <span class="keyword">if</span> (<span class="fn">refCount</span> <= <span class="number">0</span>) <span class="fn">destroySingleton</span>()
+    }
+  }, [<span class="fn">hash</span>, <span class="fn">threads</span>, <span class="fn">multiPv</span>]) <span class="comment">// Re-execute quando opzioni cambiano</span>
+
+  <span class="comment">// ... resto invariato ...</span>
+}</pre>
+
+<div class="warn-card">
+  <strong>Impatto:</strong> Il riavvio dell'engine è un'operazione asincrona (~100-500ms per il WASM init).
+  Durante il riavvio, <code>ready</code> diventa <code>false</code> e poi <code>true</code>.
+  Le chiamate in sospeso (<code>analyze</code>, <code>deepAnalyze</code>) falliranno silenziosamente
+  perché <code>engineRef.current</code> viene aggiornato solo dopo il <code>.then()</code>.
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- FASE 5 -->
+<!-- ============================================================ -->
+<section id="phase-5">
+<h2>
+  <span class="phase">Fase 5</span>
+  <code>destroySingleton</code> — cleanup pulito
+  <span class="effort">30 min</span>
+</h2>
+
+<span class="tag tag-frontend">frontend</span>
+<span class="tag risk-low">rischio basso</span>
+
+<p><strong>File:</strong> <code>frontend/src/engine/useUciEngine.ts</code>, righe 23-27</p>
+
+<p><strong>Problema:</strong> La funzione ha corpo vuoto. I worker engine non vengono mai terminati
+quando tutti i consumer smontano.</p>
+
+<p><strong>Implementazione:</strong></p>
+
+<pre><span class="keyword">function</span> <span class="fn">destroySingleton</span>(): <span class="type">void</span> {
+  <span class="keyword">const</span> <span class="fn">p</span> = <span class="fn">enginePromise</span>
+  <span class="fn">enginePromise</span> = <span class="keyword">null</span>
+  <span class="fn">currentOptions</span> = <span class="keyword">null</span>
+  <span class="fn">p</span>?.<span class="fn">then</span>(<span class="fn">engine</span> => <span class="fn">engine</span>.<span class="fn">shutdown</span>())
+}</pre>
+
+<div class="info-card">
+  <strong>Nota tecnica:</strong> Emscripten con pthreads (<code>B = PThread</code>) condivide stato globale.
+  <code>shutdown()</code> chiama <code>B.bc()</code> che termina TUTTI i worker pthread. Dato che
+  abbiamo un singolo engine singleton, questo è sicuro. Se in futuro servissero engine multipli
+  concurrently, bisognerà isolare ogni engine in un Web Worker separato (Fase 7).
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- FASE H -->
+<!-- ============================================================ -->
+<section id="phase-H">
+<h2>
+  <span class="phase">Fase H</span>
+  COOP/COEP headers per SharedArrayBuffer
+  <span class="effort">30 min</span>
+</h2>
+
+<span class="tag tag-config">config</span>
+<span class="tag tag-infra">infrastruttura</span>
+<span class="tag risk-low">rischio basso</span>
+
+<p>Stockfish con pthreads richiede <code>SharedArrayBuffer</code>, che necessita di intestazioni HTTP specifiche.</p>
+
+<h3>H.1 Sviluppo (Vite)</h3>
+
+<p><strong>File:</strong> <code>frontend/vite.config.ts</code></p>
+
+<pre><span class="keyword">export default</span> <span class="fn">defineConfig</span>({
+  <span class="comment">// ... configurazione esistente ...</span>
+  <span class="fn">server</span>: {
+    <span class="fn">headers</span>: {
+      <span class="string">'Cross-Origin-Opener-Policy'</span>: <span class="string">'same-origin'</span>,
+      <span class="string">'Cross-Origin-Embedder-Policy'</span>: <span class="string">'credentialless'</span>,
+    },
+  },
+})</pre>
+
+<h3>H.2 Produzione (nginx)</h3>
+
+<p><strong>File:</strong> <code>frontend/nginx.conf</code></p>
+
+<p>Le intestazioni esistono già per i file stockfish (righe 69-83). Vanno aggiunte ANCHE per la root:</p>
+
+<pre><span class="keyword">location</span> / {
+    <span class="diff-add">add_header Cross-Origin-Opener-Policy same-origin;</span>
+    <span class="diff-add">add_header Cross-Origin-Embedder-Policy credentialless;</span>
+    <span class="fn">try_files</span> $uri $uri/ /index.html;
+}</pre>
+
+<div class="warn-card">
+  <strong>Attenzione:</strong> <code>Cross-Origin-Embedder-Policy: credentialless</code> permette
+  il caricamento di risorse cross-origin senza intestazioni esplicite (CORS). Se la production
+  carica risorse da CDN esterni (font, immagini), assicurarsi che siano compatibili.
+  <code>require-corp</code> è più restrittivo ma blocca risorse che non hanno <code>Cross-Origin-Resource-Policy</code>.
+  <code>credentialless</code> è il compromesso consigliato.
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- FASE 8 -->
+<!-- ============================================================ -->
+<section id="phase-8">
+<h2>
+  <span class="phase">Fase 8</span>
+  Test
+  <span class="effort">3 ore</span>
+</h2>
+
+<span class="tag tag-test">test</span>
+
+<h3>8.1 Nuovo file: <code>worker.test.ts</code></h3>
+
+<div class="info-card">
+  <strong>Dipende da:</strong> Fase 1 (worker.ts fix). Mocka <code>window.Stockfish</code>
+  e verifica che il return value venga catturato e usato.
+</div>
+
+<table class="files-table">
+  <tr><th>Test</th><th>Cosa verifica</th></tr>
+  <tr>
+    <td><code>factory return value is captured</code></td>
+    <td>Mocka <code>window.Stockfish</code> come funzione che restituisce <code>{ postMessage, addMessageListener, terminate, ready }</code>. Verifica che <code>getEngineWorker('wasm')</code> chiami la factory.</td>
+  </tr>
+  <tr>
+    <td><code>uses engine.postMessage not opts</code></td>
+    <td>Verifica che <code>worker.uci('test')</code> chiami <code>engine.postMessage('test')</code>, non un metodo su <code>opts</code>.</td>
+  </tr>
+  <tr>
+    <td><code>command queue flushed after ready</code></td>
+    <td><code>engine.ready</code> è una Promise. I comandi inviati prima di <code>ready</code> vengono accodati e inviati dopo il resolve.</td>
+  </tr>
+</table>
+
+<h3>8.2 Modifiche a <code>UciEngine.test.ts</code></h3>
+
+<table class="files-table">
+  <tr><th>Test</th><th>Cosa verifica</th></tr>
+  <tr>
+    <td><code>getEngineNextMoveWithEval returns depth</code></td>
+    <td>Il nuovo metodo restituisce <code>depth > 0</code> quando il mock di <code>sendCommands</code> produce info line con depth.</td>
+  </tr>
+  <tr>
+    <td><code>getEngineNextMoveWithEval returns evaluation</code></td>
+    <td>cp/100 convertito correttamente in evaluation.</td>
+  </tr>
+  <tr>
+    <td><code>setHashAndThreads sends options</code></td>
+    <td>Verifica che i comandi <code>setoption name Hash</code> e <code>setoption name Threads</code> vengano inviati.</td>
+  </tr>
+  <tr>
+    <td><code>create with custom options</code></td>
+    <td><code>UciEngine.create('test', 'test.js', { hashSize: 128, threads: 2 })</code> invia le opzioni durante init.</td>
+  </tr>
+</table>
+
+<h3>8.3 Modifiche a <code>useUciEngine.test.tsx</code></h3>
+
+<ul>
+  <li>Mock <code>getEngineNextMoveWithEval</code> invece di <code>getEngineNextMove</code></li>
+  <li>Test: <code>bestMove returns real depth</code> — verifica che <code>info.depth > 0</code></li>
+  <li>Test: <code>bestMove returns real evaluation</code> — verifica che <code>info.evaluation !== 0</code></li>
+</ul>
+
+<h3>8.4 Modifiche a <code>Play.test.tsx</code></h3>
+
+<table class="files-table">
+  <tr><th>Test</th><th>Cosa verifica</th></tr>
+  <tr>
+    <td><code>click own piece during turn reassigns selection</code></td>
+    <td>Dopo aver selezionato pezzo A, clic su pezzo B proprio aggiorna la selezione a B invece di provare una mossa illegale.</td>
+  </tr>
+  <tr>
+    <td><code>click own piece during premode reassigns source</code></td>
+    <td>Durante turno bot, clic su proprio pezzo B dopo aver selezionato A riassegna la selezione a B invece di creare premossa invalida.</td>
+  </tr>
+</table>
+</section>
+
+<!-- ============================================================ -->
+<!-- FASE 7 (futura) -->
+<!-- ============================================================ -->
+<section id="phase-7">
+<h2>
+  <span class="phase">Fase 7</span>
+  Web Worker isolato (post-verifica)
+  <span class="effort">4 ore</span>
+</h2>
+
+<span class="tag tag-frontend">frontend</span>
+<span class="tag risk-high">rischio alto</span>
+
+<p><strong>Da fare SOLO dopo aver verificato che tutto il resto funzioni in produzione.</strong></p>
+
+<h3>Motivazione</h3>
+<ul>
+  <li>Isolare Stockfish in un Web Worker evita di bloccare la UI durante l'inizializzazione WASM</li>
+  <li>Ogni worker ha il proprio contesto WASM — risolve il problema del cleanup Emscripten</li>
+  <li>Allineamento con lo standard Lichess/Chess.com</li>
+</ul>
+
+<h3>Implementazione</h3>
+
+<h4>Nuovo file: <code>frontend/src/engine/stockfish.worker.ts</code></h4>
+
+<pre><span class="comment">// Carica stockfish.js all'interno del worker</span>
+<span class="fn">importScripts</span>(<span class="string">'/stockfish.js'</span>)
+
+<span class="keyword">let</span> <span class="fn">engine</span>: <span class="type">ReturnType</span>&lt;<span class="type">Window</span>[<span class="string">'Stockfish'</span>]&gt; | <span class="keyword">null</span> = <span class="keyword">null</span>
+
+<span class="fn">self</span>.<span class="fn">onmessage</span> = (<span class="fn">e</span>: <span class="type">MessageEvent</span>) => {
+  <span class="keyword">const</span> <span class="fn">msg</span> = <span class="fn">e</span>.<span class="fn">data</span> <span class="keyword">as</span> { <span class="fn">cmd</span>: <span class="type">string</span>; <span class="fn">args</span>?: <span class="type">string</span>[] }
+
+  <span class="keyword">if</span> (<span class="fn">msg</span>.<span class="fn">cmd</span> === <span class="string">'init'</span>) {
+    <span class="fn">engine</span> = <span class="fn">window</span>.<span class="type">Stockfish</span>?.()
+    <span class="fn">engine</span>?.<span class="fn">addMessageListener</span>(<span class="fn">output</span> => {
+      <span class="fn">self</span>.<span class="fn">postMessage</span>({ <span class="fn">type</span>: <span class="string">'output'</span>, <span class="fn">data</span>: <span class="fn">output</span> })
+    })
+    <span class="fn">engine</span>?.<span class="fn">ready</span>?.<span class="fn">then</span>(() => {
+      <span class="fn">self</span>.<span class="fn">postMessage</span>({ <span class="fn">type</span>: <span class="string">'ready'</span> })
+    })
+    <span class="keyword">return</span>
+  }
+
+  <span class="keyword">if</span> (<span class="fn">msg</span>.<span class="fn">cmd</span> === <span class="string">'uci'</span> && <span class="fn">engine</span>) {
+    <span class="fn">engine</span>.<span class="fn">postMessage</span>(<span class="fn">msg</span>.<span class="fn">args</span>?.[<span class="number">0</span>] ?? <span class="string">''</span>)
+  }
+}</pre>
+
+<h4>Modificare <code>worker.ts</code> — ramo WASM</h4>
+
+<p>Invece di eseguire Stockfish sul main thread, creare un Web Worker:</p>
+
+<pre><span class="keyword">const</span> <span class="fn">worker</span> = <span class="keyword">new</span> <span class="type">Worker</span>(
+  <span class="keyword">new</span> <span class="type">URL</span>(<span class="string">'./stockfish.worker.ts'</span>, <span class="fn">import</span>.<span class="fn">meta</span>.<span class="fn">url</span>),
+  { <span class="fn">type</span>: <span class="string">'module'</span> },
+)
+
+<span class="keyword">let</span> <span class="fn">ready</span> = <span class="keyword">false</span>
+<span class="keyword">const</span> <span class="fn">queue</span>: <span class="type">string</span>[] = []
+
+<span class="fn">worker</span>.<span class="fn">onmessage</span> = (<span class="fn">e</span>) => {
+  <span class="keyword">if</span> (<span class="fn">e</span>.<span class="fn">data</span>.<span class="fn">type</span> === <span class="string">'ready'</span>) {
+    <span class="fn">ready</span> = <span class="keyword">true</span>
+    <span class="keyword">for</span> (<span class="keyword">const</span> <span class="fn">cmd</span> <span class="keyword">of</span> <span class="fn">queue</span>) <span class="fn">worker</span>.<span class="fn">postMessage</span>({ <span class="fn">cmd</span>: <span class="string">'uci'</span>, <span class="fn">args</span>: [<span class="fn">cmd</span>] })
+    <span class="fn">queue</span>.<span class="fn">length</span> = <span class="number">0</span>
+  }
+  <span class="keyword">if</span> (<span class="fn">e</span>.<span class="fn">data</span>.<span class="fn">type</span> === <span class="string">'output'</span>) {
+    <span class="fn">engineWorker</span>.<span class="fn">listen</span>(<span class="fn">e</span>.<span class="fn">data</span>.<span class="fn">data</span>)
+  }
+}
+
+<span class="fn">worker</span>.<span class="fn">postMessage</span>({ <span class="fn">cmd</span>: <span class="string">'init'</span> })</pre>
+
+<h4>Rimuovere script tag da <code>index.html</code></h4>
+
+<p><span class="diff-del">&lt;script src="/stockfish.js"&gt;&lt;/script&gt;</span></p>
+</section>
+
+<!-- ============================================================ -->
+<!-- ORDINE ESECUZIONE -->
+<!-- ============================================================ -->
+<section id="execution">
+<h2>Ordine di esecuzione</h2>
+
+<p style="margin-bottom: 1.5rem;">Ogni fase è indipendente: può essere implementata e testata singolarmente.</p>
+
+<div class="timeline">
+  <div class="timeline-item">
+    <div class="order">Passo 1</div>
+    <div class="title">Fase D — Logger</div>
+    <div class="desc">Creare <code>src/lib/logger.ts</code>, sostituire console.error in worker.ts e Play.tsx</div>
+  </div>
+  <div class="timeline-item">
+    <div class="order">Passo 2</div>
+    <div class="title">Fase 6 — Play UX fix + EvalBar</div>
+    <div class="desc">Fix selezione proprio pezzo (click-to-move + premove), aggiungere EvalBar con toggle</div>
+  </div>
+  <div class="timeline-item">
+    <div class="order">Passo 3</div>
+    <div class="title">Fase G — Backend openings.py</div>
+    <div class="desc">Query batch invece di <code>.all()</code></div>
+  </div>
+  <div class="timeline-item">
+    <div class="order">Passo 4</div>
+    <div class="title">Fase 1 — Fix worker.ts</div>
+    <div class="desc">Catturare return value factory, fix command queue, logger</div>
+  </div>
+  <div class="timeline-item">
+    <div class="order">Passo 5</div>
+    <div class="title">Fase 2 — UciEngine hash/threads</div>
+    <div class="desc">Aggiungere <code>UciEngineOptions</code>, <code>setHashAndThreads</code>, modificare <code>addNewWorker</code></div>
+  </div>
+  <div class="timeline-item">
+    <div class="order">Passo 6</div>
+    <div class="title">Fase 3 — getEngineNextMoveWithEval + fix bestMove</div>
+    <div class="desc">Nuovo metodo, modifica <code>useUciEngine.bestMove()</code></div>
+  </div>
+  <div class="timeline-item">
+    <div class="order">Passo 7</div>
+    <div class="title">Fase 4 — Integrare engineConfig in useUciEngine</div>
+    <div class="desc">Singleton riavviabile, opzioni da engineStore, dipendenze useEffect</div>
+  </div>
+  <div class="timeline-item">
+    <div class="order">Passo 8</div>
+    <div class="title">Fase 5 — destroySingleton pulito</div>
+    <div class="desc">Chiamare <code>engine.shutdown()</code> e resettare il singleton</div>
+  </div>
+  <div class="timeline-item">
+    <div class="order">Passo 9</div>
+    <div class="title">Fase H — COOP/COEP headers</div>
+    <div class="desc">Configurare Vite e nginx per SharedArrayBuffer</div>
+  </div>
+  <div class="timeline-item">
+    <div class="order">Passo 10</div>
+    <div class="title">Fase 8 — Test</div>
+    <div class="desc">Test unitari per ogni nuova funzionalità, aggiornare mock esistenti</div>
+  </div>
+  <div class="timeline-item" style="opacity: 0.5;">
+    <div class="order">Passo 11*</div>
+    <div class="title">Fase 7 — Web Worker (futuro)</div>
+    <div class desc">Dopo verifica in produzione. Isolare Stockfish in un Web Worker dedicato.</div>
+  </div>
+</div>
+
+<div class="info-card">
+  <strong>Ogni passo è revert-safe.</strong> I commit dovrebbero seguire l'ordine dei passi,
+  così da poter fare revert di una singola fase senza impattare le altre.
+</div>
+
+<div class="critical-card">
+  <strong>Criterio di stop (P0):</strong> Se la Fase 1 (worker.ts) rompe la chiamata WASM
+  in produzione (verificare che <code>window.Stockfish</code> sia disponibile e che
+  <code>engine.ready</code> sia una Promise valida), fermarsi e debuggare prima di procedere
+  con le fasi successive.
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- FILE SUMMARY -->
+<!-- ============================================================ -->
+<section>
+<h2>Riepilogo file modificati/creati</h2>
+
+<table class="files-table">
+  <tr>
+    <th>Stato</th>
+    <th>File</th>
+    <th>Fase</th>
+  </tr>
+  <tr>
+    <td><span class="status-new">nuovo</span></td>
+    <td><code>frontend/src/lib/logger.ts</code></td>
+    <td>D</td>
+  </tr>
+  <tr>
+    <td><span class="status-mod">modifica</span></td>
+    <td><code>frontend/src/engine/worker.ts</code></td>
+    <td>1</td>
+  </tr>
+  <tr>
+    <td><span class="status-mod">modifica</span></td>
+    <td><code>frontend/src/engine/UciEngine.ts</code></td>
+    <td>2, 3</td>
+  </tr>
+  <tr>
+    <td><span class="status-mod">modifica</span></td>
+    <td><code>frontend/src/engine/useUciEngine.ts</code></td>
+    <td>3, 4, 5</td>
+  </tr>
+  <tr>
+    <td><span class="status-new">nuovo</span></td>
+    <td><code>frontend/src/engine/stockfish.worker.ts</code></td>
+    <td>7</td>
+  </tr>
+  <tr>
+    <td><span class="status-mod">modifica</span></td>
+    <td><code>frontend/src/pages/Play.tsx</code></td>
+    <td>6</td>
+  </tr>
+  <tr>
+    <td><span class="status-new">nuovo</span></td>
+    <td><code>frontend/src/components/board/EvalBarPlay.tsx</code></td>
+    <td>6</td>
+  </tr>
+  <tr>
+    <td><span class="status-mod">modifica</span></td>
+    <td><code>backend/app/routers/openings.py</code></td>
+    <td>G</td>
+  </tr>
+  <tr>
+    <td><span class="status-mod">modifica</span></td>
+    <td><code>frontend/vite.config.ts</code></td>
+    <td>H</td>
+  </tr>
+  <tr>
+    <td><span class="status-mod">modifica</span></td>
+    <td><code>frontend/nginx.conf</code></td>
+    <td>H</td>
+  </tr>
+  <tr>
+    <td><span class="status-new">nuovo</span></td>
+    <td><code>frontend/src/engine/__tests__/worker.test.ts</code></td>
+    <td>8</td>
+  </tr>
+  <tr>
+    <td><span class="status-mod">modifica</span></td>
+    <td><code>frontend/src/engine/__tests__/UciEngine.test.ts</code></td>
+    <td>8</td>
+  </tr>
+  <tr>
+    <td><span class="status-mod">modifica</span></td>
+    <td><code>frontend/src/engine/__tests__/useUciEngine.test.tsx</code></td>
+    <td>8</td>
+  </tr>
+  <tr>
+    <td><span class="status-mod">modifica</span></td>
+    <td><code>frontend/src/pages/__tests__/Play.test.tsx</code></td>
+    <td>8</td>
+  </tr>
+  <tr>
+    <td><span class="status-mod">modifica</span></td>
+    <td><code>frontend/index.html</code></td>
+    <td>7</td>
+  </tr>
+</table>
+</section>
+
+</div>
+</body>
+</html>

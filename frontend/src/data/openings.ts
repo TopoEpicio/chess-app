@@ -16,15 +16,25 @@ export interface Opening {
 
 export const openings: Opening[] = generatedOpenings as Opening[]
 
+/** Compare two FENs using the minimum shared field count.
+ *  Query FENs have 6+ fields; stored FENs may have 1-4 fields.
+ *  Comparing by the lower count ensures 1-field stored FENs
+ *  (board-only, ~96% of the database) still match while
+ *  4-field stored FENs still distinguish castling rights. */
+function matchFen(a: string, b: string): boolean {
+  const aParts = a.split(' ')
+  const bParts = b.split(' ')
+  const fields = Math.min(aParts.length, bParts.length, 4)
+  return aParts.slice(0, fields).join(' ') === bParts.slice(0, fields).join(' ')
+}
+
 export function findOpeningByFen(fen: string): Opening | undefined {
-  const key = fen.split(' ').slice(0, 4).join(' ')
-  return openings.find((o) => o.fen === key || o.variations.some((v) => v.fen === key))
+  return openings.find((o) => matchFen(o.fen, fen) || o.variations.some((v) => matchFen(v.fen, fen)))
 }
 
 export function findOpeningVariation(fen: string): { opening: Opening; variation: OpeningVariation } | undefined {
-  const key = fen.split(' ').slice(0, 4).join(' ')
   for (const opening of openings) {
-    const variation = opening.variations.find((v) => v.fen === key)
+    const variation = opening.variations.find((v) => matchFen(v.fen, fen))
     if (variation) return { opening, variation }
   }
   return undefined

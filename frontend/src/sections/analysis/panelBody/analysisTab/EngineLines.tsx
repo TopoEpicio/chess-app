@@ -4,6 +4,7 @@ import type { LineEval } from '../../../../types/eval'
 
 interface EngineLinesProps {
   lines: LineEval[]
+  fen: string
   multiPv?: number
   onMoveClick?: (fen: string) => void
   loading?: boolean
@@ -34,14 +35,13 @@ function evalColor(line: LineEval): string {
   return line.cp > 0 ? 'text-emerald-600' : line.cp < 0 ? 'text-red-600' : 'text-sage-600'
 }
 
-export function EngineLines({ lines, multiPv = 3, onMoveClick, loading }: EngineLinesProps) {
+export function EngineLines({ lines, fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', multiPv = 3, onMoveClick, loading }: EngineLinesProps) {
   const sanLines = useMemo(() => {
-    const startFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
     return lines.map((line) => ({
       ...line,
-      san: movesUciToSan(startFen, line.pv),
+      san: movesUciToSan(fen, line.pv),
     }))
-  }, [lines])
+  }, [fen, lines])
 
   if (loading) {
     return (

@@ -11,7 +11,7 @@ interface UciEngineContextValue {
   evalInfo: EvalInfo | null
   analyze: (fen: string, depth?: number) => void
   deepAnalyze: (fen: string, pvCount?: number, depth?: number) => Promise<MultiPvLine[]>
-  bestMove: (fen: string, elo?: number) => Promise<EvalInfo>
+  bestMove: (fen: string, elo?: number, random?: () => number) => Promise<EvalInfo>
 }
 
 const UciEngineCtx = createContext<UciEngineContextValue | null>(null)
@@ -70,7 +70,7 @@ export function UciEngineProvider({ children }: { children: ReactNode }) {
     return positionEvalToMultiPvLines(fen, result)
   }, [])
 
-  const bestMove = useCallback(async (fen: string, elo?: number): Promise<EvalInfo> => {
+  const bestMove = useCallback(async (fen: string, elo?: number, random?: () => number): Promise<EvalInfo> => {
     const engine = engineRef.current
     if (!engine) return { bestMove: '', evaluation: 0, mate: null, depth: 0 }
 
@@ -84,8 +84,9 @@ export function UciEngineProvider({ children }: { children: ReactNode }) {
     const effectiveness = Math.min(1, Math.max(0, (targetElo - 200) / (2800 - 200)))
     const blunderProb = (1 - effectiveness) * 0.85
 
-    if (Math.random() < blunderProb) {
-      const randomMove = legalMoves[Math.floor(Math.random() * legalMoves.length)]
+    const rng = random ?? Math.random
+    if (rng() < blunderProb) {
+      const randomMove = legalMoves[Math.floor(rng() * legalMoves.length)]
       return {
         bestMove: randomMove.from + randomMove.to + (randomMove.promotion ?? ''),
         evaluation: 0,

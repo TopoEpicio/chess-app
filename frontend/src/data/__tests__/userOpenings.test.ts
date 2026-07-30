@@ -9,7 +9,7 @@ import {
 import { openDB, deleteDB } from 'idb'
 
 async function clearStore() {
-  __resetDbForTest()
+  await __resetDbForTest()
   await deleteDB('chess-app-user-openings')
 }
 

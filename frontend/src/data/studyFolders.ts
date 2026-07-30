@@ -12,7 +12,6 @@ const DB_NAME = 'chess-app-study-folders'
 const STORE_NAME = 'folders'
 
 let dbPromise: Promise<IDBPDatabase> | null = null
-let dbInstance: IDBPDatabase | null = null
 
 function getDb(): Promise<IDBPDatabase> {
   if (!dbPromise) {
@@ -22,19 +21,16 @@ function getDb(): Promise<IDBPDatabase> {
           db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true })
         }
       },
-    }).then((db) => {
-      dbInstance = db
-      return db
     })
   }
   return dbPromise
 }
 
 /** @internal - only for testing */
-export function __resetDbForTest(): void {
-  if (dbInstance) {
-    dbInstance.close()
-    dbInstance = null
+export async function __resetDbForTest(): Promise<void> {
+  if (dbPromise) {
+    const db = await dbPromise
+    db.close()
   }
   dbPromise = null
 }

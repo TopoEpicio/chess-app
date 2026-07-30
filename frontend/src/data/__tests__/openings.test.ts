@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { findOpeningByFen, searchOpenings, openings } from '../openings'
+import { findOpeningByFen, findOpeningVariation, searchOpenings, openings } from '../openings'
 import { Chess } from 'chess.js'
 
 describe('openings database', () => {
@@ -25,10 +25,13 @@ describe('openings database', () => {
     expect(result).toBeDefined()
   })
 
-  it('does not match positions with different castling rights', () => {
-    const sameBoardNoCastling = 'r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w - - 4 4'
-    const result = findOpeningByFen(sameBoardNoCastling)
-    expect(result).toBeUndefined()
+  it('matches by board position for 1-field stored FENs (castling-insensitive)', () => {
+    // Two Knights Defense is stored as a 1-field FEN (board only) within
+    // the Italian Game. The query has no castling rights but same board.
+    const noCastlingFen = 'r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w - - 4 4'
+    const result = findOpeningByFen(noCastlingFen)
+    expect(result).toBeDefined()
+    expect(result!.name).toContain('Italian')
   })
 
   it('searches openings by name (case-insensitive)', () => {
@@ -50,6 +53,28 @@ describe('openings database', () => {
   it('returns empty array for unmatched query', () => {
     const results = searchOpenings('zzzznotfound')
     expect(results).toEqual([])
+  })
+
+  it('finds openings with 1-field stored FENs (3058/3196 openings)', () => {
+    // Play through to a position that matches a 1-field opening FEN
+    const game = new Chess()
+    game.move('e4')
+    game.move('e5')
+    game.move('Nf3')
+    game.move('Nc6')
+    game.move('Bc4')
+    game.move('Nf6')
+    const fen = game.fen() // Two Knights Defense position
+    const result = findOpeningByFen(fen)
+    expect(result).toBeDefined()
+  })
+
+  it('matches a 1-field variation FEN', () => {
+    // Some variations have 1-field FENs (empty-move grouping markers).
+    // findOpeningVariation should still find them by board position.
+    const fullFen = 'r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4'
+    const result = findOpeningVariation(fullFen)
+    expect(result).toBeDefined()
   })
 
   it('each opening has required fields', () => {
