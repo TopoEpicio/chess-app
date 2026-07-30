@@ -5,12 +5,15 @@ import { Analysis } from './pages/Analysis'
 import { Games } from './pages/Games'
 import { GameViewer } from './pages/GameViewer'
 import { Studio } from './pages/Studio'
+import { CoursePlayer } from './pages/CoursePlayer'
+import { SrsReview } from './pages/SrsReview'
+import { RepertoireBuilder } from './pages/RepertoireBuilder'
 import { Puzzles } from './pages/Puzzles'
 import { Play } from './pages/Play'
 import { Settings } from './pages/Settings'
 import { ChevronRight, Settings as SettingsIcon } from 'lucide-react'
 
-type Page = 'home' | 'analysis' | 'studio' | 'puzzles' | 'partite' | 'play' | 'settings'
+type Page = 'home' | 'analysis' | 'studio' | 'puzzles' | 'partite' | 'play' | 'settings' | 'course' | 'review' | 'repertoire-builder'
 
 const pageKeys: { page: Page; labelKey: string }[] = [
   { page: 'home', labelKey: 'nav.home' },
@@ -26,6 +29,7 @@ function App() {
   const [page, setPage] = useState<Page>('home')
   const [selectedGameId, setSelectedGameId] = useState<number | null>(null)
   const [analyzeGameId, setAnalyzeGameId] = useState<number | null>(null)
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null)
 
   const handleSelectGame = (id: number) => {
     setSelectedGameId(id)
@@ -43,11 +47,19 @@ function App() {
     setPage('analysis')
   }
 
+  const handleStartCourse = (courseId: string) => {
+    setSelectedCourseId(courseId)
+    setPage('course')
+  }
+
   const handlePageChange = (p: Page) => {
     setPage(p)
     if (p !== 'analysis') setAnalyzeGameId(null)
     if (p !== 'partite') setSelectedGameId(null)
+    if (p !== 'course') setSelectedCourseId(null)
   }
+
+  const handleOpenReview = () => setPage('review')
 
   return (
     <div className="min-h-screen bg-sage-50">
@@ -92,7 +104,12 @@ function App() {
         {page === 'partite' && selectedGameId && (
           <GameViewer gameId={selectedGameId} onBack={handleBackToGames} onAnalyze={() => handleAnalyzeGame(selectedGameId)} />
         )}
-        {page === 'studio' && <Studio />}
+        {page === 'studio' && <Studio onStartCourse={handleStartCourse} onOpenReview={handleOpenReview} />}
+        {page === 'course' && selectedCourseId && (
+          <CoursePlayer courseId={selectedCourseId} onBack={() => setPage('studio')} />
+        )}
+        {page === 'review' && <SrsReview onBack={() => setPage('studio')} />}
+        {page === 'repertoire-builder' && <RepertoireBuilder onBack={() => setPage('studio')} />}
         {page === 'puzzles' && <Puzzles />}
         {page === 'play' && <Play onBack={() => setPage('home')} />}
         {page === 'settings' && <Settings />}

@@ -13,13 +13,14 @@ import { UploadFileModal } from '../components/studio/UploadFileModal'
 import { AddLinkModal } from '../components/studio/AddLinkModal'
 import { YouTubePlayer } from '../components/studio/YouTubePlayer'
 import { CreateOpeningModal } from '../components/repertoire/RepertoireSelector'
-import { CourseGrid } from '../components/studio/CourseGrid'
+
 import { mapOpeningsToCourses } from '../utils/courseMapper'
 import { openings } from '../data/openings'
 import { useAllOpeningProgress } from '../hooks/useAllOpeningProgress'
+import { listCourses } from '../data/courses'
 import type { StudyFolder, StudyResource, FolderContents, BreadcrumbItem, Opening, ResourceType } from '../types'
 import type { OpeningCourse } from '../types/studio'
-import { ArrowLeft, ChevronRight, FileText, BarChart3, Link as LinkIcon, Play as PlayIcon, FolderOpen, Pencil, Move, Trash2, ClipboardList, Minus, BookOpen } from 'lucide-react'
+import { ArrowLeft, ChevronRight, FileText, BarChart3, Link as LinkIcon, Play as PlayIcon, FolderOpen, Pencil, Move, Trash2, ClipboardList, Minus, BookOpen, GraduationCap } from 'lucide-react'
 
 const OpeningTrainer = lazy(() =>
   import('../components/studio/OpeningTrainer').then((m) => ({ default: m.OpeningTrainer })),
@@ -31,7 +32,12 @@ type CtxTarget =
   | { type: 'folder'; item: StudyFolder }
   | { type: 'resource'; item: StudyResource }
 
-export function Studio() {
+interface StudioProps {
+  onStartCourse?: (courseId: string) => void
+  onOpenReview?: () => void
+}
+
+export function Studio({ onStartCourse, onOpenReview }: StudioProps = {}) {
   const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState<StudioTab>('cartelle')
   const [currentFolderId, setCurrentFolderId] = useState<number | null>(null)
@@ -362,7 +368,32 @@ export function Studio() {
             </div>
           ) : (
             <>
-              {!contents || visibleFolders.length === 0 ? (
+              {visibleFolders.length > 0 && (
+                <FolderGrid
+                  folders={visibleFolders}
+                  onOpen={(f) => handleNavigate(f.id)}
+                  onDelete={handleDeleteFolder}
+                  onRename={(f) => setRenameFolder(f)}
+                  onContextMenu={(e, f) => showContextMenu(e, { type: 'folder', item: f })}
+                />
+              )}
+              {contents && contents.resources.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-sage-500 mb-3">
+                    {t('studio.tabs.resources')}
+                  </h3>
+                  <ResourceGrid
+                    resources={contents.resources}
+                    onOpenOpening={handleOpenOpening}
+                    onOpenLink={handleOpenLink}
+                    onPlayYoutube={handlePlayYoutube}
+                    onDownload={handleDownload}
+                    onRemove={handleRemoveResource}
+                    draggedId={null}
+                  />
+                </div>
+              )}
+              {visibleFolders.length === 0 && (!contents || contents.resources.length === 0) && (
                 <div className="bg-white rounded-box shadow-[0_2px_12px_rgba(45,53,39,0.08)] p-8 text-center">
                   <p className="text-sage-700 mb-2">
                     {currentFolderId ? t('studio.empty.folder') : t('studio.empty.welcome')}
@@ -373,14 +404,6 @@ export function Studio() {
                       : t('studio.empty.welcomeHint')}
                   </p>
                 </div>
-              ) : (
-                <FolderGrid
-                  folders={visibleFolders}
-                  onOpen={(f) => handleNavigate(f.id)}
-                  onDelete={handleDeleteFolder}
-                  onRename={(f) => setRenameFolder(f)}
-                  onContextMenu={(e, f) => showContextMenu(e, { type: 'folder', item: f })}
-                />
               )}
             </>
           )}
@@ -466,12 +489,33 @@ export function Studio() {
       )}
 
       {activeTab === 'corsi' && (
-        <CourseGrid
-          courses={courses}
-          progressMap={courseProgressMap}
-          onStart={handleStartCourse}
-          onReview={handleReviewCourse}
-        />
+        <>
+          <div className="mb-8">
+            <h2 className="text-lg font-semibold text-sage-800 mb-3 flex items-center gap-2">
+              <GraduationCap size={18} /> {t('studio.tabs.courses')}
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {listCourses().map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => onStartCourse?.(c.id)}
+                  className="bg-white rounded-box p-4 text-left shadow-sm hover:shadow-md transition-shadow border border-sage-100"
+                >
+                  <h3 className="font-semibold text-sage-900 mb-1">{c.title}</h3>
+                  <p className="text-xs text-sage-600 line-clamp-2 mb-3">{c.description}</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-sage-500">{c.moduleCount} modules &middot; {c.lessonCount} lessons</span>
+                    <span className="text-xs bg-sage-100 text-sage-700 px-2 py-0.5 rounded-full">
+                      {c.difficulty} &middot; {c.side}
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+
+        </>
       )}
 
       {/* FAB */}

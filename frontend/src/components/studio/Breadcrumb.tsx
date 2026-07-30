@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { BreadcrumbItem } from '../../types'
 
 interface Props {
@@ -6,13 +7,14 @@ interface Props {
 }
 
 export function Breadcrumb({ items, onNavigate }: Props) {
+  const { t } = useTranslation()
   return (
     <nav className="flex items-center gap-1 text-sm text-sage-600 mb-4 overflow-x-auto whitespace-nowrap">
       <button
         onClick={() => onNavigate(null)}
         className="hover:text-sage-900 font-medium transition-colors shrink-0"
       >
-        Studio
+        {t('studio.title')}
       </button>
       {items.map((item, i) => (
         <span key={item.id ?? 'root'} className="flex items-center gap-1 shrink-0">
