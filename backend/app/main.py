@@ -2,7 +2,6 @@ import logging
 from contextlib import asynccontextmanager
 from typing import Optional
 
-import sqlalchemy as sa
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -13,9 +12,6 @@ from app.database import Base, engine, SessionLocal
 from app.exception_handlers import register_exception_handlers
 from app.app_logging import configure_logging, get_logger
 from app.middleware.logging import LoggingMiddleware
-from app.models.puzzle import Puzzle
-from app.models.repertoire import Opening
-from app.models.study import FolderResource, StudyFolder, StudyResource
 from app.routers import analysis, import_bulk, openings, puzzles, recal, repertoire, nav, settings, stats, study
 from app.schemas.common import HealthDeepResponse, HealthResponse
 
@@ -36,68 +32,43 @@ async def lifespan(app: FastAPI):
     # Create tables (for SQLite dev; use Alembic for production)
     Base.metadata.create_all(bind=engine)
 
-    # Auto-migrate: add new columns if missing (safe to run repeatedly)
+    # Run database migrations (Alembic) - this replaces the old auto-migration
+    # Migrations are now handled via Alembic migrations:
+    # - 20260731_1404_dfe5dad93f4b_add_game_analyses_metadata_columns.py
+    # - 20260731_1405_2fb4a3f0a2e3_normalize_puzzle_themes_to_json_array.py
+    # Run `alembic upgrade head` before starting the app in production
     try:
-        inspector = sa.inspect(engine)
-        existing = {c["name"] for c in inspector.get_columns("game_analyses")}
-        new_columns = {
-            "white": "VARCHAR(128)",
-            "black": "VARCHAR(128)",
-            "eco": "VARCHAR(8)",
-            "event_date": "VARCHAR(16)",
-            "opening_name": "VARCHAR(128)",
-            "white_accuracy": "FLOAT",
-            "black_accuracy": "FLOAT",
-            "analyzed_at": "DATETIME",
-            "analysis_status": "VARCHAR(16) DEFAULT 'none'",
-        }
+        # Verify migrations are up to date (optional check)
+        from alembic.config import Config
+        from alembic.script import ScriptDirectory
+        from alembic.runtime.migration import MigrationContext
+        
+        alembic_cfg = Config("alembic.ini")
+        script = ScriptDirectory.from_config(alembic_cfg)
         with engine.connect() as conn:
-            for col_name, col_type in new_columns.items():
-                if col_name not in existing:
-                    conn.exec_driver_sql(f"ALTER TABLE game_analyses ADD COLUMN {col_name} {col_type}")
-            conn.commit()
+            context = MigrationContext.configure(conn)
+            current_rev = context.get_current_revision()
+            head_rev = script.get_current_head()
+            if current_rev != head_rev:
+                logger.warning(
+                    "Database migrations not up to date",
+                    current=current_rev,
+                    head=head_rev,
+                    hint="Run 'alembic upgrade head' to apply pending migrations"
+                )
     except Exception as e:
-        logger.warning("Auto-migration skipped", error=str(e))
+        logger.error("Migration check failed", error=str(e))
+        # Don't fail startup, but log the error prominently
 
-    # Seed: create root "Le mie aperture" folder and migrate existing openings
-    try:
-        db: Session = SessionLocal()
-        if db.query(StudyFolder).first() is None:
-            root = StudyFolder(name="Le mie aperture", description="Aperture importate in precedenza")
-            db.add(root)
-            db.flush()
-            for opening in db.query(Opening).all():
-                res = StudyResource(type="opening", name=opening.name, opening_id=opening.id)
-                db.add(res)
-                db.flush()
-                db.add(FolderResource(folder_id=root.id, resource_id=res.id))
-            db.commit()
-        db.close()
-    except Exception as e:
-        logger.warning("Seed skipped", error=str(e))
-
-    # Migrate: fix puzzle themes — wrap strings in arrays, normalize camelCase
-    try:
-        db: Session = SessionLocal()
-        for p in db.query(Puzzle).all():
-            if isinstance(p.theme, str):
-                # Convert camelCase/PascalCase to snake_case
-                snake = "".join(["_" + c.lower() if c.isupper() else c for c in p.theme]).lstrip("_")
-                p.theme = [snake]
-            elif isinstance(p.theme, list):
-                fixed = []
-                for t in p.theme:
-                    snake = "".join(["_" + c.lower() if c.isupper() else c for c in t]).lstrip("_")
-                    fixed.append(snake)
-                p.theme = fixed
-        db.commit()
-        db.close()
-    except Exception as e:
-        logger.warning("Theme migration skipped", error=str(e))
+    # Seed and theme migrations are now handled by separate scripts:
+    # - python -m scripts.seed (creates root folder, migrates openings)
+    # - python -m scripts.migrate_puzzle_themes (normalizes themes)
+    # Run these explicitly via `make db-seed` and `make db-migrate-themes`
 
     yield
 
     # Shutdown
+    logger.info("Shutting down Chess Trainer API")
     logger.info("Shutting down Chess Trainer API")
 
 
