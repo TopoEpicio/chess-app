@@ -57,7 +57,7 @@ async def lifespan(app: FastAPI):
                     hint="Run 'alembic upgrade head' to apply pending migrations"
                 )
     except Exception as e:
-        logger.error("Migration check failed", error=str(e))
+        logger.error("Migration check failed", error=str(e), exc_info=True)
         # Don't fail startup, but log the error prominently
 
     # Seed and theme migrations are now handled by separate scripts:
@@ -68,7 +68,6 @@ async def lifespan(app: FastAPI):
     yield
 
     # Shutdown
-    logger.info("Shutting down Chess Trainer API")
     logger.info("Shutting down Chess Trainer API")
 
 

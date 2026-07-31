@@ -4,6 +4,8 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
+import chess
+
 from app.database import get_db
 from app.models.analysis import GameAnalysis, KeyMoment, MoveAnalysis
 from app.schemas import GameOut, GameSummary, ImportRequest
@@ -13,8 +15,41 @@ from app.schemas.analysis import (
     SaveAnalysisRequest,
 )
 from app.services import pgn_import
-
 router = APIRouter(tags=["analysis"])
+
+
+def validate_fen_move(fen_before: str, san: str, fen_after: str) -> None:
+    """Validate that a SAN move is legal from fen_before and results in fen_after."""
+    try:
+        board = chess.Board(fen_before)
+    except ValueError as e:
+        raise HTTPException(422, f"Invalid FEN in fen_before: {e}")
+
+    # Parse the SAN move
+    try:
+        move = board.parse_san(san)
+    except ValueError as e:
+        raise HTTPException(422, f"Illegal move {san} from position: {e}")
+
+    # Apply the move
+    board.push(move)
+
+    # Verify resulting FEN matches (normalize both for comparison)
+    try:
+        expected_board = chess.Board(fen_after)
+    except ValueError as e:
+        raise HTTPException(422, f"Invalid FEN in fen_after: {e}")
+
+    # Compare normalized FENs (board.fen() includes move counters, so compare core parts)
+    actual_fen_parts = board.fen().split()[:4]
+    expected_fen_parts = expected_board.fen().split()[:4]
+    if actual_fen_parts != expected_fen_parts:
+        raise HTTPException(
+            422,
+            f"Move {san} from fen_before does not result in fen_after. "
+            f"Expected: {' '.join(expected_fen_parts)}, got: {' '.join(actual_fen_parts)}"
+        )
+
 
 @router.post("/{game_id}/save-analysis")
 def save_analysis(game_id: int, data: SaveAnalysisRequest, db: Session = Depends(get_db)):
@@ -25,6 +60,9 @@ def save_analysis(game_id: int, data: SaveAnalysisRequest, db: Session = Depends
     db.query(MoveAnalysis).filter(MoveAnalysis.game_id == game_id).delete()
 
     for m in data.moves:
+        # Validate FEN consistency for each move
+        validate_fen_move(m.fen_before, m.san, m.fen_after)
+
         ma = MoveAnalysis(
             game_id=game_id,
             move_number=m.move_number,
