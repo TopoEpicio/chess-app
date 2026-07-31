@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
-  <rect width="400" height="300" fill="#f4f5f2"/>
-  <rect x="60" y="40" width="280" height="220" rx="8" fill="#edeed7"/>
-  <rect x="100" y="80" width="200" height="140" rx="4" fill="#5a8a5a" opacity="0.3"/>
-  <text x="200" y="135" text-anchor="middle" font-family="Inter,sans-serif" font-size="22" font-weight="700" fill="#3a4234">♝</text>
-  <text x="200" y="175" text-anchor="middle" font-family="Inter,sans-serif" font-size="13" fill="#637455">Pirc Defense</text>
-</svg>

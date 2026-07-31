@@ -38,8 +38,12 @@ coverage/
 .env
 .env.local
 
+# Opencode
+.opencode/
+
 # Generated
 frontend/src/data/openings.generated.json
+frontend/public/thumbnails/
 report/
 review-diff.patch
 
