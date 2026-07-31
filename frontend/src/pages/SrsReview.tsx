@@ -4,7 +4,7 @@ import { Chess } from 'chess.js'
 import { Chessboard } from '../components/board/ThemedBoard'
 import { useSrsReview } from '../hooks/useSrsReview'
 import type { ReviewQuality } from '../domain/srs/types'
-import { ArrowLeft, RotateCcw, Check, X, SkipForward } from 'lucide-react'
+import { ArrowLeft, Check, X, SkipForward } from 'lucide-react'
 
 interface Props {
   onBack: () => void
@@ -69,89 +69,97 @@ export function SrsReview({ onBack, onGenerateCards }: Props) {
   const boardOrientation = game.turn() === 'w' ? 'white' : 'black'
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <button onClick={onBack} className="text-sm text-sage-600 hover:text-sage-900 mb-4 flex items-center gap-1">
-        <ArrowLeft size={16} /> {t('srs.back')}
-      </button>
+    <div className="flex h-screen flex-col bg-sage-50">
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-4 py-2 shrink-0 bg-white border-b border-sage-200">
+        <button onClick={onBack} className="text-sm text-sage-600 hover:text-sage-900 flex items-center gap-1">
+          <ArrowLeft size={16} /> {t('srs.back')}
+        </button>
+        <span className="text-xs text-sage-500">{currentIdx + 1} / {totalDue}</span>
+      </div>
 
-      <div className="flex gap-6 items-start">
-          <div className="shrink-0" style={{ width: 340 }}>
-            <div style={{ width: 340, aspectRatio: '1/1' }}>
-              <Chessboard
-                options={{
-                  id: 'srs-board',
-                  position: currentCard.fenKey,
-                  boardOrientation,
-                }}
-              />
+      {/* Main: Board (hero) + Content panel */}
+      <div className="flex flex-1 min-h-0 gap-0">
+        {/* Board — fills available space */}
+        <div className="flex-1 min-w-0 flex items-center justify-center overflow-hidden p-4">
+          <div style={{ aspectRatio: '1', height: '100%', maxWidth: '100%' }}>
+            <Chessboard
+              options={{
+                id: 'srs-board',
+                position: currentCard.fenKey,
+                boardOrientation,
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Right panel — info + controls */}
+        <div className="w-[380px] shrink-0 flex flex-col border-l border-sage-200 bg-white">
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-3">
+            <div className="p-4 bg-sage-50 rounded-lg border border-sage-200">
+              <h3 className="text-sm font-semibold text-sage-800 mb-2">{t('srs.expected_moves')}</h3>
+              {currentCard.expectedMoves.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {currentCard.expectedMoves.map((m) => (
+                    <span key={m} className="text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded font-mono border border-blue-200">
+                      {m}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-sage-500">{t('srs.no_expected_moves')}</p>
+              )}
             </div>
 
-          <div className="flex gap-2 mt-3 justify-center">
+            <div className="p-4 bg-sage-50 rounded-lg border border-sage-200">
+              <h3 className="text-sm font-semibold text-sage-800 mb-2">{t('srs.legal_moves')}</h3>
+              <div className="flex flex-wrap gap-1">
+                {legalMoves.slice(0, 12).map((m) => (
+                  <span key={m} className="text-xs px-2 py-0.5 bg-sage-100 text-sage-700 rounded">
+                    {m}
+                  </span>
+                ))}
+                {legalMoves.length > 12 && (
+                  <span className="text-xs text-sage-400">+{legalMoves.length - 12} {t('course.more')}</span>
+                )}
+              </div>
+            </div>
+
+            <div className="p-4 bg-sage-50 rounded-lg border border-sage-200">
+              <h3 className="text-sm font-semibold text-sage-800 mb-2">{t('srs.card_stats')}</h3>
+              <div className="grid grid-cols-2 gap-2 text-xs text-sage-700">
+                <div>{t('srs.reviews')}: <strong>{currentCard.totalReviews}</strong></div>
+                <div>{t('srs.correct')}: <strong>{currentCard.totalCorrect}</strong></div>
+                <div>{t('srs.forgets')}: <strong>{currentCard.forgets}</strong></div>
+                <div>{t('srs.interval')}: <strong>{currentCard.interval}d</strong></div>
+              </div>
+            </div>
+
+            <div className="text-xs text-sage-500">
+              {t('srs.due')}: {new Date(currentCard.dueDate).toLocaleDateString()} &middot; {t('srs.ease')}: {currentCard.ease.toFixed(1)}x
+            </div>
+          </div>
+
+          {/* Bottom — response buttons */}
+          <div className="px-4 py-3 border-t border-sage-200 shrink-0 flex gap-2 bg-sage-50">
             <button
               onClick={() => handleResponse('incorrect')}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 font-medium text-sm"
+              className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 font-medium text-sm transition-colors border border-red-200"
             >
               <X size={16} /> {t('srs.wrong')}
             </button>
             <button
               onClick={() => handleResponse('accepted')}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-yellow-50 text-yellow-700 hover:bg-yellow-100 font-medium text-sm"
+              className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg bg-yellow-50 text-yellow-700 hover:bg-yellow-100 font-medium text-sm transition-colors border border-yellow-200"
             >
               <SkipForward size={16} /> {t('srs.accept')}
             </button>
             <button
               onClick={() => handleResponse('correct')}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 font-medium text-sm"
+              className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 font-medium text-sm transition-colors border border-green-200"
             >
               <Check size={16} /> {t('srs.correct')}
             </button>
-          </div>
-
-          <div className="mt-3 flex items-center justify-between text-xs text-sage-500">
-            <span>{currentIdx + 1} / {totalDue}</span>
-            <span>{t('srs.due')}: {new Date(currentCard.dueDate).toLocaleDateString()}</span>
-            <span>{t('srs.ease')}: {currentCard.ease.toFixed(1)}x</span>
-          </div>
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="bg-white rounded-box shadow-sm p-4">
-            <h3 className="text-sm font-semibold mb-2">{t('srs.expected_moves')}</h3>
-            {currentCard.expectedMoves.length > 0 ? (
-              <div className="flex flex-wrap gap-1.5">
-                {currentCard.expectedMoves.map((m) => (
-                  <span key={m} className="text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded font-mono">
-                    {m}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-sage-500">{t('srs.no_expected_moves')}</p>
-            )}
-          </div>
-
-          <div className="bg-white rounded-box shadow-sm p-4 mt-3">
-            <h3 className="text-sm font-semibold mb-2">{t('srs.legal_moves')}</h3>
-            <div className="flex flex-wrap gap-1">
-              {legalMoves.slice(0, 12).map((m) => (
-                <span key={m} className="text-xs px-2 py-0.5 bg-sage-50 text-sage-600 rounded">
-                  {m}
-                </span>
-              ))}
-              {legalMoves.length > 12 && (
-                <span className="text-xs text-sage-400">+{legalMoves.length - 12} {t('course.more')}</span>
-              )}
-            </div>
-          </div>
-
-          <div className="bg-white rounded-box shadow-sm p-4 mt-3">
-            <h3 className="text-sm font-semibold mb-2">{t('srs.card_stats')}</h3>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div>{t('srs.reviews')}: <strong>{currentCard.totalReviews}</strong></div>
-              <div>{t('srs.correct')}: <strong>{currentCard.totalCorrect}</strong></div>
-              <div>{t('srs.forgets')}: <strong>{currentCard.forgets}</strong></div>
-              <div>{t('srs.interval')}: <strong>{currentCard.interval}d</strong></div>
-            </div>
           </div>
         </div>
       </div>

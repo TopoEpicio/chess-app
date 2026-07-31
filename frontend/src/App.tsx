@@ -64,7 +64,7 @@ function App() {
   return (
     <div className="min-h-screen bg-sage-50">
       <nav className="bg-white border-b border-sage-100 shadow-sm sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 flex items-center justify-between h-14">
+        <div className="max-w-7xl mx-auto px-6 lg:px-10 flex items-center justify-between h-14">
           <span className="font-bold text-lg text-sage-900"><ChevronRight size={20} className="inline-block" /> {t('app.name')}</span>
           <div className="flex gap-1">
             {pageKeys.map((item) => (
