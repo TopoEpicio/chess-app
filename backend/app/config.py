@@ -18,8 +18,8 @@ class Settings(BaseSettings):
     # Application
     app_name: str = "Chess Training API"
     app_version: str = "0.1.0"
-    debug: bool = True
     environment: Literal["development", "staging", "production"] = "development"
+    debug: bool = False  # Will be overridden by model_post_init
 
     # Database
     database_url: str = "sqlite:///data/chess_trainer.db"
@@ -68,6 +68,15 @@ class Settings(BaseSettings):
     default_board_theme: Literal["default", "blue", "green", "brown"] = "default"
     board_square_opacity: float = 1.0
     board_piece_shadow: bool = True
+
+    def model_post_init(self, __context) -> None:
+        """Post-initialization validation and computed fields."""
+        # Set debug based on environment
+        self.debug = self.environment != "production"
+        
+        # Validate secret_key in production
+        if self.environment == "production" and self.secret_key == "dev-secret-change-in-production":
+            raise ValueError("SECRET_KEY must be set in production (cannot use default)")
 
 
 @lru_cache
