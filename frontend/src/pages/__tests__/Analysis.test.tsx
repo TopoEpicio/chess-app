@@ -202,11 +202,8 @@ describe('Analysis page (Variant C SaaS)', () => {
 
   it('renders KPI cards', () => {
     renderWithProviders(<Analysis />)
-    expect(screen.getAllByText('White Accuracy')).toHaveLength(2)
-    expect(screen.getAllByText('Black Accuracy')).toHaveLength(2)
-    expect(screen.getByText('ACPL')).toBeInTheDocument()
-    expect(screen.getByText('Blunders')).toBeInTheDocument()
-    expect(screen.getByText('Engine depth')).toBeInTheDocument()
+    expect(screen.getByText('White Accuracy')).toBeInTheDocument()
+    expect(screen.getByText('Black Accuracy')).toBeInTheDocument()
   })
 
   it('renders tabs', () => {

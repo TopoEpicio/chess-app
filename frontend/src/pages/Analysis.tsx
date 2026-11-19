@@ -474,8 +474,6 @@ gameRef.current.reset()
   const totalMoves = analysisMoves.length
   const whiteAccuracy = gameResult?.white_accuracy ?? 0
   const blackAccuracy = gameResult?.black_accuracy ?? 0
-  const whiteCpl = gameResult?.white_cpl ?? 0
-  const blackCpl = gameResult?.black_cpl ?? 0
 
   const currentMoveData = analysisMoves[currentIndex]
   const moveClassification = currentMoveData?.classification
@@ -671,7 +669,7 @@ gameRef.current.reset()
 
                 <TabPanel value='moves'>
                   <div className='space-y-4'>
-                    {analysisResult ? (
+                    {analysisResult && (
                       <>
                         <Card padding='md' className='bg-[var(--color-surface)] border border-[var(--color-border)]'>
                           <h3 className='font-semibold text-[var(--color-text)] mb-1'>{t('analysis.coachTake')}</h3>
@@ -695,10 +693,12 @@ gameRef.current.reset()
                             {t('common.next')}
                           </Button>
                         </div>
-                        <div ref={movesTableRef} className='mt-4'>
-                          <MoveTable rows={movesFromCurrent} />
-                        </div>
                       </>
+                    )}
+                    {movesFromCurrent.length > 0 ? (
+                      <div ref={movesTableRef} className='mt-4'>
+                        <MoveTable rows={movesFromCurrent} />
+                      </div>
                     ) : (
                       <div className='bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-lg)] p-8 text-center text-sm text-[var(--color-text-muted)]'>
                         {t('analysis.coachNoAnalysis')}
@@ -711,15 +711,6 @@ gameRef.current.reset()
           </>
         }
       />
-
-      {/* KPI Row */}
-      <div className='grid grid-cols-2 md:grid-cols-5 gap-4'>
-        <KPICard label={t('analysis.whiteAccuracy')} value={whiteAccuracy.toFixed(1) + '%'} subText='vs media 84%' variant='success' trend={{ value: '+1.2%', direction: 'up' }} />
-        <KPICard label={t('analysis.blackAccuracy')} value={blackAccuracy.toFixed(1) + '%'} subText='vs media 85%' variant='warning' trend={{ value: '-0.8%', direction: 'down' }} />
-        <KPICard label={t('analysis.acpl')} value={whiteCpl + ' / ' + blackCpl} subText={t('analysis.whiteBlack')} variant='primary' />
-        <KPICard label={t('analysis.blunders')} value={String(gameResult?.total_classification_counts?.blunder ?? 0)} subText={t('analysis.whiteBlack')} variant='danger' />
-        <KPICard label={t('analysis.engineDepth')} value={(boardEval?.depth ?? engineCfg.depth) + ' / ' + engineCfg.depth} subText={t('analysis.live')} variant='default' />
-      </div>
 
       {/* Status Bar */}
       <StatusBarComponent saved={true} />
