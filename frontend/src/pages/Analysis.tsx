@@ -17,6 +17,7 @@ import { ChessBoard } from '../components/board/ChessBoard'
 import { PgnImporter } from '../components/analysis/PgnImporter'
 import { ProgressBar } from '../components/analysis/ProgressBar'
 import { EvaluationChart } from '../components/analysis/EvaluationChart'
+import { UserOpeningButton } from '../components/analysis/UserOpeningButton'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Tabs, TabsList, TabTrigger, TabPanel } from '../components/ui/Tabs'
@@ -85,16 +86,45 @@ function toClassificationRows(gameResult: GameAnalysisResult | null): Classifica
 
 /** Convert analysis moves to MoveTable format. */
 function toMoveRows(moves: MoveAnalysisData[], currentIndex: number): MoveRow[] {
-  return moves.map((move, index) => ({
-    moveNumber: move.move_number,
-    whiteMove: move.is_white ? move.san : '',
-    blackMove: !move.is_white ? move.san : '',
-    evaluation: move.played_eval !== undefined ? (move.played_eval >= 0 ? '+' : '') + move.played_eval.toFixed(2) : undefined,
-    depth: move.depth,
-    classification: move.classification?.toLowerCase() as MoveRow['classification'],
-    time: undefined,
-    isCurrent: index === currentIndex,
-  }))
+  // Group moves by move_number (white + black together)
+  const movesByNumber = new Map<number, { white?: MoveAnalysisData; black?: MoveAnalysisData }>()
+  for (const move of moves) {
+    const entry = movesByNumber.get(move.move_number) ?? { white: undefined, black: undefined }
+    if (move.is_white) {
+      entry.white = move
+    } else {
+      entry.black = move
+    }
+    movesByNumber.set(move.move_number, entry)
+  }
+
+  // Convert to MoveRow array, sorted by move number
+  const sortedNumbers = Array.from(movesByNumber.keys()).sort((a, b) => a - b)
+  return sortedNumbers.map((moveNumber, index) => {
+    const entry = movesByNumber.get(moveNumber)!
+    const whiteMove = entry.white
+    const blackMove = entry.black
+    // Determine if this row is current (either white or black move matches currentIndex)
+    const whiteIndex = whiteMove ? moves.indexOf(whiteMove) : -1
+    const blackIndex = blackMove ? moves.indexOf(blackMove) : -1
+    const isCurrent = whiteIndex === currentIndex || blackIndex === currentIndex
+    // Use classification from the move that was played at currentIndex, or from white move
+    const classification = (currentIndex === whiteIndex ? whiteMove : currentIndex === blackIndex ? blackMove : whiteMove)?.classification?.toLowerCase() as MoveRow['classification'] | undefined
+    // Evaluation from the move that was played, or from white move
+    const playedEval = (currentIndex === whiteIndex ? whiteMove : currentIndex === blackIndex ? blackMove : whiteMove)?.played_eval
+    const depth = (currentIndex === whiteIndex ? whiteMove : currentIndex === blackIndex ? blackMove : whiteMove)?.depth
+
+    return {
+      moveNumber,
+      whiteMove: whiteMove?.san ?? '',
+      blackMove: blackMove?.san ?? '',
+      evaluation: playedEval !== undefined ? (playedEval >= 0 ? '+' : '') + playedEval.toFixed(2) : undefined,
+      depth,
+      classification,
+      time: undefined,
+      isCurrent,
+    }
+  })
 }
 export function Analysis({ gameId, onBack }: { gameId?: number; onBack?: () => void }) {
   const [showPgnImport, setShowPgnImport] = useState(false)
@@ -107,7 +137,7 @@ export function Analysis({ gameId, onBack }: { gameId?: number; onBack?: () => v
   const [gameResult, setGameResult] = useState<GameAnalysisResult | null>(null)
   const [analysisProgress, setAnalysisProgress] = useState(0)
   const [generating, setGenerating] = useState(false)
-  const [puzzleMsg, setPuzzleMsg] = useState('')
+const [puzzleMsg, setPuzzleMsg] = useState('')
   const [saveMsg, setSaveMsg] = useState('')
   const [localGameId, setLocalGameId] = useState<number | undefined>(gameId)
   const [analysisError, setAnalysisError] = useState<string | null>(null)
@@ -286,7 +316,7 @@ gameRef.current.reset()
     return () => clearTimeout(timer)
   }, [fen, ready, analyzeLive, liveEpoch])
 
-  const startAnalysis = async () => {
+const startAnalysis = async () => {
     if (!fen || !ready || analyzing.current) return
     analyzing.current = true
     setAnalysisProgress(0)
@@ -302,6 +332,14 @@ gameRef.current.reset()
         })
         const acc = calculateAccuracy(analyzedMoves)
 
+        // Convert analyzed moves to MoveItem format for navigation
+        const analyzedMoveItems = analyzedMoves.map(m => ({
+          move_number: m.move_number,
+          san: m.san,
+          fen: m.fen_after,
+          is_white: m.is_white,
+        }))
+
         if (currentGameId) {
           try {
             await api.analysis.saveAnalysis(currentGameId, {
@@ -316,6 +354,25 @@ gameRef.current.reset()
           } catch (err) {
             setAnalysisError('Impossible to save the analysis: ' + (err?.message ?? String(err)))
           }
+        } else {
+          // Self-analysis mode: update local state with analyzed moves for navigation
+          setMoves(analyzedMoveItems)
+          setJotaiMoves(analyzedMoveItems)
+          setGameResult({
+            game_id: 0,
+            white_accuracy: acc.whiteAccuracy,
+            black_accuracy: acc.blackAccuracy,
+            white_cpl: acc.whiteCpl,
+            black_cpl: acc.blackCpl,
+            white_classification_counts: {},
+            black_classification_counts: {},
+            total_classification_counts: {},
+            moves: analyzedMoves,
+            analyzed_at: new Date().toISOString(),
+            status: 'completed',
+            current_move: analyzedMoves.length - 1,
+            total_moves: analyzedMoves.length,
+          } as GameAnalysisResult)
         }
       } else {
         const multiPv = await deepAnalyze(fen, engineCfg.multiPv, engineCfg.depth)
@@ -357,25 +414,13 @@ gameRef.current.reset()
     movesTableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
-  const handleShare = () => {
+const handleShare = () => {
     const url = typeof window !== 'undefined' ? window.location.href : ''
     if (navigator.share) {
       navigator.share({ title: t('analysis.title'), url }).catch(() => undefined)
     } else {
       navigator.clipboard?.writeText(url).catch(() => undefined)
     }
-  }
-
-  const handleEngineLineClick = (uciMoves: string) => {
-    if (!fen) return
-    try {
-      const game = new Chess(fen)
-      const uciList = uciMoves.split(' ').filter(Boolean)
-      for (const uci of uciList) {
-        game.move({ from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: (uci[4] as any) })
-      }
-      setFen(game.fen())
-    } catch {}
   }
 
   const playBotMove = async () => {
@@ -485,21 +530,18 @@ gameRef.current.reset()
         good: t('analysis.coachMoveAdjective.good'),
         inaccuracy: t('analysis.coachMoveAdjective.inaccuracy'),
         mistake: t('analysis.coachMoveAdjective.mistake'),
-        blunder: t('analysis.coachMoveAdjective.blunder'),
+blunder: t('analysis.coachMoveAdjective.blunder'),
       }[moveClassification] ?? t('analysis.coachMoveAdjective.good')
     : t('analysis.coachMoveAdjective.good')
-  const movesFromCurrent = currentIndex >= 0 ? moveRows.slice(currentIndex) : moveRows
+  const allMoveRows = moveRows
 
   return (
     <>
-      <PanelHeader
+<PanelHeader
         onBack={onBack}
         gameId={currentGameId}
         onImportPgn={() => setShowPgnImport(true)}
         importMsg={importMsg}
-        openingName={openingName}
-        fen={fen ?? ''}
-        eco={openingEco}
       />
 
       {/* Match Header */}
@@ -573,7 +615,15 @@ gameRef.current.reset()
                   responsive
                 />
               </div>
-              <div className='p-4 border-t border-[var(--color-border)] space-y-4 bg-[var(--color-bg)]'>
+<div className='p-4 border-t border-[var(--color-border)] space-y-4 bg-[var(--color-bg)]'>
+                {(openingName || fen) && (
+                  <div className='mb-2 flex items-center justify-between text-sm text-[var(--color-success)] bg-[var(--color-success-light)] rounded-lg p-2'>
+                    <span><span className="font-medium">{t('analysis.opening')}: </span> {openingName ?? t('analysis.openingUnknown')}</span>
+                    <div className="flex items-center gap-3">
+                      {fen && <UserOpeningButton openingName={openingName} fen={fen} eco={openingEco} />}
+                    </div>
+                  </div>
+                )}
                 <div className='flex items-center justify-between flex-wrap gap-4'>
                   <div className='flex items-center gap-2'>
                     <Button variant='secondary' size='sm' onClick={handleGoToMove.bind(null, 0)} disabled={!canPrev} aria-label={t('analysis.startOfGame')}>
@@ -695,9 +745,9 @@ gameRef.current.reset()
                         </div>
                       </>
                     )}
-                    {movesFromCurrent.length > 0 ? (
+                    {analysisMoves.length > 0 ? (
                       <div ref={movesTableRef} className='mt-4'>
-                        <MoveTable rows={movesFromCurrent} />
+                        <MoveTable rows={allMoveRows} />
                       </div>
                     ) : (
                       <div className='bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-lg)] p-8 text-center text-sm text-[var(--color-text-muted)]'>

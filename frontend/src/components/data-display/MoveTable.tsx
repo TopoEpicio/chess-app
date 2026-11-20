@@ -23,10 +23,10 @@ interface MoveTableProps {
 const t = (key: string, opts?: Record<string, string | number>) => i18n.t(key, opts)
 
 const defaultColumns = [
-  { key: 'moveNumber', label: '#', width: '50px' },
-  { key: 'whiteMove', label: t('analysis.whiteMove'), width: '120px' },
-  { key: 'blackMove', label: t('analysis.blackMove'), width: '120px' },
-  { key: 'evaluation', label: t('analysis.evaluation'), width: '100px' },
+  { key: 'moveNumber', label: t('analysis.moveNumber'), width: '60px' },
+  { key: 'whiteMove', label: t('analysis.whiteMove'), width: '150px' },
+  { key: 'blackMove', label: t('analysis.blackMove'), width: '150px' },
+  { key: 'evaluation', label: t('analysis.evaluation'), width: '120px' },
   { key: 'depth', label: t('analysis.depth'), width: '90px' },
   { key: 'time', label: t('analysis.time'), width: '80px' },
 ];
@@ -54,7 +54,7 @@ function symbolColor(classification: MoveRow['classification']): string {
 
 export function MoveTable({ rows, columns = defaultColumns, className = '' }: MoveTableProps) {
   return (
-    <div className={`overflow-x-auto overflow-y-auto max-h-96 ${className}`}>
+    <div className={`overflow-y-auto max-h-96 ${className}`}>
       <table className="w-full border-collapse text-sm" role="table">
         <thead>
           <tr className="border-b border-[var(--color-border)]">

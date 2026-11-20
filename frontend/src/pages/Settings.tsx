@@ -4,6 +4,7 @@ import { useTheme, type ThemeMode, type BoardTheme } from '../stores/themeStore'
 import { useEngineConfig } from '../stores/engineStore'
 import { arrowConfigAtom } from '../state/atoms/engineAtoms'
 import { ArrowControls } from '../components/analysis/ArrowControls'
+import { Chessboard as BaseChessboard } from 'react-chessboard'
 
 const locales = [
   { code: 'en', label: 'English' },
@@ -20,26 +21,27 @@ const boardThemes: { id: BoardTheme; label: string; light: string; dark: string 
 ]
 
 function BoardPreview({ light, dark }: { light: string; dark: string }) {
-  const cells = []
-  for (let r = 0; r < 4; r++) {
-    for (let c = 0; c < 4; c++) {
-      const isLight = (r + c) % 2 === 0
-      cells.push(
-        <div
-          key={`${r}-${c}`}
-          style={{
-            width: 24,
-            height: 24,
-            backgroundColor: isLight ? light : dark,
-          }}
-        />
-      )
-    }
+  const boardStyle = {
+    width: 160,
+    height: 160,
+    borderRadius: '8px',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
   }
+  const darkSquareStyle = { backgroundColor: dark, opacity: 1 }
+  const lightSquareStyle = { backgroundColor: light, opacity: 1 }
+
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-      {cells}
-    </div>
+    <BaseChessboard
+      options={{
+        position: 'start',
+        boardStyle,
+        darkSquareStyle,
+        lightSquareStyle,
+        boardOrientation: 'white',
+        allowDragging: false,
+        showNotation: false,
+      }}
+    />
   )
 }
 
