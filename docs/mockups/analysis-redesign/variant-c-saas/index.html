@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analisi — Chess Training</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #F7F7FA;
+      --surface: #FFFFFF;
+      --surface-hover: #FAFAFC;
+      --border: #E6E7EC;
+      --border-strong: #D0D2DA;
+      --text: #111827;
+      --text-secondary: #4B5563;
+      --text-muted: #6B7280;
+      --text-placeholder: #9CA3AF;
+      --primary: #4F46E5;
+      --primary-hover: #4338CA;
+      --primary-light: #EEF0FF;
+      --success: #10B981;
+      --success-light: #D1FAE5;
+      --warning: #F59E0B;
+      --warning-light: #FEF3C7;
+      --danger: #F43F5E;
+      --danger-light: #FEE2E2;
+      --shadow-sm: 0 1px 2px rgba(17, 24, 39, 0.04);
+      --shadow: 0 4px 12px rgba(17, 24, 39, 0.06);
+      --shadow-lg: 0 12px 28px rgba(17, 24, 39, 0.08);
+      --radius-sm: 6px;
+      --radius: 10px;
+      --radius-lg: 14px;
+      --focus: #4F46E5;
+      --cmd-bg: #111827;
+      --cmd-text: #F9FAFB;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0F1115;
+        --surface: #181A1F;
+        --surface-hover: #1F2228;
+        --border: #2D3039;
+        --border-strong: #3D414C;
+        --text: #F3F4F6;
+        --text-secondary: #D1D5DB;
+        --text-muted: #9CA3AF;
+        --text-placeholder: #6B7280;
+        --primary: #818CF8;
+        --primary-hover: #A5B4FC;
+        --primary-light: #1E1B4B;
+        --success: #34D399;
+        --success-light: #064E3B;
+        --warning: #FBBF24;
+        --warning-light: #451A03;
+        --danger: #FB7185;
+        --danger-light: #450A0A;
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+        --shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.5);
+        --cmd-bg: #F9FAFB;
+        --cmd-text: #111827;
+      }
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; -webkit-font-smoothing: antialiased; }
+    body {
+      font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+    .font-mono { font-family: 'Geist Mono', 'SF Mono', Menlo, monospace; }
+
+    /* App Shell */
+    .app-shell { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+    @media (max-width: 1024px) { .app-shell { grid-template-columns: 1fr; } }
+
+    /* Sidebar */
+    .sidebar {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      height: 100vh; position: sticky; top: 0; z-index: 100;
+      overflow-y: auto;
+    }
+    .sidebar-header { padding: 20px 16px; border-bottom: 1px solid var(--border); }
+    .logo { display: flex; align-items: center; gap: 10px; }
+    .logo-mark { width: 32px; height: 32px; border-radius: 8px; background: var(--primary); display: flex; align-items: center; justify-content: center; }
+    .logo-mark svg { width: 18px; height: 18px; stroke: white; }
+    .logo-text { font-weight: 600; font-size: 15px; color: var(--text); letter-spacing: -0.01em; }
+    .workspace-name { font-size: 11px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 8px; }
+
+    .sidebar-nav { flex: 1; padding: 16px 8px; display: flex; flex-direction: column; gap: 4px; }
+    .nav-group { margin-bottom: 20px; }
+    .nav-group-label { padding: 0 12px 6px; font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+    .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius); color: var(--text-secondary); text-decoration: none; font-size: 13px; font-weight: 500; transition: all 0.15s; border: none; background: transparent; width: 100%; text-align: left; cursor: pointer; }
+    .nav-item:hover { background: var(--surface-hover); color: var(--text); }
+    .nav-item.active { background: var(--primary-light); color: var(--primary); }
+    .nav-item svg { width: 18px; height: 18px; stroke: currentColor; flex-shrink: 0; }
+    .nav-item .badge { margin-left: auto; font-family: 'Geist Mono', monospace; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: var(--primary-light); color: var(--primary); }
+    .nav-divider { height: 1px; background: var(--border); margin: 8px 0; }
+
+    .sidebar-footer { padding: 16px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 12px; }
+    .storage-widget { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; }
+    .storage-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .storage-label { font-size: 11px; font-weight: 500; color: var(--text-muted); }
+    .storage-value { font-family: 'Geist Mono', monospace; font-size: 12px; font-weight: 600; color: var(--text); }
+    .storage-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+    .storage-fill { height: 100%; width: 42%; background: var(--primary); border-radius: 2px; transition: width 0.3s; }
+
+    /* Top Bar */
+    .top-bar {
+      grid-column: 2; height: 56px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px; position: sticky; top: 0; z-index: 50;
+    }
+    .top-bar-left { display: flex; align-items: center; gap: 16px; }
+    .breadcrumb { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+    .breadcrumb svg { width: 14px; height: 14px; margin: 0 6px; stroke: var(--text-muted); }
+    .top-bar-center { flex: 1; max-width: 560px; margin: 0 32px; position: relative; }
+    .cmd-bar {
+      width: 100%; height: 40px; background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 0 14px 0 44px; font-size: 13px; color: var(--text);
+      font-family: inherit; transition: all 0.15s; outline: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%239CA3AF' stroke-width='1.5'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: 14px center; background-size: 18px;
+    }
+    .cmd-bar:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+    .cmd-hint { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-family: 'Geist Mono', monospace; font-size: 10px; color: var(--text-placeholder); pointer-events: none; }
+    .top-bar-right { display: flex; align-items: center; gap: 12px; }
+    .icon-btn { width: 40px; height: 40px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; }
+    .icon-btn:hover { background: var(--surface-hover); border-color: var(--border-strong); }
+    .icon-btn svg { width: 18px; height: 18px; stroke: var(--text-muted); }
+    .avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px; }
+
+    /* Main Content */
+    .main-content { grid-column: 2; padding: 24px; }
+
+    /* Page Header */
+    .page-header { margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .page-title { font-size: 28px; font-weight: 600; color: var(--text); letter-spacing: -0.02em; }
+    .page-title .accent { color: var(--primary); }
+    .page-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px;
+      border-radius: var(--radius); font-size: 13px; font-weight: 500; font-family: inherit;
+      border: 1px solid transparent; cursor: pointer; transition: all 0.15s;
+      text-decoration: none;
+    }
+    .btn-primary { background: var(--primary); color: white; border-color: var(--primary); }
+    .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); }
+    .btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--primary-light); }
+    .btn-secondary { background: var(--surface); color: var(--text); border-color: var(--border); }
+    .btn-secondary:hover { background: var(--surface-hover); border-color: var(--border-strong); }
+    .btn-secondary:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--bg); }
+    .btn-ghost { background: transparent; color: var(--text-secondary); border-color: transparent; }
+    .btn-ghost:hover { background: var(--bg); color: var(--text); }
+    .btn-ghost:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--bg); }
+    .btn-danger { background: var(--danger); color: white; border-color: var(--danger); }
+    .btn-danger:hover { background: #E11D48; border-color: #E11D48; }
+    .btn-sm { padding: 7px 14px; font-size: 12px; }
+    .btn svg { width: 16px; height: 16px; }
+
+    /* KPI Row */
+    .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 24px; }
+    @media (max-width: 1280px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 768px) { .kpi-row { grid-template-columns: 1fr; } }
+    .kpi-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+      padding: 20px; display: flex; flex-direction: column; gap: 8px;
+      transition: box-shadow 0.2s, border-color 0.2s;
+    }
+    .kpi-card:hover { box-shadow: var(--shadow); border-color: var(--border-strong); }
+    .kpi-header { display: flex; align-items: center; justify-content: space-between; }
+    .kpi-label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+    .kpi-trend { font-family: 'Geist Mono', monospace; font-size: 10px; font-weight: 500; padding: 2px 6px; border-radius: 4px; }
+    .kpi-trend.up { background: var(--success-light); color: var(--success); }
+    .kpi-trend.down { background: var(--danger-light); color: var(--danger); }
+    .kpi-value { font-size: 28px; font-weight: 700; color: var(--text); line-height: 1.2; font-variant-numeric: tabular-nums; }
+    .kpi-value.success { color: var(--success); }
+    .kpi-value.warning { color: var(--warning); }
+    .kpi-value.danger { color: var(--danger); }
+    .kpi-value.primary { color: var(--primary); }
+    .kpi-sub { font-family: 'Geist Mono', monospace; font-size: 11px; color: var(--text-muted); }
+
+    /* Content Grid */
+    .content-grid { display: grid; grid-template-columns: 7fr 5fr; gap: 24px; margin-bottom: 24px; }
+    @media (max-width: 1024px) { .content-grid { grid-template-columns: 1fr; } }
+
+    /* Board Card */
+    .board-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+      overflow: hidden; display: flex; flex-direction: column;
+    }
+    .board-card-header {
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+    }
+    .board-card-title { font-size: 14px; font-weight: 600; color: var(--text); }
+    .board-card-actions { display: flex; gap: 8px; }
+    .board-match-header {
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+      display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 20px;
+    }
+    .match-player { display: flex; align-items: center; gap: 12px; }
+    .match-player.black { text-align: right; }
+    .player-avatar-sm { width: 36px; height: 36px; border-radius: 50%; background: var(--primary-light); color: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 12px; }
+    .match-player.black .player-avatar-sm { background: var(--warning-light); color: var(--warning); }
+    .player-details { }
+    .player-name-sm { font-weight: 600; font-size: 14px; color: var(--text); }
+    .player-rating-sm { font-family: 'Geist Mono', monospace; font-size: 12px; color: var(--text-muted); }
+    .match-center { text-align: center; }
+    .match-result { font-size: 18px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+    .match-opening { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+    .board-wrapper {
+      flex: 1; position: relative; aspect-ratio: 1 / 1; background: #F0F0F0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .chessboard { width: 100%; height: 100%; max-width: 512px; max-height: 512px; display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); }
+    .square { position: relative; }
+    .square.light { background: #F0D9B5; }
+    .square.dark { background: #B58863; }
+    .square.highlight-lastmove::after { content: ''; position: absolute; inset: 2px; border: 2px solid var(--warning); border-radius: 2px; pointer-events: none; }
+    .square .piece { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: clamp(24px, 5vw, 48px); line-height: 1; user-select: none; }
+    .coordinates { position: absolute; inset: 0; pointer-events: none; display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); }
+    .coord-file { position: absolute; bottom: 4px; left: 0; right: 0; text-align: center; font-family: 'Geist Mono', monospace; font-size: 9px; font-weight: 500; color: var(--text-muted); text-transform: lowercase; }
+    .coord-rank { position: absolute; top: 4px; left: 4px; font-family: 'Geist Mono', monospace; font-size: 9px; font-weight: 500; color: var(--text-muted); }
+    .arrow-layer { position: absolute; inset: 0; pointer-events: none; z-index: 10; }
+    .arrow-layer svg { width: 100%; height: 100%; }
+    .arrow-layer path { fill: none; stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)); }
+    .arrow-best { stroke: var(--success); }
+    .arrow-second { stroke: var(--primary); opacity: 0.8; }
+    .eval-bar-side { position: absolute; right: -52px; top: 0; bottom: 0; width: 36px; background: linear-gradient(180deg, var(--danger) 0%, var(--danger) 50%, var(--success) 50%, var(--success) 100%); border-radius: 0 var(--radius-lg) var(--radius-lg) 0; }
+    .eval-bar-side::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 2px; background: var(--warning); transform: translateY(-50%); }
+    .eval-marker-side { position: absolute; left: -6px; width: 28px; height: 4px; background: var(--warning); border-radius: 2px; transform: translateX(-50%); box-shadow: var(--shadow-sm); transition: top 0.3s ease; z-index: 2; }
+    .board-toolbar {
+      padding: 16px 20px; border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+      background: var(--bg);
+    }
+    .move-nav { display: flex; align-items: center; gap: 8px; }
+    .move-nav-btn { width: 36px; height: 36px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; }
+    .move-nav-btn:hover { background: var(--surface-hover); border-color: var(--border-strong); }
+    .move-nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .move-nav-btn svg { width: 18px; height: 18px; stroke: var(--text); }
+    .move-counter { font-family: 'Geist Mono', monospace; font-size: 14px; font-weight: 600; color: var(--text); min-width: 70px; text-align: center; }
+    .board-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .eval-readout-bottom { font-family: 'Geist Mono', monospace; font-size: 11px; color: var(--text-muted); text-align: center; padding: 8px 0; letter-spacing: 0.05em; }
+
+    /* Engine & Insight Card */
+    .insight-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+      overflow: hidden; display: flex; flex-direction: column; height: fit-content;
+    }
+    .insight-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .insight-title { font-size: 14px; font-weight: 600; color: var(--text); }
+    .insight-header .icon-btn { padding: 6px; }
+    .insight-tabs { display: flex; background: var(--bg); border-bottom: 1px solid var(--border); padding: 4px; }
+    .insight-tab { flex: 1; padding: 10px 8px; text-align: center; font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); background: transparent; border: none; border-radius: var(--radius-sm); cursor: pointer; transition: all 0.15s; }
+    .insight-tab:hover { color: var(--text); background: var(--surface); }
+    .insight-tab.active { color: var(--primary); background: var(--surface); box-shadow: var(--shadow-sm); }
+    .insight-content { flex: 1; padding: 20px; overflow-y: auto; }
+    .insight-pane { display: none; }
+    .insight-pane.active { display: block; animation: fadeIn 0.15s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+    /* Engine Lines Compact */
+    .engine-lines-compact { display: flex; flex-direction: column; gap: 8px; }
+    .engine-line-c { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; transition: all 0.15s; }
+    .engine-line-c:hover { border-color: var(--border-strong); box-shadow: var(--shadow-sm); }
+    .line-c-header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+    .line-c-rank { font-size: 14px; font-weight: 600; color: var(--primary); }
+    .line-c-eval { font-family: 'Geist Mono', monospace; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .line-c-eval.pos { color: var(--success); }
+    .line-c-eval.neg { color: var(--danger); }
+    .line-c-eval.eq { color: var(--warning); }
+    .line-c-pv { font-family: 'Geist Mono', monospace; font-size: 11px; line-height: 1.6; color: var(--text-muted); white-space: pre-wrap; word-break: break-word; }
+    .line-c-pv .mv-num { color: var(--text-placeholder); }
+    .line-c-pv .mv-san { color: var(--text-secondary); }
+
+    /* Classification Summary */
+    .class-summary { display: flex; flex-direction: column; gap: 10px; }
+    .class-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); }
+    .class-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .class-name { flex: 1; font-size: 13px; font-weight: 500; color: var(--text); }
+    .class-count { font-family: 'Geist Mono', monospace; font-size: 13px; font-weight: 600; color: var(--text-muted); }
+    .class-bar-mini { width: 80px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; flex-shrink: 0; }
+    .class-bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+
+    /* Move Table */
+    .move-table { overflow-x: auto; }
+    .move-table table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .move-table th { text-align: left; padding: 10px 12px; font-weight: 600; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); border-bottom: 1px solid var(--border); white-space: nowrap; }
+    .move-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .move-table tr:last-child td { border-bottom: none; }
+    .move-table tr:hover td { background: var(--bg); }
+    .move-table .mv-num { font-family: 'Geist Mono', monospace; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+    .move-table .mv-san { font-family: 'Geist Mono', monospace; color: var(--text); }
+    .move-table .cls-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 500; }
+    .move-table .cls-badge.brilliant { background: var(--success-light); color: var(--success); }
+    .move-table .cls-badge.best { background: #D1FAE5; color: #059669; }
+    .move-table .cls-badge.excellent { background: #D1FAE5; color: #059669; }
+    .move-table .cls-badge.good { background: #D1FAE5; color: #059669; }
+    .move-table .cls-badge.inaccuracy { background: var(--warning-light); color: var(--warning); }
+    .move-table .cls-badge.mistake { background: #FFEDD5; color: #F97316; }
+    .move-table .cls-badge.blunder { background: var(--danger-light); color: var(--danger); }
+    .move-table .current-row td { background: var(--primary-light); }
+    .move-table .current-row .mv-san { color: var(--primary); font-weight: 600; }
+
+    /* Chart Mini */
+    .chart-mini { height: 200px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); position: relative; }
+    .chart-mini-svg { width: 100%; height: 100%; }
+
+    /* Freece / Arrows */
+    .arrow-list-saas { display: flex; flex-direction: column; gap: 10px; }
+    .arrow-item-s { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; display: flex; align-items: flex-start; gap: 12px; }
+    .arrow-color-s { width: 28px; height: 28px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .arrow-color-s svg { width: 14px; height: 14px; stroke: white; }
+    .arrow-info-s { flex: 1; }
+    .arrow-label-s { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+    .arrow-desc-s { font-family: 'Geist Mono', monospace; font-size: 11px; color: var(--text-muted); }
+
+    /* Coach */
+    .coach-saas { background: var(--primary-light); border: 1px solid rgba(79, 70, 229, 0.2); border-radius: var(--radius); padding: 16px; }
+    .coach-header-s { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .coach-avatar-s { width: 28px; height: 28px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 11px; }
+    .coach-title-s { font-size: 13px; font-weight: 600; color: var(--text); }
+    .coach-text-s { font-size: 12px; line-height: 1.7; color: var(--text-secondary); }
+
+    /* Match Timeline Module */
+    .timeline-module {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+      padding: 24px; margin-bottom: 24px;
+    }
+    .module-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 16px; }
+    .module-title { font-size: 16px; font-weight: 600; color: var(--text); }
+    .module-actions { display: flex; gap: 8px; }
+    .timeline-chart-area { height: 180px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); position: relative; margin-bottom: 20px; }
+    .timeline-chart-svg { width: 100%; height: 100%; }
+    .timeline-move-table { overflow-x: auto; }
+    .timeline-move-table table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .timeline-move-table th { text-align: left; padding: 10px 12px; font-weight: 600; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); border-bottom: 1px solid var(--border); white-space: nowrap; }
+    .timeline-move-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .timeline-move-table .cls-cell { width: 32px; text-align: center; }
+    .timeline-move-table .cls-dot { width: 10px; height: 10px; border-radius: 50%; margin: 0 auto; }
+
+    /* Status Bar */
+    .status-bar {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+      padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;
+      margin-bottom: 24px;
+    }
+    .status-left { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; font-family: 'Geist Mono', monospace; font-size: 11px; color: var(--text-muted); }
+    .status-item { display: flex; align-items: center; gap: 6px; }
+    .status-item .label { color: var(--text-placeholder); }
+    .status-item .value { color: var(--text); font-weight: 600; }
+    .status-right { display: flex; align-items: center; gap: 12px; }
+    .status-saved { color: var(--success); font-size: 11px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+    .status-saved::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--success); animation: blink 2s ease-in-out infinite; }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    /* System Strip */
+    .system-strip { margin-top: 48px; padding-top: 32px; border-top: 1px solid var(--border); }
+    .system-title { font-size: 20px; font-weight: 600; color: var(--text); margin-bottom: 24px; }
+    .system-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 40px; }
+    @media (max-width: 900px) { .system-grid { grid-template-columns: 1fr; } }
+    .system-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+    .system-card-header { padding: 14px 18px; border-bottom: 1px solid var(--border); background: var(--bg); }
+    .system-card-title { font-size: 13px; font-weight: 600; color: var(--text); }
+    .system-card-preview { padding: 18px; min-height: 180px; }
+    .preview-item-s { padding: 10px 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+    .preview-item-s:last-child { border-bottom: none; }
+    .preview-icon-s { width: 36px; height: 36px; border-radius: 8px; background: var(--bg); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .preview-icon-s svg { width: 18px; height: 18px; stroke: var(--primary); }
+    .preview-text-s { flex: 1; min-width: 0; }
+    .preview-label-s { font-size: 12px; font-weight: 500; color: var(--text); margin-bottom: 2px; }
+    .preview-desc-s { font-size: 10px; color: var(--text-muted); }
+    .tokens-strip { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; }
+    .tokens-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 16px; }
+    .tokens-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+    .token-group-s { }
+    .token-group-title-s { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px; }
+    .token-row-s { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
+    .token-swatch-s { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border); flex-shrink: 0; }
+    .token-info-s { display: flex; flex-direction: column; gap: 2px; }
+    .token-name-s { font-family: 'Geist Mono', monospace; font-size: 11px; color: var(--text); }
+    .token-value-s { font-family: 'Geist Mono', monospace; font-size: 10px; color: var(--text-muted); }
+    .type-scale-s { display: flex; flex-direction: column; gap: 10px; }
+    .type-sample-s { }
+    .type-sample-s .label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; display: block; }
+    .type-sample-s .text { color: var(--text); }
+    .type-sample-s.display { font-size: 32px; font-weight: 600; letter-spacing: -0.02em; }
+    .type-sample-s.body { font-size: 14px; }
+    .type-sample-s.caption { font-size: 12px; color: var(--text-secondary); }
+    .type-sample-s.mono { font-family: 'Geist Mono', monospace; font-size: 12px; }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .main-content { padding: 16px; }
+      .top-bar-center { display: none; }
+      .board-card-header { flex-direction: column; align-items: stretch; }
+      .board-match-header { grid-template-columns: 1fr; text-align: center; }
+      .match-player { justify-content: center; }
+      .match-player.black { text-align: center; }
+      .eval-bar-side { position: static; width: 100%; height: 20px; border-radius: 0 0 var(--radius-lg) var(--radius-lg); background: linear-gradient(90deg, var(--danger) 0%, var(--danger) 50%, var(--success) 50%, var(--success) 100%); margin-top: 12px; }
+      .eval-bar-side::before { top: 0; bottom: 0; left: 50%; width: 2px; height: auto; transform: translateX(-50%); }
+      .eval-marker-side { left: 50%; top: -6px; width: 4px; height: 32px; transform: translateX(-50%); }
+      .board-toolbar { flex-direction: column; align-items: stretch; }
+      .move-nav { justify-content: center; }
+      .board-actions { justify-content: center; }
+      .status-bar { flex-direction: column; align-items: stretch; }
+      .status-left { justify-content: center; }
+      .status-right { justify-content: center; }
+    }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+    }
+
+    :focus:not(:focus-visible) { outline: none; }
+    :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Sidebar -->
+    <nav class="sidebar" aria-label="Navigazione principale">
+      <header class="sidebar-header">
+        <div class="logo">
+          <div class="logo-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
+          <span class="logo-text">Chess Training</span>
+        </div>
+        <div class="workspace-name">Personale</div>
+      </header>
+      <div class="sidebar-nav">
+        <div class="nav-group">
+          <div class="nav-group-label">Gioca</div>
+          <a href="#" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home</a>
+          <a href="#" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>Gioca<span class="badge">2</span></a>
+        </div>
+        <div class="nav-group">
+          <div class="nav-group-label">Allenamento</div>
+          <a href="#" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>Studio<span class="badge">9</span></a>
+          <a href="#" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg>Puzzle<span class="badge">47</span></a>
+        </div>
+        <div class="nav-group">
+          <div class="nav-group-label">Analisi</div>
+          <a href="#" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Partite<span class="badge">23</span></a>
+          <a href="#" class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Analisi</a>
+        </div>
+      </div>
+      <div class="sidebar-footer">
+        <div class="storage-widget">
+          <div class="storage-header">
+            <span class="storage-label">Spazio utilizzato</span>
+            <span class="storage-value font-mono">2.4 / 5 GB</span>
+          </div>
+          <div class="storage-bar"><div class="storage-fill"></div></div>
+        </div>
+        <button class="nav-item" style="justify-content: center; color: var(--text-muted);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Impostazioni</button>
+      </div>
+    </nav>
+
+    <!-- Top Bar -->
+    <header class="top-bar" role="banner">
+      <div class="top-bar-left">
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+          <span>Analisi</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="9 18 15 12 9 6"/></svg>
+          <span aria-current="page">Partita</span>
+        </nav>
+      </div>
+      <div class="top-bar-center">
+        <input type="search" class="cmd-bar" placeholder="Cerca... (⌘K)" aria-label="Ricerca comandi" autocomplete="off" spellcheck="false">
+        <span class="cmd-hint">⌘K</span>
+      </div>
+      <div class="top-bar-right">
+        <button class="icon-btn" aria-label="Tema" title="Tema"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button>
+        <button class="icon-btn" aria-label="Notifiche" title="Notifiche"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>
+        <div class="avatar" aria-label="Profilo utente">AR</div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content" role="main">
+      <header class="page-header">
+        <h1 class="page-title">Analisi <span class="accent">partita</span></h1>
+        <div class="page-actions">
+          <button class="btn btn-secondary btn-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Nuova posizione</button>
+          <button class="btn btn-primary btn-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Gioca contro bot</button>
+          <button class="btn btn-secondary btn-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Crea puzzle</button>
+          <button class="btn btn-ghost btn-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Esporta</button>
+        </div>
+      </header>
+
+      <!-- KPI Row -->
+      <div class="kpi-row" role="region" aria-label="Indicatori chiave partita">
+        <article class="kpi-card">
+          <div class="kpi-header"><span class="kpi-label">Accuratezza Bianca</span><span class="kpi-trend up font-mono">+1.2%</span></div>
+          <div class="kpi-value success">87.4%</div>
+          <div class="kpi-sub font-mono">vs media 84.1%</div>
+        </article>
+        <article class="kpi-card">
+          <div class="kpi-header"><span class="kpi-label">Accuratezza Nera</span><span class="kpi-trend down font-mono">-0.8%</span></div>
+          <div class="kpi-value warning">84.1%</div>
+          <div class="kpi-sub font-mono">vs media 85.3%</div>
+        </article>
+        <article class="kpi-card">
+          <div class="kpi-header"><span class="kpi-label">ACPL</span></div>
+          <div class="kpi-value primary">24 / 31</div>
+          <div class="kpi-sub font-mono">Bianco / Nero</div>
+        </article>
+        <article class="kpi-card">
+          <div class="kpi-header"><span class="kpi-label">Errori gravi</span></div>
+          <div class="kpi-value danger">1 / 2</div>
+          <div class="kpi-sub font-mono">Bianco / Nero</div>
+        </article>
+        <article class="kpi-card">
+          <div class="kpi-header"><span class="kpi-label">Profondità motore</span><span class="kpi-trend font-mono">LIVE</span></div>
+          <div class="kpi-value">22 / 40</div>
+          <div class="kpi-sub font-mono">Ultimo aggiornamento 2 min fa</div>
+        </article>
+      </div>
+
+      <!-- Content Grid -->
+      <div class="content-grid">
+        <!-- Board Card -->
+        <section class="board-card" aria-label="Scacchiera e valutazione">
+          <header class="board-card-header">
+            <span class="board-card-title">Posizione corrente</span>
+            <div class="board-card-actions">
+              <button class="icon-btn" aria-label="Impostazioni motore"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+            </div>
+          </header>
+          <div class="board-match-header">
+            <div class="match-player">
+              <div class="player-avatar-sm">AR</div>
+              <div class="player-details"><div class="player-name-sm">A. Rossi</div><div class="player-rating-sm font-mono">1842</div></div>
+            </div>
+            <div class="match-center">
+              <div class="match-result font-mono">1–0</div>
+              <div class="match-opening">Gambetto di Donna Rifiutato · Ragozin (D38) · 34 mosse</div>
+            </div>
+            <div class="match-player black">
+              <div class="player-details" style="text-align: right;"><div class="player-name-sm">K. Müller</div><div class="player-rating-sm font-mono">1876</div></div>
+              <div class="player-avatar-sm">KM</div>
+            </div>
+          </div>
+          <div class="board-wrapper">
+            <div class="chessboard" id="chessboard" role="img" aria-label="Scacchiera: posizione dopo 7... Nxe4"></div>
+            <div class="coordinates" aria-hidden="true"></div>
+            <div class="arrow-layer" aria-hidden="true">
+              <svg viewBox="0 0 512 512" preserveAspectRatio="none">
+                <path class="arrow-best" d="M192 128 L192 256" marker-end="url(#arrowhead-best)"/>
+                <path class="arrow-second" d="M320 384 L320 256" marker-end="url(#arrowhead-second)"/>
+                <defs>
+                  <marker id="arrowhead-best" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#10B981"/></marker>
+                  <marker id="arrowhead-second" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#4F46E5"/></marker>
+                </defs>
+              </svg>
+            </div>
+            <div class="eval-bar-side" aria-hidden="true"><div class="eval-marker-side" style="top: 34%;" aria-hidden="true"></div></div>
+          </div>
+          <footer class="board-toolbar">
+            <div class="move-nav">
+              <button class="move-nav-btn" aria-label="Inizio partita"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg></button>
+              <button class="move-nav-btn" aria-label="Mossa precedente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 17 10 12 15 7"/></svg></button>
+              <span class="move-counter font-mono">18 / 34</span>
+              <button class="move-nav-btn" aria-label="Mossa successiva"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="9 17 14 12 9 7"/></svg></button>
+              <button class="move-nav-btn" aria-label="Fine partita"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg></button>
+            </div>
+            <div class="board-actions">
+              <button class="btn btn-ghost btn-sm" aria-label="Ribalta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Ribalta</button>
+              <button class="btn btn-ghost btn-sm" aria-label="Ripristina"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M21 12a9 9 0 1 1-9 9 9.75 9.75 0 0 1 6.74-2.74L21 16"/></svg> Ripristina</button>
+              <button class="btn btn-primary btn-sm" aria-label="Analizza"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Analizza</button>
+            </div>
+          </footer>
+          <div class="eval-readout-bottom font-mono" aria-live="polite">depth 22 / 40 · eval +0.32</div>
+        </section>
+
+        <!-- Insight Card -->
+        <aside class="insight-card" aria-label="Motore e approfondimenti">
+          <header class="insight-header">
+            <span class="insight-title">Motore & Insight</span>
+            <button class="icon-btn" aria-label="Impostazioni motore"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+          </header>
+          <nav class="insight-tabs" role="tablist" aria-label="Sezioni insight">
+            <button class="insight-tab active" role="tab" aria-selected="true" aria-controls="is-summary" id="istab-summary">Riepilogo</button>
+            <button class="insight-tab" role="tab" aria-selected="false" aria-controls="is-chart" id="istab-chart">Grafico</button>
+            <button class="insight-tab" role="tab" aria-selected="false" aria-controls="is-moves" id="istab-moves">Mosse</button>
+            <button class="insight-tab" role="tab" aria-selected="false" aria-controls="is-arrows" id="istab-arrows">Freece</button>
+            <button class="insight-tab" role="tab" aria-selected="false" aria-controls="is-coach" id="istab-coach">Coach</button>
+          </nav>
+          <div class="insight-content">
+            <!-- Riepilogo -->
+            <div class="insight-pane active" id="is-summary" role="tabpanel" aria-labelledby="istab-summary">
+              <div class="engine-lines-compact" role="list" aria-label="Linee motore">
+                <div class="engine-line-c" role="listitem"><div class="line-c-header"><span class="line-c-rank">#1</span><span class="line-c-eval pos font-mono">+0.32</span></div><div class="line-c-pv font-mono"><span class="mv-num">1.</span><span class="mv-san"> d4</span> <span class="mv-san">d5</span> <span class="mv-num">2.</span><span class="mv-san"> c4</span> <span class="mv-san">e6</span> <span class="mv-num">3.</span><span class="mv-san"> Nc3</span> <span class="mv-san">Nf6</span> <span class="mv-num">4.</span><span class="mv-san"> Nf3</span> <span class="mv-san">Bb4</span> <span class="mv-num">5.</span><span class="mv-san"> Bg5</span> <span class="mv-san">h6</span> <span class="mv-num">6.</span><span class="mv-san"> Bh4</span> <span class="mv-san">g5</span> <span class="mv-num">7.</span><span class="mv-san"> Bg3</span> <span class="mv-san">Nxe4</span></div></div>
+                <div class="engine-line-c" role="listitem"><div class="line-c-header"><span class="line-c-rank">#2</span><span class="line-c-eval pos font-mono">+0.21</span></div><div class="line-c-pv font-mono"><span class="mv-num">1.</span><span class="mv-san"> Nf3</span> <span class="mv-san">d5</span> <span class="mv-num">2.</span><span class="mv-san"> d4</span> <span class="mv-san">Nf6</span> <span class="mv-num">3.</span><span class="mv-san"> c4</span> <span class="mv-san">e6</span> <span class="mv-num">4.</span><span class="mv-san"> Nc3</span> <span class="mv-san">Bb4</span></div></div>
+                <div class="engine-line-c" role="listitem"><div class="line-c-header"><span class="line-c-rank">#3</span><span class="line-c-eval pos font-mono">+0.18</span></div><div class="line-c-pv font-mono"><span class="mv-num">1.</span><span class="mv-san"> e4</span> <span class="mv-san">e6</span> <span class="mv-num">2.</span><span class="mv-san"> d4</span> <span class="mv-san">d5</span> <span class="mv-num">3.</span><span class="mv-san"> Nc3</span> <span class="mv-san">Bb4</span></div></div>
+              </div>
+              <div class="class-summary" role="list" aria-label="Classificazioni mosse" style="margin-top: 20px;">
+                <div class="class-row" role="listitem"><span class="class-dot" style="background: #10B981;"></span><span class="class-name">Brillante</span><span class="class-count font-mono">2</span><div class="class-bar-mini"><div class="class-bar-fill" style="width: 5.9%; background: #10B981;"></div></div></div>
+                <div class="class-row" role="listitem"><span class="class-dot" style="background: #059669;"></span><span class="class-name">Migliore</span><span class="class-count font-mono">8</span><div class="class-bar-mini"><div class="class-bar-fill" style="width: 23.5%; background: #059669;"></div></div></div>
+                <div class="class-row" role="listitem"><span class="class-dot" style="background: #34D399;"></span><span class="class-name">Eccellente</span><span class="class-count font-mono">12</span><div class="class-bar-mini"><div class="class-bar-fill" style="width: 35.3%; background: #34D399;"></div></div></div>
+                <div class="class-row" role="listitem"><span class="class-dot" style="background: #6EE7B7;"></span><span class="class-name">Buona</span><span class="class-count font-mono">6</span><div class="class-bar-mini"><div class="class-bar-fill" style="width: 17.6%; background: #6EE7B7;"></div></div></div>
+                <div class="class-row" role="listitem"><span class="class-dot" style="background: #F59E0B;"></span><span class="class-name">Imprecisione</span><span class="class-count font-mono">4</span><div class="class-bar-mini"><div class="class-bar-fill" style="width: 11.8%; background: #F59E0B;"></div></div></div>
+                <div class="class-row" role="listitem"><span class="class-dot" style="background: #F97316;"></span><span class="class-name">Errore</span><span class="class-count font-mono">2</span><div class="class-bar-mini"><div class="class-bar-fill" style="width: 5.9%; background: #F97316;"></div></div></div>
+                <div class="class-row" role="listitem"><span class="class-dot" style="background: #EF4444;"></span><span class="class-name">Errore grave</span><span class="class-count font-mono">1</span><div class="class-bar-mini"><div class="class-bar-fill" style="width: 2.9%; background: #EF4444;"></div></div></div>
+              </div>
+              <div class="coach-saas" style="margin-top: 20px;">
+                <div class="coach-header-s"><div class="coach-avatar-s">C</div><span class="coach-title-s">Coach Insight</span></div>
+                <p class="coach-text-s">Il 7... Nxe4 accetta il sacrificio tipico della Ragozin. Il Bianco ha mantenuto vantaggio posizionale costante (coppia alfieri, case chiare). 14. O-O-O è stato impreciso — 14. Rd1 manteneva più tensione. Piano: aprire il centro con f4/e5 prima che il Nero completi lo sviluppo.</p>
+              </div>
+            </div>
+
+            <!-- Grafico -->
+            <div class="insight-pane" id="is-chart" role="tabpanel" aria-labelledby="istab-chart">
+              <div class="chart-mini" aria-label="Grafico valutazione partita">
+                <svg class="chart-mini-svg" viewBox="0 0 500 200" preserveAspectRatio="none" aria-hidden="true">
+                  <defs><linearGradient id="gradS" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#F43F5E"/><stop offset="50%" stop-color="#F59E0B"/><stop offset="50%" stop-color="#10B981"/><stop offset="100%" stop-color="#059669"/></linearGradient></defs>
+                  <rect x="40" y="10" width="420" height="180" fill="var(--bg)"/><line x1="40" y1="100" x2="460" y2="100" stroke="var(--border)" stroke-width="1"/>
+                  <path d="M40 100 C80 90, 120 75, 160 80 C200 85, 240 90, 280 85 C320 80, 360 75, 400 72 C440 69, 480 65" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  <circle cx="160" cy="75" r="4" fill="#10B981"/><circle cx="280" cy="88" r="4" fill="#F59E0B"/><circle cx="400" cy="68" r="4" fill="#F43F5E"/>
+                </svg>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-top: 12px; font-family: 'Geist Mono', monospace; font-size: 10px; color: var(--text-muted);"><span>Nero meglio</span><span>Parità</span><span>Bianco meglio</span></div>
+            </div>
+
+            <!-- Mosse -->
+            <div class="insight-pane" id="is-moves" role="tabpanel" aria-labelledby="istab-moves">
+              <div class="move-table" aria-label="Tabella mosse">
+                <table>
+                  <thead><tr><th>#</th><th>Bianco</th><th>Nero</th><th class="cls-cell">Classe</th></tr></thead>
+                  <tbody>
+                    <tr><td class="mv-num">1</td><td class="mv-san">d4</td><td class="mv-san">d5</td><td class="cls-cell"><span class="cls-badge excellent">Eccellente</span></td></tr>
+                    <tr><td class="mv-num">2</td><td class="mv-san">c4</td><td class="mv-san">e6</td><td class="cls-cell"><span class="cls-badge best">Migliore</span></td></tr>
+                    <tr><td class="mv-num">3</td><td class="mv-san">Nc3</td><td class="mv-san">Nf6</td><td class="cls-cell"><span class="cls-badge excellent">Eccellente</span></td></tr>
+                    <tr><td class="mv-num">4</td><td class="mv-san">Nf3</td><td class="mv-san">Bb4</td><td class="cls-cell"><span class="cls-badge good">Buona</span></td></tr>
+                    <tr><td class="mv-num">5</td><td class="mv-san">Bg5</td><td class="mv-san">h6</td><td class="cls-cell"><span class="cls-badge inaccuracy">Imprecisione</span></td></tr>
+                    <tr><td class="mv-num">6</td><td class="mv-san">Bh4</td><td class="mv-san">g5</td><td class="cls-cell"><span class="cls-badge excellent">Eccellente</span></td></tr>
+                    <tr class="current-row"><td class="mv-num">7</td><td class="mv-san">Bg3</td><td class="mv-san">Nxe4</td><td class="cls-cell"><span class="cls-badge brilliant">Brillante</span></td></tr>
+                    <tr><td class="mv-num">8</td><td class="mv-san">Qc2</td><td class="mv-san">Qxg5</td><td class="cls-cell"><span class="cls-badge best">Migliore</span></td></tr>
+                    <tr><td class="mv-num">9</td><td class="mv-san">Qxg5</td><td class="mv-san">Bxg5</td><td class="cls-cell"><span class="cls-badge excellent">Eccellente</span></td></tr>
+                    <tr><td class="mv-num">10</td><td class="mv-san">Bxc7</td><td class="mv-san">Kd7</td><td class="cls-cell"><span class="cls-badge good">Buona</span></td></tr>
+                    <tr><td class="mv-num">11</td><td class="mv-san">Bxa8</td><td class="mv-san">Bxa8</td><td class="cls-cell"><span class="cls-badge best">Migliore</span></td></tr>
+                    <tr><td class="mv-num">12</td><td class="mv-san">O-O-O</td><td class="mv-san">Be6</td><td class="cls-cell"><span class="cls-badge inaccuracy">Imprecisione</span></td></tr>
+                    <tr><td class="mv-num">13</td><td class="mv-san">Rhe1</td><td class="mv-san">Nc6</td><td class="cls-cell"><span class="cls-badge excellent">Eccellente</span></td></tr>
+                    <tr><td class="mv-num">14</td><td class="mv-san">f4</td><td class="mv-san">exf4</td><td class="cls-cell"><span class="cls-badge mistake">Errore</span></td></tr>
+                    <tr><td class="mv-num">15</td><td class="mv-san">Nxf4</td><td class="mv-san">Nxf4</td><td class="cls-cell"><span class="cls-badge best">Migliore</span></td></tr>
+                    <tr><td class="mv-num">16</td><td class="mv-san">Rxf4</td><td class="mv-san">Qd6</td><td class="cls-cell"><span class="cls-badge excellent">Eccellente</span></td></tr>
+                    <tr><td class="mv-num">17</td><td class="mv-san">Qf3</td><td class="mv-san">Qxf3</td><td class="cls-cell"><span class="cls-badge good">Buona</span></td></tr>
+                    <tr><td class="mv-num">18</td><td class="mv-san">gxf3</td><td class="mv-san">Rg8</td><td class="cls-cell"><span class="cls-badge brilliant">Brillante</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Freece -->
+            <div class="insight-pane" id="is-arrows" role="tabpanel" aria-labelledby="istab-arrows">
+              <div class="arrow-list-saas">
+                <div class="arrow-item-s"><div class="arrow-color-s" style="background: var(--success);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></div><div class="arrow-info-s"><div class="arrow-label-s">Mossa migliore</div><div class="arrow-desc-s font-mono">8. Qc2 — Iniziativa, attacca c7, prepara Rd1</div></div></div>
+                <div class="arrow-item-s"><div class="arrow-color-s" style="background: var(--primary);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></div><div class="arrow-info-s"><div class="arrow-label-s">Seconda migliore</div><div class="arrow-desc-s font-mono">8. Rd1 — Controllo colonna d, solido</div></div></div>
+                <div class="arrow-item-s"><div class="arrow-color-s" style="background: #8800CC;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></div><div class="arrow-info-s"><div class="arrow-label-s">Terza migliore</div><div class="arrow-desc-s font-mono">8. Qb3 — Tattico, doppia minaccia</div></div></div>
+              </div>
+            </div>
+
+            <!-- Coach -->
+            <div class="insight-pane" id="is-coach" role="tabpanel" aria-labelledby="istab-coach">
+              <div class="coach-saas">
+                <div class="coach-header-s"><div class="coach-avatar-s">C</div><span class="coach-title-s">Analisi Coach</span></div>
+                <p class="coach-text-s">In questa posizione della Ragozin, il Nero ha giocato 7... Nxe4. Il Bianco ha tre candidate principali:</p>
+                <ul style="margin: 10px 0 10px 20px; font-size: 12px; line-height: 1.8; color: var(--text-secondary);">
+                  <li><strong>8. Qc2</strong> (consigliata) — Sviluppa la donna con tempo, pressione su c7, prepara Rd1.</li>
+                  <li><strong>8. Rd1</strong> — Più posizionale, controllo colonna d. Meno ambizioso ma solido.</li>
+                  <li><strong>8. Qb3</strong> — Tattico, minaccia b7 e f7. Richiede calcolo preciso.</li>
+                </ul>
+                <p class="coach-text-s"><strong>Concetto:</strong> Iniziativa vs materiale. Il Nero ha un pedone in più ma sviluppo incompleto. Il Bianco deve aprire il centro (f4, e5) prima che il Nero completi ...Be7, ...O-O, ...Nc6.</p>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <!-- Timeline Module -->
+      <section class="timeline-module" aria-label="Cronologia partita">
+        <header class="module-header">
+          <h2 class="module-title">Cronologia partita</h2>
+          <div class="module-actions">
+            <button class="btn btn-ghost btn-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Esporta PGN</button>
+            <button class="btn btn-primary btn-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Rianalizza tutto</button>
+          </div>
+        </header>
+        <div class="timeline-chart-area" aria-label="Grafico andamento valutazione">
+          <svg class="timeline-chart-svg" viewBox="0 0 800 180" preserveAspectRatio="none" aria-hidden="true">
+            <defs><linearGradient id="tlGradS" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#F43F5E"/><stop offset="50%" stop-color="#F59E0B"/><stop offset="50%" stop-color="#10B981"/><stop offset="100%" stop-color="#059669"/></linearGradient></defs>
+            <rect x="50" y="15" width="700" height="150" fill="var(--bg)"/>
+            <line x1="50" y1="90" x2="750" y2="90" stroke="var(--border)" stroke-width="1"/>
+            <path d="M50 90 C90 85, 130 75, 170 78 C210 81, 250 85, 290 80 C330 75, 370 70, 410 68 C450 66, 490 63, 530 62 C570 61, 610 62, 650 65 C690 68, 730 72, 750 74" fill="none" stroke="#10B981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="170" cy="72" r="5" fill="#10B981"/><circle cx="290" cy="78" r="5" fill="#F59E0B"/><circle cx="410" cy="64" r="5" fill="#F43F5E"/><circle cx="530" cy="58" r="5" fill="#10B981"/>
+          </svg>
+          <div style="position: absolute; inset: 15px; pointer-events: none;">
+            <div style="position: absolute; left: 20%; top: 50%; transform: translate(-50%, -50%);"><span style="width: 10px; height: 10px; border-radius: 50%; background: #10B981; display: block; margin: 0 auto;"></span><span style="font-family: 'Geist Mono', monospace; font-size: 10px; color: var(--text-muted); display: block; text-align: center; margin-top: 4px;">10</span></div>
+            <div style="position: absolute; left: 35%; top: 50%; transform: translate(-50%, -50%);"><span style="width: 10px; height: 10px; border-radius: 50%; background: #F59E0B; display: block; margin: 0 auto;"></span><span style="font-family: 'Geist Mono', monospace; font-size: 10px; color: var(--text-muted); display: block; text-align: center; margin-top: 4px;">18</span></div>
+            <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);"><span style="width: 10px; height: 10px; border-radius: 50%; background: #F43F5E; display: block; margin: 0 auto;"></span><span style="font-family: 'Geist Mono', monospace; font-size: 10px; color: var(--text-muted); display: block; text-align: center; margin-top: 4px;">24</span></div>
+            <div style="position: absolute; left: 95%; top: 50%; transform: translate(-50%, -50%);"><span style="width: 10px; height: 10px; border-radius: 50%; background: #10B981; display: block; margin: 0 auto;"></span><span style="font-family: 'Geist Mono', monospace; font-size: 10px; color: var(--text-muted); display: block; text-align: center; margin-top: 4px;">34</span></div>
+          </div>
+        </div>
+        <div class="timeline-move-table" aria-label="Tabella mosse con classificazioni">
+          <table>
+            <thead><tr><th>#</th><th>Mossa</th><th>Valutazione</th><th>Profondità</th><th class="cls-cell">Classe</th><th>Tempo</th></tr></thead>
+            <tbody>
+              <tr><td class="mv-num font-mono">1</td><td class="mv-san font-mono">d4 d5</td><td class="font-mono">+0.12</td><td class="font-mono">18</td><td class="cls-cell"><span style="width: 10px; height: 10px; border-radius: 50%; background: #10B981; display: inline-block;"></span></td><td class="font-mono">0:03</td></tr>
+              <tr><td class="mv-num font-mono">7</td><td class="mv-san font-mono">Bg3 Nxe4</td><td class="font-mono">+0.32</td><td class="font-mono">22</td><td class="cls-cell"><span style="width: 10px; height: 10px; border-radius: 50%; background: #10B981; display: inline-block;"></span></td><td class="font-mono">0:47</td></tr>
+              <tr><td class="mv-num font-mono">14</td><td class="mv-san font-mono">f4 exf4</td><td class="font-mono">+0.08</td><td class="font-mono">20</td><td class="cls-cell"><span style="width: 10px; height: 10px; border-radius: 50%; background: #F97316; display: inline-block;"></span></td><td class="font-mono">2:13</td></tr>
+              <tr><td class="mv-num font-mono">18</td><td class="mv-san font-mono">gxf3 Rg8</td><td class="font-mono">+0.41</td><td class="font-mono">24</td><td class="cls-cell"><span style="width: 10px; height: 10px; border-radius: 50%; background: #10B981; display: inline-block;"></span></td><td class="font-mono">3:02</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Status Bar -->
+      <footer class="status-bar" role="contentinfo">
+        <div class="status-left">
+          <div class="status-item"><span class="label">Motore:</span><span class="value">Stockfish 16</span></div>
+          <div class="status-item"><span class="label">Profondità:</span><span class="value">22 / 40</span></div>
+          <div class="status-item"><span class="label">Thread:</span><span class="value">1</span></div>
+          <div class="status-item"><span class="label">Hash:</span><span class="value">16 MB</span></div>
+          <div class="status-item"><span class="label">MultiPV:</span><span class="value">3</span></div>
+        </div>
+        <div class="status-right">
+          <span class="status-saved">Tutto salvato</span>
+          <button class="btn btn-ghost btn-sm" aria-label="Esporta analisi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
+        </div>
+      </footer>
+
+      <!-- System Strip -->
+      <section class="system-strip" aria-label="Anteprima altre pagine e token design">
+        <h2 class="system-title">Sistema — Altre pagine</h2>
+        <div class="system-grid">
+          <article class="system-card">
+            <header class="system-card-header"><span class="system-card-title">Home</span></header>
+            <div class="system-card-preview">
+              <div class="preview-item-s"><div class="preview-icon-s"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div><div class="preview-text-s"><div class="preview-label-s">Bentornato, Alessandro</div><div class="preview-desc-s">Streak 12 giorni • 1.842 ELO</div></div></div>
+              <div class="preview-item-s"><div class="preview-icon-s"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div><div class="preview-text-s"><div class="preview-label-s">Studio aperture</div><div class="preview-desc-s">Ragozin, Nimzo, Slav — 3 cartelle</div></div></div>
+              <div class="preview-item-s"><div class="preview-icon-s"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg></div><div class="preview-text-s"><div class="preview-label-s">Puzzle giornaliero</div><div class="preview-desc-s">Matto in 3 • Tattica: infilata</div></div></div>
+              <div class="preview-item-s"><div class="preview-icon-s"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg></div><div class="preview-text-s"><div class="preview-label-s">Analizza partita</div><div class="preview-desc-s">Ultima: 12.03 vs K. Müller (1–0)</div></div></div>
+            </div>
+          </article>
+          <article class="system-card">
+            <header class="system-card-header"><span class="system-card-title">Studio</span></header>
+            <div class="system-card-preview">
+              <div class="preview-item-s"><div class="preview-icon-s"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div><div class="preview-text-s"><div class="preview-label-s">Aperture per il Bianco</div><div class="preview-desc-s">5 cartelle • 47 varianti</div></div></div>
+              <div class="preview-item-s"><div class="preview-icon-s"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div><div class="preview-text-s"><div class="preview-label-s">Aperture per il Nero</div><div class="preview-desc-s">4 cartelle • 32 varianti</div></div></div>
+              <div class="preview-item-s"><div class="preview-icon-s"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg></div><div class="preview-text-s"><div class="preview-label-s">Finali teorici</div><div class="preview-desc-s">Re e pedone • Torre • Alfieri</div></div></div>
+              <div class="preview-item-s"><div class="preview-icon-s"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/></svg></div><div class="preview-text-s"><div class="preview-label-s">Partite modello</div><div class="preview-desc-s">Carlsen, Kasparov, Fischer — 28 partite</div></div></div>
+            </div>
+          </article>
+          <article class="system-card">
+            <header class="system-card-header"><span class="system-card-title">Puzzle</span></header>
+            <div class="system-card-preview">
+              <div class="preview-item-s"><div class="preview-icon-s"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l3 7 7 3-3 7 3 7L12 22l-7-3-3-7 3-7-3-7z"/></svg></div><div class="preview-text-s"><div class="preview-label-s">Tattica: Infilata</div><div class="preview-desc-s">12 puzzle • Media 1.650</div></div></div>
+              <div class="preview-item-s"><div class="preview-icon-s"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l3 7 7 3-3 7 3 7L12 22l-7-3-3-7 3-7-3-7z"/></svg></div><div class="preview-text-s"><div class="preview-label-s">Tattica: Forchetta</div><div class="preview-desc-s">18 puzzle • Media 1.720</div></div></div>
+              <div class="preview-item-s"><div class="preview-icon-s"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l3 7 7 3-3 7 3 7L12 22l-7-3-3-7 3-7-3-7z"/></svg></div><div class="preview-text-s"><div class="preview-label-s">Tattica: Scacco doppio</div><div class="preview-desc-s">8 puzzle • Media 1.850</div></div></div>
+              <div class="preview-item-s"><div class="preview-icon-s"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l3 7 7 3-3 7 3 7L12 22l-7-3-3-7 3-7-3-7z"/></svg></div><div class="preview-text-s"><div class="preview-label-s">Matto in 2-3</div><div class="preview-desc-s">15 puzzle • Media 1.900</div></div></div>
+            </div>
+          </article>
+        </div>
+        <div class="tokens-strip">
+          <h3 class="tokens-title">Token di design</h3>
+          <div class="tokens-grid">
+            <div class="token-group-s">
+              <div class="token-group-title-s">Colori</div>
+              <div class="token-row-s"><div class="token-swatch-s" style="background: var(--bg);"></div><div class="token-info-s"><span class="token-name-s">Background</span><span class="token-value-s">#F7F7FA</span></div></div>
+              <div class="token-row-s"><div class="token-swatch-s" style="background: var(--surface);"></div><div class="token-info-s"><span class="token-name-s">Surface</span><span class="token-value-s">#FFFFFF</span></div></div>
+              <div class="token-row-s"><div class="token-swatch-s" style="background: var(--primary);"></div><div class="token-info-s"><span class="token-name-s">Primary</span><span class="token-value-s">#4F46E5</span></div></div>
+              <div class="token-row-s"><div class="token-swatch-s" style="background: var(--success);"></div><div class="token-info-s"><span class="token-name-s">Success</span><span class="token-value-s">#10B981</span></div></div>
+              <div class="token-row-s"><div class="token-swatch-s" style="background: var(--warning);"></div><div class="token-info-s"><span class="token-name-s">Warning</span><span class="token-value-s">#F59E0B</span></div></div>
+              <div class="token-row-s"><div class="token-swatch-s" style="background: var(--danger);"></div><div class="token-info-s"><span class="token-name-s">Danger</span><span class="token-value-s">#F43F5E</span></div></div>
+              <div class="token-row-s"><div class="token-swatch-s" style="background: var(--border);"></div><div class="token-info-s"><span class="token-name-s">Border</span><span class="token-value-s">#E6E7EC</span></div></div>
+            </div>
+            <div class="token-group-s">
+              <div class="token-group-title-s">Tipografia</div>
+              <div class="type-scale-s">
+                <div class="type-sample-s display"><span class="label">Display</span><span class="text">Geist 32/600</span></div>
+                <div class="type-sample-s body"><span class="label">Body</span><span class="text">Geist 14/400</span></div>
+                <div class="type-sample-s caption"><span class="label">Caption</span><span class="text">Geist 12/400</span></div>
+                <div class="type-sample-s mono"><span class="label">Mono Data</span><span class="text">Geist Mono 12/600</span></div>
+                <div class="type-sample-s mono"><span class="label">Mono Small</span><span class="text">Geist Mono 10/400</span></div>
+              </div>
+            </div>
+            <div class="token-group-s">
+              <div class="token-group-title-s">Spaziatura / Raggio</div>
+              <div class="token-row-s"><div class="token-info-s"><span class="token-name-s">Base unit</span><span class="token-value-s">8px</span></div></div>
+              <div class="token-row-s"><div class="token-info-s"><span class="token-name-s">Raggio card</span><span class="token-value-s">14px</span></div></div>
+              <div class="token-row-s"><div class="token-info-s"><span class="token-name-s">Raggio button</span><span class="token-value-s">10px</span></div></div>
+              <div class="token-row-s"><div class="token-info-s"><span class="token-name-s">Raggio input</span><span class="token-value-s">10px</span></div></div>
+              <div class="token-row-s"><div class="token-info-s"><span class="token-name-s">Ombra card</span><span class="token-value-s">0 4px 12px rgba(17,24,39,0.06)</span></div></div>
+              <div class="token-row-s"><div class="token-info-s"><span class="token-name-s">Ombra elevated</span><span class="token-value-s">0 12px 28px rgba(17,24,39,0.08)</span></div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // Tab switching
+    const tabs = document.querySelectorAll('.insight-tab');
+    const panes = document.querySelectorAll('.insight-pane');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
+        panes.forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        tab.setAttribute('aria-selected', 'true');
+        document.getElementById(tab.getAttribute('aria-controls')).classList.add('active');
+      });
+    });
+
+    // Generate chessboard
+    const board = document.getElementById('chessboard');
+    const coordinates = board.parentElement.querySelector('.coordinates');
+    const pieces = { 'r': '♜', 'n': '♞', 'b': '♝', 'q': '♛', 'k': '♚', 'p': '♟', 'R': '♖', 'N': '♘', 'B': '♗', 'Q': '♕', 'K': '♔', 'P': '♙' };
+    const fen = 'rnbqkb1r/ppp2ppp/4pn2/3p4/2PP4/2N1PN2/PP3PPP/R1BQKB1R w KQkq - 0 8';
+    const rows = fen.split(' ')[0].split('/');
+    rows.forEach((row, r) => {
+      let file = 0;
+      for (const ch of row) {
+        if (ch >= '1' && ch <= '8') file += parseInt(ch);
+        else {
+          const sq = document.createElement('div');
+          sq.className = `square ${(r + file) % 2 === 0 ? 'light' : 'dark'}`;
+          if (ch === 'N' && r === 3 && file === 4) sq.classList.add('highlight-lastmove');
+          if (ch === 'n' && r === 4 && file === 4) sq.classList.add('highlight-lastmove');
+          sq.innerHTML = `<span class="piece">${pieces[ch]}</span>`;
+          board.appendChild(sq);
+          file++;
+        }
+      }
+    });
+    const files = ['a','b','c','d','e','f','g','h'];
+    files.forEach((f, i) => { const el = document.createElement('div'); el.className = 'coord-file'; el.style.gridColumn = i + 1; el.textContent = f; coordinates.appendChild(el); });
+    for (let r = 7; r >= 0; r--) { const el = document.createElement('div'); el.className = 'coord-rank'; el.style.gridRow = 8 - r; el.textContent = r + 1; coordinates.appendChild(el); }
+  </script>
+</body>
+</html>

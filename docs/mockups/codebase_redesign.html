@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Architecture Review — Chess Training App</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            sage: {
+              50: '#f4f5f0', 100: '#e6e8e0', 200: '#c9ccc0', 300: '#a8ad9f',
+              400: '#878d7e', 500: '#666d5d', 600: '#52584a', 700: '#3e4337',
+              800: '#32362d', 900: '#2a2d24', 950: '#151712',
+            },
+            amber: { 50: '#fffbeb', 100: '#fef3c7', 200: '#fde68a', 300: '#fcd34d',
+              400: '#fbbf24', 500: '#f59e0b', 600: '#d97706', 700: '#b45309',
+              800: '#92400e', 900: '#78350f' },
+            red: { 50: '#fef2f2', 100: '#fee2e2', 200: '#fecaca', 300: '#fca5a5',
+              400: '#f87171', 500: '#ef4444', 600: '#dc2626', 700: '#b91c1c' },
+            green: { 50: '#f0fdf4', 100: '#dcfce7', 200: '#bbf7d0', 300: '#86efac',
+              400: '#4ade80', 500: '#22c55e', 600: '#16a34a', 700: '#15803d' },
+          },
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+        }
+      }
+    }
+    mermaid.initialize({ startOnLoad: true, theme: 'base', themeVariables: {
+      primaryColor: '#2a2d24', primaryTextColor: '#2a2d24', primaryBorderColor: '#c9ccc0',
+      lineColor: '#666d5d', textColor: '#2a2d24', fontFamily: 'Inter',
+      nodeBorder: '#c9ccc0', clusterBkg: '#f4f5f0',
+    }});
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    .badge-strong { @apply bg-red-100 text-red-700 border-red-200; }
+    .badge-explore { @apply bg-amber-100 text-amber-700 border-amber-200; }
+    .badge-speculative { @apply bg-sage-100 text-sage-700 border-sage-200; }
+    .diagram-box { @apply bg-white rounded-xl border border-sage-200 p-4 overflow-x-auto; }
+    .card { @apply bg-white rounded-xl border border-sage-200 shadow-sm hover:shadow-md transition-shadow; }
+    .section-title { @apply text-lg font-semibold text-sage-900 mb-2 flex items-center gap-2; }
+    .diagram-svg { @apply w-full max-w-full; }
+  </style>
+</head>
+<body class="bg-sage-50 min-h-screen font-sans">
+  <div class="max-w-7xl mx-auto px-4 py-8">
+    <header class="mb-10">
+      <h1 class="text-3xl font-bold text-sage-900">Architecture Review — Chess Training App</h1>
+      <p class="text-sage-600 mt-2">Deepening opportunities for testability and AI-navigability</p>
+      <div class="flex flex-wrap gap-2 mt-4">
+        <span class="px-3 py-1 text-xs font-medium bg-sage-100 text-sage-700 rounded-full">Backend: FastAPI + SQLAlchemy + SQLite</span>
+        <span class="px-3 py-1 text-xs font-medium bg-sage-100 text-sage-700 rounded-full">Frontend: React + TypeScript + Zustand + Stockfish WASM</span>
+        <span class="px-3 py-1 text-xs font-medium bg-sage-100 text-sage-700 rounded-full">Domain: Chess Training (Puzzles, Repertoire, Analysis)</span>
+      </div>
+    </header>
+
+    <section class="mb-10 card p-6 bg-sage-50 border-sage-300">
+      <h2 class="section-title">Executive Summary</h2>
+      <div class="prose text-sage-700">
+        <p>The codebase has a clear <strong>feature-module</strong> structure (puzzles, repertoire, analysis, stats, openings) but most modules are <strong>shallow</strong> — their HTTP interface is nearly as complex as their implementation. Chess domain logic is duplicated across backend (Python) and frontend (TypeScript) with no shared <strong>domain model</strong> or <strong>seam</strong>. Frontend components couple directly to Zustand stores and the Stockfish WASM engine, making unit testing difficult. No <strong>adapter</strong> layer separates API clients, engine, or persistence from the components that use them.</p>
+        <p class="mt-2"><strong>Top candidates for deepening:</strong> (1) Puzzle Generation module — extract pure domain logic behind a seam; (2) Stockfish Engine Adapter — isolate UCI protocol from React lifecycle; (3) Repertoire Tree module — separate tree navigation from persistence/API.</p>
+      </div>
+    </section>
+
+    <section id="candidates">
+      <h2 class="text-2xl font-bold text-sage-900 mb-6">Deepening Candidates</h2>
+
+      <article class="card p-6 mb-6" id="candidate-1">
+        <div class="flex flex-wrap items-start justify-between gap-4 mb-4">
+          <div>
+            <h3 class="text-xl font-semibold text-sage-900">Puzzle Generation Module</h3>
+            <p class="text-sage-600 mt-1">Backend: <code>puzzle_generator.py</code> (430 lines) + <code>puzzles.py</code> router (187 lines)</p>
+          </div>
+          <span class="badge-strong px-3 py-1 text-sm font-medium rounded-full border">Strong</span>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-6 mb-6">
+          <div>
+            <h4 class="section-title">Problem — Shallow Module, Leaky Seam</h4>
+            <ul class="space-y-2 text-sage-700 list-disc list-inside">
+              <li><strong>Interface ≈ Implementation:</strong> The router directly embeds category definitions (<code>PUZZLE_CATEGORIES</code>, <code>PHASE_THEMES</code>), SQL queries, and calls <code>puzzle_generator.detect_tactical_moments()</code>. Deleting the router would concentrate complexity — it <em>is</em> the complexity.</li>
+              <li><strong>No seam between HTTP and domain:</strong> <code>generate_puzzles_from_game</code> endpoint mixes request parsing, DB lookups, game→moment detection, puzzle creation, and stats updating in one function.</li>
+              <li><strong>Chess logic not testable in isolation:</strong> <code>TacticalMoment</code>, <code>_detect_patterns</code>, <code>_calculate_difficulty</code>, <code>_build_solution_from_board</code> are all private functions inside a single file. No interface to swap implementations (e.g., Stockfish-backed vs heuristic).</li>
+              <li><strong>Duplicated domain:</strong> Frontend <code>analysisEngine.ts</code> re-implements <code>detectTacticalPatterns</code>, <code>calculateDifficulty</code>, <code>detectPhase</code> in TypeScript — same concepts, different code.</li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="section-title">Solution — Deepen with a Domain Seam</h4>
+            <ul class="space-y-2 text-sage-700 list-disc list-inside">
+              <li>Extract a <strong>PuzzleGenerator</strong> interface (protocol) with methods: <code>generate_from_game(game_id)</code>, <code>generate_from_fen(fen, move)</code>, <code>categorize(puzzle)</code>.</li>
+              <li>Move all pure chess logic (<code>_detect_patterns</code>, <code>_quick_eval</code>, <code>_calculate_difficulty</code>, <code>_detect_phase</code>) into a <strong>ChessDomain</strong> module with no SQLAlchemy/FastAPI imports.</li>
+              <li>Router becomes a thin <strong>adapter</strong>: validates request → calls generator → persists results → returns DTO.</li>
+              <li>Define <strong>PuzzleCategory</strong> and <strong>Theme</strong> as domain types (in <code>CONTEXT.md</code>), not router-level constants.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-6 mb-6">
+          <div class="diagram-box">
+            <h4 class="font-medium text-sage-900 mb-2 text-center">BEFORE — Shallow Module</h4>
+            <div class="mermaid">
+graph TD
+  Router[puzzles.py Router] --> SQL[SQLAlchemy Models]
+  Router --> Gen[puzzle_generator.py]
+  Gen --> Chess[chess.py logic]
+  Gen --> Eval[_quick_eval]
+  Gen --> Patterns[_detect_patterns]
+  Gen --> Diff[_calculate_difficulty]
+  Gen --> Phase[_detect_phase]
+  Router --> Stats[DailyStats update]
+  Router --> Categories[PUZZLE_CATEGORIES const]
+  style Router fill:#fee2e2,stroke:#dc2626
+  style Gen fill:#fee2e2,stroke:#dc2626
+</div>
+          </div>
+          <div class="diagram-box">
+            <h4 class="font-medium text-sage-900 mb-2 text-center">AFTER — Deepened Module with Seam</h4>
+            <div class="mermaid">
+graph TD
+  Router[puzzles.py Router<br/>(thin adapter)] --> GenIf[PuzzleGenerator Protocol]
+  GenIf --> GenImpl[HeuristicPuzzleGenerator]
+  GenIf --> GenSF[StockfishPuzzleGenerator<br/>(future)]
+  GenImpl --> Domain[ChessDomain Module]
+  Domain --> Patterns[PatternDetector]
+  Domain --> Eval[PositionEvaluator]
+  Domain --> Diff[DifficultyCalculator]
+  Domain --> Phase[PhaseDetector]
+  Domain --> Categories[PuzzleCategory Registry]
+  Router --> Repo[PuzzleRepository]
+  Repo --> SQL[SQLAlchemy Models]
+  style Router fill:#dcfce7,stroke:#16a34a
+  style GenIf fill:#dcfce7,stroke:#16a34a
+  style Domain fill:#dcfce7,stroke:#16a34a
+</div>
+          </div>
+        </div>
+
+        <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+          <h4 class="font-medium text-green-800 mb-2">Benefits — Locality & Leverage</h4>
+          <ul class="space-y-1 text-green-700 list-disc list-inside">
+            <li><strong>Locality:</strong> Chess logic lives in one place (<code>ChessDomain</code>), not split across router + generator + frontend.</li>
+            <li><strong>Leverage:</strong> Swap generator implementation (heuristic → Stockfish-backed) without touching router or tests.</li>
+            <li><strong>Testability:</strong> Unit-test <code>PatternDetector</code>, <code>DifficultyCalculator</code> with pure FEN inputs — no DB, no HTTP, no React.</li>
+            <li><strong>AI-navigability:</strong> Clear interface (<code>PuzzleGenerator</code>) documents the seam; an agent can implement a new generator without reading router code.</li>
+          </ul>
+        </div>
+
+        <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <h4 class="font-medium text-amber-800 mb-2">⚠ ADR Consideration</h4>
+          <p class="text-amber-700">If an ADR mandates "all puzzle generation in Python," the Stockfish-backed generator would need a Python Stockfish wrapper (python-chess + stockfish binary). The seam still holds — just swap the implementation behind the protocol.</p>
+        </div>
+      </article>
+
+      <article class="card p-6 mb-6" id="candidate-2">
+        <div class="flex flex-wrap items-start justify-between gap-4 mb-4">
+          <div>
+            <h3 class="text-xl font-semibold text-sage-900">Stockfish Engine Adapter</h3>
+            <p class="text-sage-600 mt-1">Frontend: <code>useStockfish.ts</code> (274 lines) — mixes engine lifecycle, UCI parsing, multi-PV, React state</p>
+          </div>
+          <span class="badge-strong px-3 py-1 text-sm font-medium rounded-full border">Strong</span>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-6 mb-6">
+          <div>
+            <h4 class="section-title">Problem — Engine Coupled to React Lifecycle</h4>
+            <ul class="space-y-2 text-sage-700 list-disc list-inside">
+              <li><strong>No seam:</strong> Components call <code>deepAnalyze(fen)</code> directly from the hook. The hook manages: script loading, engine process, UCI handshake, message parsing, multi-PV state, cancellation, <em>and</em> React state (<code>ready</code>, <code>error</code>, <code>evalInfo</code>).</li>
+              <li><strong>Deletion test fails:</strong> Deleting the hook would scatter engine logic across every component that uses it (<code>PuzzleSolver</code>, <code>Analysis</code>, <code>RepertoireViewer</code>).</li>
+              <li><strong>Untestable:</strong> Cannot unit-test explanation generation (<code>analysisEngine.ts</code>) without a real Stockfish WASM instance.</li>
+              <li><strong>Leaky abstraction:</strong> <code>deepAnalyze</code> returns <code>MultiPvLine[]</code> but callers must know about <code>pvCount</code>, depth, UCI format details.</li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="section-title">Solution — Engine Adapter with Pure Interface</h4>
+            <ul class="space-y-2 text-sage-700 list-disc list-inside">
+              <li>Define <strong>EngineAdapter</strong> interface: <code>analyze(fen, options): Promise<AnalysisResult></code>, <code>bestMove(fen): Promise<Move></code>, <code>ready(): Promise<void></code>.</li>
+              <li>Extract <strong>UCIProtocol</strong> module: pure functions parsing <code>info depth X score cp Y multipv Z pv ...</code> → structured data. No React, no WASM.</li>
+              <li>Implement <code>StockfishWasmAdapter</code> wrapping the WASM module. Keeps lifecycle (load, init, terminate) but delegates parsing to <code>UCIProtocol</code>.</li>
+              <li>Components depend on <code>EngineAdapter</code> (injected via context or prop), not the hook. Hook becomes a <strong>React adapter</strong> that provides the interface.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-6 mb-6">
+          <div class="diagram-box">
+            <h4 class="font-medium text-sage-900 mb-2 text-center">BEFORE — Hook = Engine + UI</h4>
+            <div class="mermaid">
+graph TD
+  Hook[useStockfish Hook] --> WASM[Stockfish WASM]
+  Hook --> UCI[UCI Message Parsing]
+  Hook --> MPV[Multi-PV State Machine]
+  Hook --> ReactState[React State: ready, evalInfo, error]
+  PuzzleSolver --> Hook
+  AnalysisPage --> Hook
+  RepertoireViewer --> Hook
+  style Hook fill:#fee2e2,stroke:#dc2626
+</div>
+          </div>
+          <div class="diagram-box">
+            <h4 class="font-medium text-sage-900 mb-2 text-center">AFTER — Engine Adapter Seam</h4>
+            <div class="mermaid">
+graph TD
+  Components[PuzzleSolver, Analysis, Repertoire] --> AdapterIf[EngineAdapter Interface]
+  AdapterIf --> WasmAdapter[StockfishWasmAdapter]
+  WasmAdapter --> UCI[UCIProtocol Module<br/>(pure functions)]
+  WasmAdapter --> WASM[Stockfish WASM]
+  ReactAdapter[useEngine Hook] --> AdapterIf
+  ReactAdapter --> ReactState[React State]
+  style AdapterIf fill:#dcfce7,stroke:#16a34a
+  style UCI fill:#dcfce7,stroke:#16a34a
+</div>
+          </div>
+        </div>
+
+        <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+          <h4 class="font-medium text-green-800 mb-2">Benefits</h4>
+          <ul class="space-y-1 text-green-700 list-disc list-inside">
+            <li><strong>Locality:</strong> UCI parsing logic in one testable module; engine lifecycle in adapter.</li>
+            <li><strong>Leverage:</strong> Swap WASM for a WebSocket-backed remote engine (cloud Stockfish) by implementing <code>EngineAdapter</code>.</li>
+            <li><strong>Testability:</strong> <code>analysisEngine.ts</code> can be tested with a <code>MockEngineAdapter</code> returning fixed <code>MultiPvLine[]</code>.</li>
+            <li><strong>Interface = Test Surface:</strong> The <code>EngineAdapter</code> protocol documents exactly what callers need.</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="card p-6 mb-6" id="candidate-3">
+        <div class="flex flex-wrap items-start justify-between gap-4 mb-4">
+          <div>
+            <h3 class="text-xl font-semibold text-sage-900">Repertoire Tree Module</h3>
+            <p class="text-sage-600 mt-1">Frontend: <code>RepertoireViewer.tsx</code> (552 lines) + <code>repertoireStore.ts</code> + tree components</p>
+          </div>
+          <span class="badge-explore px-3 py-1 text-sm font-medium rounded-full border">Worth Exploring</span>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-6 mb-6">
+          <div>
+            <h4 class="section-title">Problem — Tree Logic Leaks Across Components</h4>
+            <ul class="space-y-2 text-sage-700 list-disc list-inside">
+              <li><strong>Viewer = Controller + View:</strong> <code>RepertoireViewer</code> handles: tree filtering (<code>visibleNodes</code>), path building (<code>buildPathToNode</code>), node selection, API calls (<code>loadTree</code>, <code>linkOpeningToNode</code>), Stockfish analysis trigger, import PGN parsing, quiz mode, breadcrumb rendering.</li>
+              <li><strong>Store calls API directly:</strong> <code>repertoireStore</code> methods (<code>loadTree</code>, <code>createNode</code>, <code>patchNode</code>) call <code>api.repertoire.*</code> — no repository seam.</li>
+              <li><strong>Duplicated tree logic:</strong> <code>RepertoireTree</code>, <code>RepertoireBoardControls</code>, <code>RepertoireInfoPanel</code> all derive paths/children from raw node array.</li>
+              <li><strong>No domain type for "Repertoire":</strong> Just <code>RepertoireNode[]</code> array. Operations like "get main line", "get variations", "find transpositions" are re-implemented in each component.</li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="section-title">Solution — Repertoire Domain Module + Repository Seam</h4>
+            <ul class="space-y-2 text-sage-700 list-disc list-inside">
+              <li>Extract <strong>RepertoireTree</strong> domain type with methods: <code>getMainLine()</code>, <code>getVariations(nodeId)</code>, <code>getPathTo(nodeId)</code>, <code>addVariation(parentId, moves[])</code>, <code>findTransposition(fen)</code>.</li>
+              <li>Define <strong>RepertoireRepository</strong> interface: <code>getTree(repertoireId)</code>, <code>saveNode(node)</code>, <code>deleteNode(id)</code>. Store implements this; components depend on interface.</li>
+              <li><code>RepertoireViewer</code> becomes a pure <strong>view</strong> component receiving <code>RepertoireTree</code> and <code>Repository</code> via props/context.</li>
+              <li>Move PGN import parsing to a <strong>PgnImporter</strong> adapter (already exists in backend; mirror on frontend or share via WASM).</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-6 mb-6">
+          <div class="diagram-box">
+            <h4 class="font-medium text-sage-900 mb-2 text-center">BEFORE — Tree Logic Scattered</h4>
+            <div class="mermaid">
+graph TD
+  Viewer[RepertoireViewer] --> Store[repertoireStore]
+  Viewer --> Tree[RepertoireTree Component]
+  Viewer --> Controls[BoardControls]
+  Viewer --> Info[InfoPanel]
+  Viewer --> API[api.repertoire.*]
+  Viewer --> Stockfish[useStockfish]
+  Store --> API
+  Tree --> RawNodes[RepertoireNode[]]
+  Controls --> RawNodes
+  Info --> RawNodes
+  style Viewer fill:#fee2e2,stroke:#dc2626
+  style Store fill:#fee2e2,stroke:#dc2626
+</div>
+          </div>
+          <div class="diagram-box">
+            <h4 class="font-medium text-sage-900 mb-2 text-center">AFTER — Deepened Tree Module</h4>
+            <div class="mermaid">
+graph TD
+  Viewer[RepertoireViewer<br/>(thin view)] --> Tree[RepertoireTree Domain]
+  Viewer --> RepoIf[RepertoireRepository Interface]
+  Tree --> Ops[getMainLine, getVariations,<br/>addVariation, findTransposition]
+  RepoIf --> Store[Zustand Store<br/>(implements Repository)]
+  Store --> API[api.repertoire.*]
+  Importer[PgnImporter Adapter] --> Tree
+  style Tree fill:#dcfce7,stroke:#16a34a
+  style RepoIf fill:#dcfce7,stroke:#16a34a
+</div>
+          </div>
+        </div>
+
+        <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+          <h4 class="font-medium text-green-800 mb-2">Benefits</h4>
+          <ul class="space-y-1 text-green-700 list-disc list-inside">
+            <li><strong>Locality:</strong> Tree navigation logic in one place (<code>RepertoireTree</code>), not duplicated across 4 components.</li>
+            <li><strong>Leverage:</strong> Adding "transposition detection" or "move classification" only touches domain module.</li>
+            <li><strong>Testability:</strong> <code>RepertoireTree</code> is pure TypeScript — unit test with node arrays, no React, no API.</li>
+            <li><strong>Interface = Test Surface:</strong> <code>RepertoireRepository</code> protocol makes it trivial to mock in component tests.</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="card p-6 mb-6" id="candidate-4">
+        <div class="flex flex-wrap items-start justify-between gap-4 mb-4">
+          <div>
+            <h3 class="text-xl font-semibold text-sage-900">Analysis Explanation Engine</h3>
+            <p class="text-sage-600 mt-1">Frontend: <code>analysisEngine.ts</code> (344 lines) — pure functions but no seam, duplicated from backend</p>
+          </div>
+          <span class="badge-explore px-3 py-1 text-sm font-medium rounded-full border">Worth Exploring</span>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-6 mb-6">
+          <div>
+            <h4 class="section-title">Problem — Pure Functions Without a Seam</h4>
+            <ul class="space-y-2 text-sage-700 list-disc list-inside">
+              <li><strong>Good start:</strong> <code>generateExplanation</code>, <code>detectTacticalPatterns</code>, <code>detectThreats</code>, <code>buildTopMoveExplanation</code> are pure functions — no React, no side effects.</li>
+              <li><strong>But no interface:</strong> Callers import functions directly. Cannot swap explanation strategy (e.g., "beginner" vs "advanced" coach) without changing imports.</li>
+              <li><strong>Duplicated from backend:</strong> Same tactical patterns (fork, pin, skewer, hanging piece) implemented in <code>puzzle_generator.py</code> — two sources of truth.</li>
+              <li><strong>Hard-coded Italian strings:</strong> Explanations embed Italian text ("Il tuo", "Minaccia", "FORZA!") — no i18n seam.</li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="section-title">Solution — Explanation Engine with Strategy Seam</h4>
+            <ul class="space-y-2 text-sage-700 list-disc list-inside">
+              <li>Define <strong>ExplanationEngine</strong> interface: <code>explain(position, multiPv): ExplanationResult</code>.</li>
+              <li>Extract <strong>ChessPatterns</strong> domain module (shared with puzzle generator) — single source of truth for fork/pin/skewer detection.</li>
+              <li>Implement <code>StandardExplanationEngine</code>, <code>BeginnerExplanationEngine</code>, <code>CoachExplanationEngine</code> as strategies.</li>
+              <li>Move localized strings to a <strong>MessageCatalog</strong> adapter (interface: <code>t(key, params)</code>).</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-6 mb-6">
+          <div class="diagram-box">
+            <h4 class="font-medium text-sage-900 mb-2 text-center">BEFORE — Direct Function Imports</h4>
+            <div class="mermaid">
+graph TD
+  Components[PuzzleSolver, EducationalPanel] --> Engine[analysisEngine.ts]
+  Engine --> Patterns[detectTacticalPatterns]
+  Engine --> Threats[detectThreats]
+  Engine --> Explain[generateExplanation]
+  BackendGen[puzzle_generator.py] --> BackendPatterns[_detect_patterns]
+  style Engine fill:#fef3c7,stroke:#d97706
+  style BackendGen fill:#fef3c7,stroke:#d97706
+</div>
+          </div>
+          <div class="diagram-box">
+            <h4 class="font-medium text-sage-900 mb-2 text-center">AFTER — Engine Seam + Shared Patterns</h4>
+            <div class="mermaid">
+graph TD
+  Components --> EngineIf[ExplanationEngine Interface]
+  EngineIf --> StdEngine[StandardEngine]
+  EngineIf --> BeginnerEngine[BeginnerEngine]
+  StdEngine --> Patterns[ChessPatterns Domain]
+  BeginnerEngine --> Patterns
+  Patterns --> Fork[ForkDetector]
+  Patterns --> Pin[PinDetector]
+  Patterns --> Skewer[SkewerDetector]
+  Patterns --> Hanging[HangingPieceDetector]
+  BackendGen[PuzzleGenerator] --> Patterns
+  EngineIf --> Catalog[MessageCatalog Adapter]
+  style EngineIf fill:#dcfce7,stroke:#16a34a
+  style Patterns fill:#dcfce7,stroke:#16a34a
+</div>
+          </div>
+        </div>
+
+        <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+          <h4 class="font-medium text-green-800 mb-2">Benefits</h4>
+          <ul class="space-y-1 text-green-700 list-disc list-inside">
+            <li><strong>Single source of truth:</strong> Tactical pattern detection lives in <code>ChessPatterns</code> (shared backend/frontend via WASM or codegen).</li>
+            <li><strong>Leverage:</strong> Add "coach personality" or difficulty-level explanations by implementing <code>ExplanationEngine</code>.</li>
+            <li><strong>Testability:</strong> Golden-master tests for <code>ChessPatterns</code> with known FEN positions; snapshot tests for engine outputs.</li>
+          </ul>
+        </div>
+
+        <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <h4 class="font-medium text-amber-800 mb-2">⚠ ADR Consideration</h4>
+          <p class="text-amber-700">Sharing <code>ChessPatterns</code> between Python backend and TypeScript frontend requires a strategy: (a) implement in TypeScript, compile to WASM for Python; (b) implement in Python, expose via HTTP; (c) maintain both with contract tests. This is a real architectural decision — worth an ADR if pursued.</p>
+        </div>
+      </article>
+
+      <article class="card p-6 mb-6" id="candidate-5">
+        <div class="flex flex-wrap items-start justify-between gap-4 mb-4">
+          <div>
+            <h3 class="text-xl font-semibold text-sage-900">API Client Adapter</h3>
+            <p class="text-sage-600 mt-1">Frontend: <code>api/client.ts</code> (125 lines) — hardcoded base URL, direct fetch, manual normalization</p>
+          </div>
+          <span class="badge-speculative px-3 py-1 text-sm font-medium rounded-full border">Speculative</span>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-6 mb-6">
+          <div>
+            <h4 class="section-title">Problem — No Seam Between Components and Network</h4>
+            <ul class="space-y-2 text-sage-700 list-disc list-inside">
+              <li><strong>Hardcoded configuration:</strong> <code>API_BASE = 'http://localhost:8003/api'</code> — no environment abstraction.</li>
+              <li><strong>Normalization mixed with transport:</strong> <code>normalizeStats</code>, <code>normalizeOpening</code> live in the client. Components receive normalized data but have no control over it.</li>
+              <li><strong>No interface:</strong> Stores (<code>puzzleStore</code>, <code>repertoireStore</code>) import <code>api</code> directly. Cannot test stores with a fake client without mocking <code>fetch</code> globally.</li>
+              <li><strong>Error handling scattered:</strong> Each method throws raw <code>Error</code>; no unified <code>ApiError</code> type with status codes.</li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="section-title">Solution — ApiClient Interface + Adapter</h4>
+            <ul class="space-y-2 text-sage-700 list-disc list-inside">
+              <li>Define <strong>ApiClient</strong> interface with methods matching the current <code>api</code> object shape.</li>
+              <li>Implement <code>FetchApiClient</code> (current behavior) and <code>MockApiClient</code> (for testing).</li>
+              <li>Move normalization to a <strong>ResponseTransformer</strong> adapter (separate from transport).</li>
+              <li>Inject <code>ApiClient</code> into stores via constructor or context — stores depend on interface, not concrete fetch.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-6 mb-6">
+          <div class="diagram-box">
+            <h4 class="font-medium text-sage-900 mb-2 text-center">BEFORE — Direct Fetch Coupling</h4>
+            <div class="mermaid">
+graph TD
+  Stores[puzzleStore, repertoireStore] --> Client[api/client.ts]
+  Client --> Fetch[fetch API]
+  Client --> Normalize[normalizeStats, normalizeOpening]
+  Client --> Config[Hardcoded API_BASE]
+  style Client fill:#fee2e2,stroke:#dc2626
+</div>
+          </div>
+          <div class="diagram-box">
+            <h4 class="font-medium text-sage-900 mb-2 text-center">AFTER — Client Adapter Seam</h4>
+            <div class="mermaid">
+graph TD
+  Stores --> ClientIf[ApiClient Interface]
+  ClientIf --> FetchClient[FetchApiClient]
+  ClientIf --> MockClient[MockApiClient]
+  FetchClient --> Transport[Fetch Transport]
+  FetchClient --> Transformer[ResponseTransformer]
+  Config[Env Config] --> FetchClient
+  style ClientIf fill:#dcfce7,stroke:#16a34a
+  style Transformer fill:#dcfce7,stroke:#16a34a
+</div>
+          </div>
+        </div>
+
+        <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+          <h4 class="font-medium text-green-800 mb-2">Benefits</h4>
+          <ul class="space-y-1 text-green-700 list-disc list-inside">
+            <li><strong>Testability:</strong> Store unit tests use <code>MockApiClient</code> — no MSW, no network, deterministic.</li>
+            <li><strong>Leverage:</strong> Add request/response logging, retry logic, offline queue by wrapping <code>FetchApiClient</code>.</li>
+            <li><strong>Locality:</strong> Transport concerns (fetch, headers, base URL) separated from domain normalization.</li>
+          </ul>
+        </div>
+      </article>
+
+    </section>
+
+    <section class="mt-10 card p-6 bg-sage-900 text-sage-50 border-sage-700">
+      <h2 class="text-2xl font-bold mb-4 flex items-center gap-3">
+        <span class="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium">TOP RECOMMENDATION</span>
+        Puzzle Generation Module Deepening
+      </h2>
+      <div class="prose prose-invert max-w-none">
+        <p class="text-sage-200">Start with the <strong>Puzzle Generation module (Candidate #1)</strong>. It has the strongest signal:</p>
+        <ul class="list-disc list-inside space-y-2 text-sage-200 mt-2">
+          <li><strong>Deletion test passes decisively:</strong> Removing <code>puzzles.py</code> router would concentrate all puzzle logic into <code>puzzle_generator.py</code> — proving the router is a shallow adapter.</li>
+          <li><strong>High leverage:</strong> The same chess logic is duplicated in the frontend (<code>analysisEngine.ts</code>). Deepening here creates a <strong>shared domain seam</strong> that pays off on both sides.</li>
+          <li><strong>Clear domain vocabulary:</strong> <code>CONTEXT.md</code> (to be created) can define <strong>TacticalMoment</strong>, <strong>PuzzleTheme</strong>, <strong>DifficultyLevel</strong>, <strong>GamePhase</strong> — terms already used implicitly in code.</li>
+          <li><strong>Testable immediately:</strong> Pure functions like <code>_detect_patterns</code>, <code>_calculate_difficulty</code> can be extracted and unit-tested with FEN fixtures today.</li>
+          <li><strong>Enables future work:</strong> A <code>PuzzleGenerator</code> protocol makes it trivial to add a Stockfish-backed generator later (ADR-worthy but not blocking).</li>
+        </ul>
+        <p class="mt-4 text-sage-200"><strong>Next step:</strong> Run <code>/grilling</code> on the top candidate to walk the decision tree — define the <code>PuzzleGenerator</code> interface, decide where <code>ChessDomain</code> lives (shared package?), and plan the adapter split.</p>
+      </div>
+    </section>
+
+    <section class="mt-10">
+      <h2 class="text-2xl font-bold text-sage-900 mb-4">Proposed Domain Vocabulary (for CONTEXT.md)</h2>
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="card p-4">
+          <h4 class="font-semibold text-sage-900 mb-2">TacticalMoment</h4>
+          <p class="text-sm text-sage-600">A position + winning move + detected pattern (fork, pin, skewer, etc.) + solution line + difficulty + phase. Core output of puzzle generation.</p>
+        </div>
+        <div class="card p-4">
+          <h4 class="font-semibold text-sage-900 mb-2">PuzzleTheme</h4>
+          <p class="text-sm text-sage-600">Canonical tactical motif: <code>fork</code>, <code>pin</code>, <code>skewer</code>, <code>double_attack</code>, <code>checkmate</code>, <code>hanging_piece</code>, <code>discovered_attack</code>.</p>
+        </div>
+        <div class="card p-4">
+          <h4 class="font-semibold text-sage-900 mb-2">DifficultyLevel</h4>
+          <p class="text-sm text-sage-600">1–10 scale derived from theme base difficulty + solution length + capture presence. Used for filtering and progression.</p>
+        </div>
+        <div class="card p-4">
+          <h4 class="font-semibold text-sage-900 mb-2">GamePhase</h4>
+          <p class="text-sm text-sage-600"><code>opening</code> | <code>middlegame</code> | <code>endgame</code> (plus specific endgame types). Determined by move count + material.</p>
+        </div>
+        <div class="card p-4">
+          <h4 class="font-semibold text-sage-900 mb-2">RepertoireTree</h4>
+          <p class="text-sm text-sage-600">A rooted tree of <code>RepertoireNode</code>s with operations: main line, variations, path-to-node, transposition detection, add/remove variation.</p>
+        </div>
+        <div class="card p-4">
+          <h4 class="font-semibold text-sage-900 mb-2">EngineAdapter</h4>
+          <p class="text-sm text-sage-600">Interface: <code>analyze(fen, options)</code>, <code>bestMove(fen)</code>, <code>ready()</code>. Implementations: <code>StockfishWasmAdapter</code>, <code>RemoteEngineAdapter</code>, <code>MockEngineAdapter</code>.</p>
+        </div>
+        <div class="card p-4">
+          <h4 class="font-semibold text-sage-900 mb-2">ExplanationEngine</h4>
+          <p class="text-sm text-sage-600">Interface: <code>explain(position, multiPv)</code> → <code>ExplanationResult</code>. Strategies: <code>Standard</code>, <code>Beginner</code>, <code>Coach</code>. Uses <code>ChessPatterns</code> domain.</p>
+        </div>
+        <div class="card p-4">
+          <h4 class="font-semibold text-sage-900 mb-2">ChessPatterns</h4>
+          <p class="text-sm text-sage-600">Pure domain module detecting tactical motifs from a position. Single source of truth shared by PuzzleGenerator and ExplanationEngine.</p>
+        </div>
+        <div class="card p-4">
+          <h4 class="font-semibold text-sage-900 mb-2">ApiClient / Repository</h4>
+          <p class="text-sm text-sage-600">Interfaces separating transport (fetch, SQLAlchemy) from domain operations. Enables <code>MockApiClient</code>, <code>InMemoryRepository</code> for tests.</p>
+        </div>
+      </div>
+    </section>
+
+    <footer class="mt-12 pt-8 border-t border-sage-200 text-sage-500 text-sm text-center">
+      <p>Generated by <code>improve-codebase-architecture</code> skill — <time datetime="2026-07-14">2026-07-14</time></p>
+      <p class="mt-1">Next: Run <code>/grilling</code> on the top candidate to design the <code>PuzzleGenerator</code> seam and <code>ChessDomain</code> module.</p>
+    </footer>
+  </div>
+</body>
+</html>

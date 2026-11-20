@@ -1,0 +1,92 @@
+[
+  {
+    "id": "starting_position",
+    "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "expected": {
+      "themes": [],
+      "phase": "opening",
+      "eval": 0
+    }
+  },
+  {
+    "id": "scholars_mate",
+    "fen": "r1bqkb1r/pppp1Qpp/2n2n2/4p3/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 0 4",
+    "expected": {
+      "themes": ["checkmate"],
+      "phase": "opening",
+      "eval": 1
+    }
+  },
+  {
+    "id": "knight_fork",
+    "fen": "4k3/2q1q3/8/3N4/8/8/4P3/4K3 w - - 0 1",
+    "expected": {
+      "themes": ["fork"],
+      "phase": "opening",
+      "eval": -14
+    }
+  },
+  {
+    "id": "kings_only",
+    "fen": "4k3/8/8/8/8/8/8/4K3 w - - 0 1",
+    "expected": {
+      "themes": [],
+      "phase": "opening",
+      "eval": 0
+    }
+  },
+  {
+    "id": "italian_game_middlegame",
+    "fen": "r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 2 3",
+    "expected": {
+      "themes": [],
+      "phase": "opening",
+      "eval": 0
+    }
+  },
+  {
+    "id": "fork_two_rooks_impossible",
+    "fen": "4k3/8/2N5/8/8/8/8/4K3 w - - 0 1",
+    "expected": {
+      "themes": [],
+      "phase": "opening",
+      "eval": 3
+    }
+  },
+  {
+    "id": "white_up_queen",
+    "fen": "rnb1kbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "expected": {
+      "themes": [],
+      "phase": "opening",
+      "eval": 9
+    }
+  },
+  {
+    "id": "black_up_queen",
+    "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNB1KBNR w KQkq - 0 1",
+    "expected": {
+      "themes": [],
+      "phase": "opening",
+      "eval": -9
+    }
+  },
+  {
+    "id": "endgame_knight_vs_pawn",
+    "fen": "4k3/8/8/3N4/8/8/4p3/4K3 b - - 0 1",
+    "expected": {
+      "themes": [],
+      "phase": "opening",
+      "eval": 2
+    }
+  },
+  {
+    "id": "knight_single_capture",
+    "fen": "r3k3/8/3N4/8/8/8/8/4K3 w - - 0 1",
+    "expected": {
+      "themes": [],
+      "phase": "opening",
+      "eval": -2
+    }
+  }
+]

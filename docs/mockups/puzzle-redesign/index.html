@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Puzzle Section Redesign — Chess Training</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --sage-50: #f6f7f4;
+      --sage-100: #e2e6da;
+      --sage-200: #c5ccb6;
+      --sage-500: #8a9a7a;
+      --sage-700: #5c6b4e;
+      --sage-900: #2d3527;
+      --sand-50: #faf8f5;
+      --sand-100: #f5f0e8;
+      --sand-200: #e8dfce;
+      --sand-500: #c4b49a;
+      --sand-700: #9a8a72;
+      --board-light: #edeed7;
+      --board-dark: #7a9a6a;
+      --radius-box: 14px;
+      --shadow: 0 2px 12px rgba(45,53,39,0.08);
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--sage-50);
+      color: var(--sage-900);
+      min-height: 100vh;
+      padding: 40px 20px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .container { max-width: 1200px; margin: 0 auto; }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .header h1 { font-size: 28px; font-weight: 700; color: var(--sage-900); }
+    .header p { color: var(--sage-700); font-size: 15px; }
+
+    /* Category Tabs */
+    .category-tabs {
+      display: flex;
+      gap: 8px;
+      background: white;
+      padding: 6px;
+      border-radius: var(--radius-box);
+      box-shadow: var(--shadow);
+      margin-bottom: 32px;
+      overflow-x: auto;
+    }
+    .category-tab {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: var(--radius-box);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--sage-700);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .category-tab:hover { background: var(--sage-100); color: var(--sage-900); }
+    .category-tab.active { background: var(--sage-500); color: white; }
+
+    .category-tab .count {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 100px;
+      background: var(--sage-100);
+      color: var(--sage-500);
+    }
+    .category-tab.active .count { background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.85); }
+
+    /* Breadcrumb */
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 24px;
+      font-size: 14px;
+      color: var(--sage-200);
+      flex-wrap: wrap;
+    }
+    .breadcrumb a { color: var(--sage-700); text-decoration: none; font-weight: 500; }
+    .breadcrumb a:hover { color: var(--sage-900); }
+    .breadcrumb .current { color: var(--sage-900); font-weight: 600; }
+
+    .category-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .category-header h2 { font-size: 22px; font-weight: 700; color: var(--sage-900); }
+    .category-header .meta { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--sage-700); }
+    .btn-back {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: var(--radius-box);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      border: 1px solid var(--sage-200);
+      cursor: pointer;
+      transition: all 0.15s;
+      background: white;
+      color: var(--sage-700);
+    }
+    .btn-back:hover { background: var(--sage-100); }
+
+    /* Subcategory Grid */
+    .subcategory-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 16px;
+    }
+    @media (max-width: 640px) {
+      .subcategory-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (min-width: 641px) and (max-width: 1024px) {
+      .subcategory-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+    @media (min-width: 1025px) {
+      .subcategory-grid { grid-template-columns: repeat(6, 1fr); }
+    }
+
+    .subcategory-card {
+      background: white;
+      border-radius: var(--radius-box);
+      box-shadow: var(--shadow);
+      padding: 20px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s;
+      border: 2px solid transparent;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    .subcategory-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(45,53,39,0.12);
+      border-color: var(--sage-200);
+    }
+    .subcategory-icon { font-size: 28px; line-height: 1; }
+    .subcategory-name { font-size: 13px; font-weight: 600; color: var(--sage-900); }
+    .subcategory-count { font-size: 18px; font-weight: 600; color: var(--sage-500); }
+
+    .subcategory-card.featured {
+      background: var(--sage-100);
+      grid-column: span 2;
+    }
+    .subcategory-card.featured .subcategory-name { font-size: 17px; color: var(--sage-900); }
+    .subcategory-card.featured .subcategory-count { font-size: 28px; color: var(--sage-900); }
+    .subcategory-card.featured .subcategory-desc { font-size: 13px; color: var(--sage-700); margin-top: 4px; }
+
+    .subcategory-card.border-left { border-left: 3px solid; border-left-color: var(--bcolor); }
+
+    /* Filter Bar */
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding: 16px;
+      background: white;
+      border-radius: var(--radius-box);
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+    }
+    .filter-label { font-size: 13px; font-weight: 600; color: var(--sage-700); text-transform: uppercase; letter-spacing: 0.03em; }
+    .filter-select {
+      padding: 8px 12px;
+      border: 1px solid var(--sage-200);
+      border-radius: var(--radius-box);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-size: 13px;
+      background: white;
+      color: var(--sage-900);
+      cursor: pointer;
+    }
+    .filter-select:focus { outline: none; border-color: var(--sage-500); }
+    .filter-btn {
+      margin-left: auto;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1.25rem;
+      border-radius: var(--radius-box);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-size: 0.875rem;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s;
+      background: var(--sage-500);
+      color: white;
+    }
+    .filter-btn:hover { background: var(--sage-700); }
+    .filter-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Puzzle Grid */
+    .puzzle-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 20px;
+    }
+    @media (max-width: 640px) {
+      .puzzle-grid { grid-template-columns: 1fr; }
+    }
+
+    .puzzle-card {
+      background: white;
+      border-radius: var(--radius-box);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      transition: all 0.15s;
+    }
+    .puzzle-card:hover { box-shadow: 0 4px 20px rgba(45,53,39,0.12); transform: translateY(-2px); }
+
+    .puzzle-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--sage-100);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .puzzle-header .title-group { display: flex; align-items: center; gap: 8px; flex: 1; }
+    .puzzle-header .spacer { flex: 1; }
+    .puzzle-theme {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+    .puzzle-theme.easy { background: #dcfce7; color: #15803d; }
+    .puzzle-theme.medium { background: #fef9c3; color: #a16207; }
+    .puzzle-theme.hard { background: #fee2e2; color: #b91c1c; }
+
+    .puzzle-phase {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 100px;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+    .puzzle-phase.opening { background: #dbeafe; color: #1d4ed8; }
+    .puzzle-phase.middlegame { background: #f3e8ff; color: #6b21a8; }
+    .puzzle-phase.endgame { background: #fef3c7; color: #92400e; }
+
+    .puzzle-difficulty { font-size: 13px; color: var(--sage-500); font-weight: 500; }
+
+    .puzzle-board {
+      width: 100%;
+      aspect-ratio: 1/1;
+    }
+    .board-grid {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(8, 1fr);
+      width: 100%;
+      height: 100%;
+    }
+    .board-square { position: relative; }
+    .board-square.light { background: var(--board-light); }
+    .board-square.dark { background: var(--board-dark); }
+    .piece { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 24px; pointer-events: none; user-select: none; }
+
+    .puzzle-footer {
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid var(--sage-100);
+    }
+    .puzzle-stats { display: flex; align-items: center; gap: 16px; font-size: 12px; color: var(--sage-500); }
+
+    .btn-solve {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1.25rem;
+      border-radius: var(--radius-box);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-size: 0.875rem;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s;
+      background: var(--sage-500);
+      color: white;
+    }
+    .btn-solve:hover { background: var(--sage-700); }
+
+    /* Empty State */
+    .empty-state { text-align: center; padding: 60px 20px; }
+    .empty-icon { font-size: 40px; margin-bottom: 16px; opacity: 0.4; }
+    .empty-title { font-size: 18px; font-weight: 600; color: var(--sage-700); margin-bottom: 8px; }
+    .empty-desc { font-size: 14px; color: var(--sage-500); }
+
+    /* Loading */
+    .loading { display: flex; align-items: center; justify-content: center; height: 200px; }
+    .spinner { width: 32px; height: 32px; border: 3px solid var(--sage-100); border-top-color: var(--sage-500); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* View States */
+    .view { display: none; }
+    .view.active { display: block; animation: fadeIn 0.2s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Demo Controls */
+    .demo-controls {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: white;
+      padding: 16px;
+      border-radius: var(--radius-box);
+      box-shadow: var(--shadow);
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      border: 1px solid var(--sage-100);
+    }
+    .demo-btn {
+      padding: 8px 14px;
+      border-radius: var(--radius-box);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      border: 1px solid var(--sage-100);
+      cursor: pointer;
+      transition: all 0.15s;
+      background: white;
+      color: var(--sage-700);
+    }
+    .demo-btn:hover { background: var(--sage-100); }
+    .demo-btn.primary { background: var(--sage-500); color: white; border-color: var(--sage-500); }
+    .demo-btn.primary:hover { background: var(--sage-700); }
+
+    .piece-wK::before { content: "♔"; } .piece-wQ::before { content: "♕"; }
+    .piece-wR::before { content: "♖"; } .piece-wB::before { content: "♗"; }
+    .piece-wN::before { content: "♘"; } .piece-wP::before { content: "♙"; }
+    .piece-bK::before { content: "♚"; } .piece-bQ::before { content: "♛"; }
+    .piece-bR::before { content: "♜"; } .piece-bB::before { content: "♝"; }
+    .piece-bN::before { content: "♞"; } .piece-bP::before { content: "♟"; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div>
+        <h1>♟ Puzzle</h1>
+        <p>Scegli una categoria per iniziare ad allenarti</p>
+      </div>
+    </header>
+
+    <nav class="category-tabs" role="tablist">
+      <button class="category-tab active" role="tab" aria-selected="true" data-category="mix" onclick="selectCategory('mix')">
+        Mix <span class="count">15.234</span>
+      </button>
+      <button class="category-tab" role="tab" aria-selected="false" data-category="phases" onclick="selectCategory('phases')">
+        Fasi <span class="count">12.890</span>
+      </button>
+      <button class="category-tab" role="tab" aria-selected="false" data-category="motifs" onclick="selectCategory('motifs')">
+        Motivi <span class="count">28.456</span>
+      </button>
+      <button class="category-tab" role="tab" aria-selected="false" data-category="mates" onclick="selectCategory('mates')">
+        Matti <span class="count">8.743</span>
+      </button>
+      <button class="category-tab" role="tab" aria-selected="false" data-category="mate-themes" onclick="selectCategory('mate-themes')">
+        Temi <span class="count">3.211</span>
+      </button>
+    </nav>
+
+    <!-- Categories View -->
+    <section id="view-categories" class="view active">
+      <div class="subcategory-grid" id="categories-overview">
+        <article class="subcategory-card featured" onclick="selectCategory('mix')">
+          <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
+            <div>
+              <div class="subcategory-name">Mix — Allenamento completo</div>
+              <div class="subcategory-desc">Tutti i puzzle mescolati. Non sai cosa aspettarti.</div>
+            </div>
+            <div class="subcategory-count">15.234</div>
+          </div>
+        </article>
+
+        <article class="subcategory-card" style="border-left:3px solid #5b8ab8" onclick="selectCategory('phases')">
+          <div class="subcategory-icon">📚</div>
+          <div class="subcategory-name">Fasi di Gioco</div>
+          <div class="subcategory-count">12.890</div>
+          <div style="font-size:11px;color:var(--sage-500)">Apertura &middot; Mediogioco &middot; Finale</div>
+        </article>
+
+        <article class="subcategory-card" style="border-left:3px solid #b89a5b" onclick="selectCategory('motifs')">
+          <div class="subcategory-icon">⚡</div>
+          <div class="subcategory-name">Motivi Tattici</div>
+          <div class="subcategory-count">28.456</div>
+          <div style="font-size:11px;color:var(--sage-500)">Fork, Pin, Skewer, Doppio attacco&hellip;</div>
+        </article>
+
+        <article class="subcategory-card" style="border-left:3px solid #b85b5b" onclick="selectCategory('mates')">
+          <div class="subcategory-icon">🏁</div>
+          <div class="subcategory-name">Scacco Matto</div>
+          <div class="subcategory-count">8.743</div>
+          <div style="font-size:11px;color:var(--sage-500)">Matto in 1&ndash;5 mosse</div>
+        </article>
+
+        <article class="subcategory-card" style="border-left:3px solid #8a5bb8" onclick="selectCategory('mate-themes')">
+          <div class="subcategory-icon">🎨</div>
+          <div class="subcategory-name">Temi di Matto</div>
+          <div class="subcategory-count">3.211</div>
+          <div style="font-size:11px;color:var(--sage-500)">Anastasia, Arabo, Soffocato&hellip;</div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Subcategories View -->
+    <section id="view-subcategories" class="view">
+      <nav class="breadcrumb">
+        <a href="#" onclick="showView('categories'); return false;">Puzzle</a>
+        <span>/</span>
+        <span class="current" id="subcat-title">Categoria</span>
+      </nav>
+      <div class="category-header">
+        <h2 id="subcat-heading">Categoria</h2>
+        <div class="meta">
+          <span id="subcat-total">0 puzzle</span>
+          <button class="btn-back" onclick="showView('categories')">← Indietro</button>
+        </div>
+      </div>
+      <div class="subcategory-grid" id="subcategory-grid"></div>
+    </section>
+
+    <!-- Puzzles View -->
+    <section id="view-puzzles" class="view">
+      <nav class="breadcrumb">
+        <a href="#" onclick="showView('categories'); return false;">Puzzle</a>
+        <span>/</span>
+        <a href="#" onclick="goBackToSubcategories(); return false;" id="puzzle-cat-link">Categoria</a>
+        <span>/</span>
+        <span class="current" id="puzzle-subcat-title">Sottocategoria</span>
+      </nav>
+      <div class="category-header">
+        <h2 id="puzzle-heading">Puzzle</h2>
+        <div class="meta">
+          <span id="puzzle-count">0 puzzle disponibili</span>
+          <button class="btn-back" onclick="goBackToSubcategories()">← Indietro</button>
+        </div>
+      </div>
+
+      <div class="filter-bar">
+        <span class="filter-label">Difficoltà</span>
+        <select class="filter-select" id="difficulty-filter" onchange="filterPuzzles()">
+          <option value="">Tutte (1&ndash;10)</option>
+          <option value="1-3">Facile (1&ndash;3)</option>
+          <option value="4-6">Media (4&ndash;6)</option>
+          <option value="7-10">Difficile (7&ndash;10)</option>
+        </select>
+        <button class="filter-btn" id="load-more-btn" onclick="loadMorePuzzles()">Carica altri</button>
+      </div>
+
+      <div class="puzzle-grid" id="puzzle-grid"></div>
+
+      <div class="empty-state" id="empty-state" style="display:none">
+        <div class="empty-icon">🔍</div>
+        <div class="empty-title">Nessun puzzle trovato</div>
+        <div class="empty-desc">Prova a cambiare i filtri o seleziona un'altra categoria.</div>
+      </div>
+
+      <div class="loading" id="loading-state" style="display:none">
+        <div class="spinner"></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="demo-controls">
+    <button class="demo-btn primary" onclick="simulateLoad('fork')">Carica Fork</button>
+    <button class="demo-btn" onclick="simulateEmpty()">Mostra vuoto</button>
+    <button class="demo-btn" onclick="simulateLoad('mate_in_2')">Carica Matto in 2</button>
+  </div>
+
+  <script>
+    const CATEGORIES = {
+      mix: { title: 'Mix', icon: '🎯', total: 15234, subs: [] },
+      phases: {
+        title: 'Fasi di Gioco', icon: '📚', total: 12890,
+        subs: [
+          { key: 'opening', name: 'Apertura', icon: '🌅', count: 319471, desc: 'Prime 12 mosse, teoria e trappole' },
+          { key: 'middlegame', name: 'Mediogioco', icon: '⚔️', count: 2894164, desc: 'Tattica complessa, attacchi al re' },
+          { key: 'endgame', name: 'Finale', icon: '🏁', count: 3137020, desc: 'Tecnica di finale, promozioni' },
+          { key: 'rook_endgame', name: 'Finale di Torri', icon: '🏰', count: 334187, desc: 'Torri vs pedoni' },
+          { key: 'bishop_endgame', name: 'Finale di Alfieri', icon: '⛪', count: 84773, desc: 'Alfieri stesso/opposto colore' },
+          { key: 'pawn_endgame', name: 'Finale di Pedoni', icon: '♟️', count: 226723, desc: 'Corse pedonali, opposizione' },
+          { key: 'knight_endgame', name: 'Finale di Cavalli', icon: '🐎', count: 51441, desc: 'Manovre cavalli' },
+          { key: 'queen_endgame', name: 'Finale di Donne', icon: '👑', count: 72470, desc: 'Scacco perpetuo' },
+          { key: 'queen_rook_endgame', name: 'Donna + Torri', icon: '👑🏰', count: 46917, desc: 'Finali complessi' },
+        ]
+      },
+      motifs: {
+        title: 'Motivi Tattici', icon: '⚡', total: 28456,
+        subs: [
+          { key: 'fork', name: 'Forcella', icon: '⚡', count: 1247, desc: 'Attacco doppio (solitamente cavallo)' },
+          { key: 'pin', name: 'Inchiodatura', icon: '📌', count: 2156, desc: 'Pezzo inchiodato a pezzo di valore' },
+          { key: 'skewer', name: 'Infilata', icon: '🔱', count: 892, desc: 'Pezzo di valore costretto a muovere' },
+          { key: 'double_attack', name: 'Doppio Attacco', icon: '🎯', count: 1034, desc: 'Due minacce simultanee' },
+          { key: 'discovered_attack', name: 'Attacco di Scoperta', icon: '👁', count: 567, desc: 'Scoprendo un pezzo se ne attacca un altro' },
+          { key: 'double_check', name: 'Doppio Scacco', icon: '⚡⚡', count: 234, desc: 'Scacco da due pezzi' },
+          { key: 'exposed_king', name: 'Re Esposto', icon: '👑', count: 1892, desc: 'Re vulnerabile ad attacchi' },
+          { key: 'hanging_piece', name: 'Pezzo Sospeso', icon: '🎯', count: 2441, desc: 'Pezzo non difeso catturabile' },
+          { key: 'kingside_attack', name: 'Attacco lato Re', icon: '⚔️', count: 1123, desc: 'Attacco al re arroccato' },
+          { key: 'sacrifice', name: 'Sacrificio', icon: '🎁', count: 987, desc: 'Dare materiale per vantaggio' },
+          { key: 'trapped_piece', name: 'Pezzo Intrappolato', icon: '🕸️', count: 445, desc: 'Pezzo senza case di fuga' },
+          { key: 'advanced_pawn', name: 'Pedone Avanzato', icon: '⬆️', count: 678, desc: 'Pedone passato minaccioso' },
+        ]
+      },
+      mates: {
+        title: 'Scacco Matto', icon: '🏁', total: 8743,
+        subs: [
+          { key: 'mate_in_1', name: 'Matto in 1', icon: '1️⃣', count: 1234, desc: 'Matto immediato' },
+          { key: 'mate_in_2', name: 'Matto in 2', icon: '2️⃣', count: 3456, desc: 'Matto forzato in due mosse' },
+          { key: 'mate_in_3', name: 'Matto in 3', icon: '3️⃣', count: 2101, desc: 'Matto forzato in tre mosse' },
+          { key: 'mate_in_4', name: 'Matto in 4', icon: '4️⃣', count: 987, desc: 'Matto in quattro mosse' },
+          { key: 'mate_in_5', name: 'Matto in 5', icon: '5️⃣', count: 543, desc: 'Matto in cinque mosse' },
+          { key: 'checkmate', name: 'Matto Generico', icon: '🏁', count: 423, desc: 'Matto lunghezza variabile' },
+        ]
+      },
+      'mate-themes': {
+        title: 'Temi di Matto', icon: '🎨', total: 3211,
+        subs: [
+          { key: 'back_rank_mate', name: 'Matto di Rigida', icon: '🚪', count: 567, desc: 'Sulla prima traversa' },
+          { key: 'smothered_mate', name: 'Matto Soffocato', icon: '😷', count: 234, desc: 'Cavallo dà matto a re circondato' },
+          { key: 'anastasia_mate', name: 'Matto Anastasia', icon: '👸', count: 234, desc: 'Torre + cavallo' },
+          { key: 'arabian_mate', name: 'Matto Arabo', icon: '🏜️', count: 189, desc: 'Torre + cavallo classico' },
+          { key: 'boden_mate', name: 'Matto Boden', icon: '⛪', count: 123, desc: 'Due alfieri' },
+          { key: 'opera_mate', name: 'Matto Opera', icon: '🎭', count: 56, desc: 'Dalla partita dell\'Opera' },
+          { key: 'hook_mate', name: 'Matto Uncino', icon: '🪝', count: 134, desc: 'Torre + cavallo + pedone' },
+          { key: 'vukovic_mate', name: 'Matto Vukovic', icon: '🏰', count: 45, desc: 'Torre protetta da alfiere' },
+          { key: 'double_bishop_mate', name: 'Doppio Alfiere', icon: '⛪⛪', count: 78, desc: 'Due alfieri coordinati' },
+          { key: 'epaulette_mate', name: 'Matto Epaulette', icon: '🎖️', count: 98, desc: 'Re bloccato da pezzi ai lati' },
+          { key: 'corner_mate', name: 'Matto d\'Angolo', icon: '📐', count: 167, desc: 'Matto nell\'angolo' },
+        ]
+      }
+    };
+
+    const SAMPLE = {
+      fork: [
+        { id:1, fen:'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1', sol:['e5','Nf3','Nc6','Bb5'], theme:'fork', diff:3, phase:'opening' },
+        { id:2, fen:'r1bqkb1r/pppp1ppp/2n5/4p3/3NP3/8/PPP2PPP/RNB1KB1R w KQkq - 1 4', sol:['Nxf6+','Qxf6','Qxd8+'], theme:'fork', diff:4, phase:'middlegame' },
+        { id:3, fen:'8/8/8/3N4/8/5k2/8/4K3 w - - 0 1', sol:['Ne3+','Ke5','Nxg4'], theme:'fork', diff:2, phase:'endgame' },
+        { id:4, fen:'r2q1rk1/ppp2ppp/2np1n2/3N4/3P4/2P5/PP2PPPP/R1BQKBNR w KQ - 0 1', sol:['Nxe5','dxe5','Qxg7','Kxg7','Bxe5+'], theme:'fork', diff:6, phase:'middlegame' },
+        { id:5, fen:'r1bq1rk1/ppp2ppp/2np1n2/3Np3/3P4/2P5/PP2PPPP/R1BQKBNR w KQ - 0 1', sol:['Nxf6+','gxf6','Bxh6+'], theme:'fork', diff:5, phase:'middlegame' },
+        { id:6, fen:'8/8/5k2/8/5K2/8/8/5N2 w - - 0 1', sol:['Ng3+','Ke6','Ne4'], theme:'fork', diff:1, phase:'endgame' },
+      ],
+      pin: [
+        { id:7, fen:'r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4', sol:['Bxf7+','Kxf7','Qxd8'], theme:'pin', diff:4, phase:'opening' },
+        { id:8, fen:'r1bq1rk1/ppp2ppp/2np1n2/4p3/2B1P3/2N2N2/PPP2PPP/R1BQ1RK1 w - - 0 1', sol:['Bg5','h6','Bxf6'], theme:'pin', diff:5, phase:'middlegame' },
+      ],
+      mate_in_2: [
+        { id:9, fen:'r1bq1rk1/ppp2ppp/2np1n2/4p2Q/2B1P3/2N2N2/PPP2PPP/R1B2RK1 w - - 0 1', sol:['Qh7+','Kf8','Qxf7#'], theme:'mate_in_2', diff:3, phase:'middlegame' },
+        { id:10, fen:'8/5k2/5Q2/8/8/8/8/4K3 w - - 0 1', sol:['Qg7+','Ke8','Qe7#'], theme:'mate_in_2', diff:2, phase:'endgame' },
+      ],
+      smothered_mate: [
+        { id:11, fen:'r1b2rk1/ppq2ppp/2n5/4p3/3N4/2N2Q2/PP3PPP/R1B2RK1 w - - 0 1', sol:['Qg8+','Rxg8','Nf7#'], theme:'smothered_mate', diff:4, phase:'middlegame' },
+      ],
+      back_rank_mate: [
+        { id:12, fen:'r1b2rk1/ppq2ppp/2n5/4p3/3Q4/2N2N2/PP3PPP/R1B2RK1 w - - 0 1', sol:['Qd8+','Rxd8','Rxd8#'], theme:'back_rank_mate', diff:4, phase:'middlegame' },
+      ],
+      hanging_piece: [
+        { id:13, fen:'rnbqkb1r/pppppppp/5n2/8/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 1 2', sol:['Qd5','Nc6','Bf4'], theme:'hanging_piece', diff:2, phase:'opening' },
+      ],
+    };
+
+    let currentCategory = 'mix';
+    let currentSubcategory = null;
+    let displayedPuzzles = [];
+    const PER_PAGE = 6;
+
+    function updateTabs() {
+      document.querySelectorAll('.category-tab').forEach(t => {
+        const isActive = t.dataset.category === currentCategory;
+        t.classList.toggle('active', isActive);
+        t.setAttribute('aria-selected', String(isActive));
+      });
+    }
+
+    function showView(id) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.getElementById('view-' + id).classList.add('active');
+      updateTabs();
+    }
+
+    function selectCategory(cat) {
+      currentCategory = cat;
+      updateTabs();
+      const c = CATEGORIES[cat];
+      if (!c.subs || c.subs.length === 0) {
+        currentSubcategory = cat;
+        showView('puzzles');
+        loadPuzzles(true);
+      } else {
+        showView('subcategories');
+        renderSubs();
+      }
+    }
+
+    function renderSubs() {
+      const c = CATEGORIES[currentCategory];
+      document.getElementById('subcat-title').textContent = c.title;
+      document.getElementById('subcat-heading').textContent = c.icon + ' ' + c.title;
+      document.getElementById('subcat-total').textContent = c.total.toLocaleString() + ' puzzle';
+
+      const grid = document.getElementById('subcategory-grid');
+      grid.innerHTML = c.subs.map(s => `
+        <article class="subcategory-card" onclick="selectSub('${s.key}')">
+          <div class="subcategory-icon">${s.icon}</div>
+          <div class="subcategory-name">${s.name}</div>
+          <div class="subcategory-count">${s.count.toLocaleString()}</div>
+          <div style="font-size:11px;color:var(--sage-500)">${s.desc}</div>
+        </article>
+      `).join('');
+    }
+
+    function selectSub(key) {
+      currentSubcategory = key;
+      showView('puzzles');
+      loadPuzzles(true);
+    }
+
+    function goBackToSubcategories() {
+      if (currentCategory && CATEGORIES[currentCategory].subs && CATEGORIES[currentCategory].subs.length > 0) {
+        showView('subcategories');
+      } else {
+        showView('categories');
+      }
+    }
+
+    function loadPuzzles(reset) {
+      if (reset) displayedPuzzles = [];
+
+      const grid = document.getElementById('puzzle-grid');
+      const empty = document.getElementById('empty-state');
+      const btn = document.getElementById('load-more-btn');
+      const loading = document.getElementById('loading-state');
+
+      loading.style.display = 'flex';
+      grid.innerHTML = '';
+      empty.style.display = 'none';
+      btn.style.display = 'block';
+      btn.disabled = true;
+      btn.textContent = 'Caricamento...';
+
+      setTimeout(() => {
+        let pool = currentSubcategory === 'mix'
+          ? [].concat(...Object.values(SAMPLE))
+          : (SAMPLE[currentSubcategory] || []);
+
+        const filter = document.getElementById('difficulty-filter').value;
+        if (filter) {
+          const [min, max] = filter.split('-').map(Number);
+          pool = pool.filter(p => p.diff >= min && p.diff <= max);
+        }
+
+        loading.style.display = 'none';
+
+        if (pool.length === 0 && displayedPuzzles.length === 0) {
+          empty.style.display = 'block';
+          btn.style.display = 'none';
+          document.getElementById('puzzle-count').textContent = '0 puzzle disponibili';
+          return;
+        }
+
+        const start = displayedPuzzles.length;
+        const chunk = pool.slice(start, start + PER_PAGE);
+        chunk.forEach(p => grid.appendChild(card(p)));
+        displayedPuzzles.push(...chunk);
+
+        document.getElementById('puzzle-count').textContent = pool.length + ' puzzle disponibili';
+
+        if (displayedPuzzles.length >= pool.length) {
+          btn.style.display = 'none';
+        } else {
+          btn.disabled = false;
+          btn.textContent = 'Carica altri';
+        }
+
+        const c = CATEGORIES[currentCategory];
+        const sub = c.subs ? c.subs.find(s => s.key === currentSubcategory) : null;
+        document.getElementById('puzzle-cat-link').textContent = c.title;
+        document.getElementById('puzzle-subcat-title').textContent = sub ? sub.name : c.title;
+        document.getElementById('puzzle-heading').textContent = (sub ? sub.icon : c.icon) + ' ' + (sub ? sub.name : c.title);
+      }, 400);
+    }
+
+    function loadMorePuzzles() { loadPuzzles(false); }
+    function filterPuzzles() { loadPuzzles(true); }
+
+    function card(p) {
+      const c = document.createElement('article');
+      c.className = 'puzzle-card';
+      const dc = p.diff <= 3 ? 'easy' : p.diff <= 6 ? 'medium' : 'hard';
+      const tl = p.theme.replace(/_/g,' ').replace(/\b\w/g,x=>x.toUpperCase());
+      const pl = p.phase.charAt(0).toUpperCase()+p.phase.slice(1);
+      c.innerHTML = `
+        <div class="puzzle-header">
+          <span class="puzzle-theme ${dc}">${tl}</span>
+          <span class="puzzle-phase ${p.phase}">${pl}</span>
+          <span class="puzzle-difficulty">${p.diff}/10</span>
+        </div>
+        <div class="puzzle-board" id="b${p.id}"></div>
+        <div class="puzzle-footer">
+          <div class="puzzle-stats">
+            <span>♟ ${p.sol.length} mosse</span>
+            <span>#${p.id}</span>
+          </div>
+          <button class="btn-solve" onclick="alert('Avvia solver #${p.id}')">Risolvi</button>
+        </div>`;
+      setTimeout(() => render(p.fen, document.getElementById('b'+p.id)), 0);
+      return c;
+    }
+
+    function render(fen, el) {
+      if (!el) return;
+      const rows = fen.split(' ')[0].split('/');
+      let html = '<div class="board-grid">';
+      rows.forEach((r, ri) => {
+        let f = 0;
+        [...r].forEach(ch => {
+          if (ch >= '1' && ch <= '8') { f += +ch; return; }
+          const sq = (ri + f) % 2 === 0 ? 'light' : 'dark';
+          const c = ch === ch.toUpperCase() ? 'w' : 'b';
+          const sym = {K:'K',Q:'Q',R:'R',B:'B',N:'N',P:'P'}[ch.toUpperCase()];
+          html += `<div class="board-square ${sq}"><span class="piece piece-${c}${sym}"></span></div>`;
+          f++;
+        });
+        // fill remaining squares
+        while (f < 8) {
+          const sq = (ri + f) % 2 === 0 ? 'light' : 'dark';
+          html += `<div class="board-square ${sq}"></div>`;
+          f++;
+        }
+      });
+      html += '</div>';
+      el.innerHTML = html;
+    }
+
+    function simulateLoad(key) {
+      selectCategory(key === 'mate_in_2' ? 'mates' : 'motifs');
+      setTimeout(() => { selectSub(key); }, 200);
+    }
+
+    function simulateEmpty() {
+      currentSubcategory = 'fork';
+      showView('puzzles');
+      document.getElementById('puzzle-grid').innerHTML = '';
+      document.getElementById('empty-state').style.display = 'block';
+      document.getElementById('load-more-btn').style.display = 'none';
+      document.getElementById('puzzle-count').textContent = '0 puzzle disponibili';
+    }
+  </script>
+</body>
+</html>

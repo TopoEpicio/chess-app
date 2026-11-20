@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chess Training — Analysis Redesign Variants</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #F7F7FA;
+      --surface: #FFFFFF;
+      --border: #E6E7EC;
+      --text: #111827;
+      --text-secondary: #4B5563;
+      --text-muted: #6B7280;
+      --primary: #4F46E5;
+      --primary-light: #EEF0FF;
+      --success: #10B981;
+      --warning: #F59E0B;
+      --danger: #F43F5E;
+      --shadow: 0 4px 12px rgba(17, 24, 39, 0.06);
+      --shadow-lg: 0 12px 28px rgba(17, 24, 39, 0.08);
+      --radius: 12px;
+      --radius-lg: 16px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; -webkit-font-smoothing: antialiased; }
+    body {
+      font-family: 'Geist', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+    .font-mono { font-family: 'Geist Mono', monospace; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    header { text-align: center; margin-bottom: 48px; }
+    h1 { font-size: clamp(32px, 5vw, 48px); font-weight: 700; letter-spacing: -0.02em; margin-bottom: 12px; }
+    .subtitle { font-size: 18px; color: var(--text-secondary); max-width: 600px; margin: 0 auto; }
+    .variants-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    @media (max-width: 1024px) { .variants-grid { grid-template-columns: 1fr; } }
+    .variant-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .variant-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-4px); }
+    .variant-thumb {
+      aspect-ratio: 16 / 10;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .variant-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .thumb-placeholder {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 12px; color: var(--text-muted); padding: 20px; text-align: center;
+    }
+    .thumb-placeholder svg { width: 48px; height: 48px; stroke: var(--text-muted); opacity: 0.5; }
+    .variant-body { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+    .variant-tag { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 100px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; width: fit-content; }
+    .tag-editorial { background: #E8F5E9; color: #2E5B3B; }
+    .tag-broadcast { background: #0F131A; color: #38E0A6; }
+    .tag-saas { background: var(--primary-light); color: var(--primary); }
+    .variant-title { font-size: 20px; font-weight: 600; color: var(--text); }
+    .variant-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
+    .variant-highlights { display: flex; flex-wrap: wrap; gap: 8px; }
+    .highlight { font-family: 'Geist Mono', monospace; font-size: 11px; padding: 4px 10px; border-radius: 6px; background: var(--bg); border: 1px solid var(--border); color: var(--text-muted); }
+    .variant-actions { display: flex; gap: 12px; margin-top: auto; padding-top: 8px; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px;
+      border-radius: var(--radius); font-size: 13px; font-weight: 500; font-family: inherit;
+      border: 1px solid transparent; cursor: pointer; transition: all 0.15s; text-decoration: none;
+    }
+    .btn-primary { background: var(--primary); color: white; border-color: var(--primary); flex: 1; justify-content: center; }
+    .btn-primary:hover { background: #4338CA; border-color: #4338CA; }
+    .btn-secondary { background: var(--surface); color: var(--text); border-color: var(--border); flex: 1; justify-content: center; }
+    .btn-secondary:hover { background: var(--bg); border-color: var(--border); }
+    .key-principles { margin-top: 64px; padding-top: 32px; border-top: 1px solid var(--border); }
+    .key-principles h2 { font-size: 24px; font-weight: 600; margin-bottom: 24px; }
+    .principles-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    @media (max-width: 900px) { .principles-grid { grid-template-columns: 1fr; } }
+    .principle-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; }
+    .principle-card h3 { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+    .principle-card p { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
+    footer { margin-top: 48px; text-align: center; color: var(--text-muted); font-size: 13px; }
+    footer a { color: var(--primary); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Chess Training — Analysis Redesign</h1>
+      <p class="subtitle">Three divergent directions for a fuller, richer Analysis page. Each variant is a complete standalone mockup with the same content but different aesthetic DNA. Open the links below in a new tab to explore.</p>
+    </header>
+
+    <div class="variants-grid">
+      <!-- Variant A -->
+      <article class="variant-card">
+        <div class="variant-thumb">
+          <div class="thumb-placeholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 13h6M9 17h4"/></svg>
+            <span>Screenshot not captured<br><small>Open index.html to view</small></span>
+          </div>
+        </div>
+        <div class="variant-body">
+          <span class="variant-tag tag-editorial">Club Editorial</span>
+          <h2 class="variant-title">Variant A — Club Editorial</h2>
+          <p class="variant-desc">Warm, premium, serif-led. A chess-club journal that happens to be interactive. Asymmetric editorial layout with a fixed icon rail, paper-like canvas, Fraunces display type, and brass/forest/terracotta palette.</p>
+          <div class="variant-highlights">
+            <span class="highlight">Fraunces + Inter + JetBrains Mono</span>
+            <span class="highlight">Asymmetric 3-col workspace</span>
+            <span class="highlight">Editorial scorecards (not chips)</span>
+            <span class="highlight">Warm ivory canvas #F6F1E7</span>
+            <span class="highlight">Brass accent #A9822F</span>
+            <span class="highlight">Timeline strip + system strip</span>
+          </div>
+          <div class="variant-actions">
+            <a href="variant-a-editorial/index.html" class="btn btn-primary" target="_blank"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Open Mockup</a>
+            <a href="variant-a-editorial/index.html" class="btn btn-secondary" target="_blank">View Source</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- Variant B -->
+      <article class="variant-card">
+        <div class="variant-thumb">
+          <div class="thumb-placeholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 13h6M9 17h4"/></svg>
+            <span>Screenshot not captured<br><small>Open index.html to view</small></span>
+          </div>
+        </div>
+        <div class="variant-body">
+          <span class="variant-tag tag-broadcast">Broadcast Studio</span>
+          <h2 class="variant-title">Variant B — Broadcast Studio</h2>
+          <p class="variant-desc">Dark, live, telemetry-dense. A chess broadcast control room. Top broadcast bar with LIVE badge, player strips with clocks, telemetry rail (engine bars, depth gauge, NPS), glowing eval bar, bottom ticker with move scrubber.</p>
+          <div class="variant-highlights">
+            <span class="highlight">Space Grotesk + IBM Plex Mono</span>
+            <span class="highlight">Broadcast chrome layout</span>
+            <span class="highlight">Telemetry rail (bars + gauges)</span>
+            <span class="highlight">Dark stage #0B0E13</span>
+            <span class="highlight">Mint #38E0A6 / Electric #4D7CFE</span>
+            <span class="highlight">Fixed bottom ticker</span>
+          </div>
+          <div class="variant-actions">
+            <a href="variant-b-broadcast/index.html" class="btn btn-primary" target="_blank"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Open Mockup</a>
+            <a href="variant-b-broadcast/index.html" class="btn btn-secondary" target="_blank">View Source</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- Variant C -->
+      <article class="variant-card">
+        <div class="variant-thumb">
+          <div class="thumb-placeholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 13h6M9 17h4"/></svg>
+            <span>Screenshot not captured<br><small>Open index.html to view</small></span>
+          </div>
+        </div>
+        <div class="variant-body">
+          <span class="variant-tag tag-saas">Quiet SaaS</span>
+          <h2 class="variant-title">Variant C — Quiet SaaS</h2>
+          <p class="variant-desc">Calm, structured, product-grade. A modern app shell with 240px sidebar, command bar (⌘K), KPI cards, 12-col grid (board 7 / insight 5), full-width timeline module with move table, status bar with auto-save indicator.</p>
+          <div class="variant-highlights">
+            <span class="highlight">Geist + Geist Mono</span>
+            <span class="highlight">App shell with sidebar</span>
+            <span class="highlight">KPI cards + 12-col grid</span>
+            <span class="highlight">Light neutral #F7F7FA</span>
+            <span class="highlight">Indigo primary #4F46E5</span>
+            <span class="highlight">Command bar + status bar</span>
+          </div>
+          <div class="variant-actions">
+            <a href="variant-c-saas/index.html" class="btn btn-primary" target="_blank"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Open Mockup</a>
+            <a href="variant-c-saas/index.html" class="btn btn-secondary" target="_blank">View Source</a>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <section class="key-principles">
+      <h2>Shared Requirements (All Variants)</h2>
+      <div class="principles-grid">
+        <article class="principle-card">
+          <h3>Fuller Pages</h3>
+          <p>No dead space. Persistent nav, rich headers, KPI/telemetry rows, multiple info layers, footer/status bar. Every page feels like a complete product.</p>
+        </article>
+        <article class="principle-card">
+          <h3>Analysis Content</h3>
+          <p>Board with arrows, eval bar + live depth, toolbar, 3 engine lines with SAN, 5 tabs (Riepilogo/Grafico/Mosse/Freece/Coach), move list, stats, classifications, coach insight, actions.</p>
+        </article>
+        <article class="principle-card">
+          <h3>System Strip</h3>
+          <p>Bottom section showing Home/Studio/Puzzles thumbnails in the same visual language, plus design token reference (type scale, color swatches, spacing/radius).</p>
+        </article>
+        <article class="principle-card">
+          <h3>Responsive</h3>
+          <p>Desktop (1440px) and mobile (390px) — columns stack, board scales, no horizontal scroll. Touch-friendly targets, readable type at all sizes.</p>
+        </article>
+        <article class="principle-card">
+          <h3>Accessibility</h3>
+          <p>Semantic HTML, ARIA labels/roles, focus-visible states, contrast ratios, keyboard navigation, reduced-motion support, Italian content throughout.</p>
+        </article>
+        <article class="principle-card">
+          <h3>Technical</h3>
+          <p>Single index.html + assets/ per variant. Vanilla JS for tabs only. CSS Grid/Flexbox. Google Fonts via CDN. Chessboard = CSS grid + Unicode pieces + SVG arrows. No frameworks, no build step.</p>
+        </article>
+      </div>
+    </section>
+
+    <footer>
+      <p>Generated for Chess Training redesign exploration — <a href="variant-a-editorial/index.html" target="_blank">Variant A</a> · <a href="variant-b-broadcast/index.html" target="_blank">Variant B</a> · <a href="variant-c-saas/index.html" target="_blank">Variant C</a></p>
+      <p class="font-mono" style="margin-top: 8px;">Paths: docs/mockups/analysis-redesign/variant-{a-editorial,b-broadcast,c-saas}/index.html</p>
+    </footer>
+  </div>
+</body>
+</html>

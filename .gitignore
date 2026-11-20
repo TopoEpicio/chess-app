@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+dist/
+build/
+.vite/
+
+# Local databases and runtime artifacts
+backend/data/*.db-journal
+backend/data/*.db-wal
+backend/data/*.db-shm
+backend/data/*.db
+backend/test.db
+backend/test_*.db
+backend/server.log
+backend/server.log)*
+backend/uploads/*
+!backend/uploads/.gitkeep
+frontend/frontend-dev.log
+frontend/dist/
+frontend/node_modules/.tmp/
+
+# Local env / editor
+.env
+.env.local
+.DS_Store
+.idea/
+.vscode/
+
+# Local agent state
+.opencode/
+
+# Scratch / debug artifacts
+frontend/fix*.py
+frontend/fix*.cjs
+frontend/fix*.mjs
+frontend/tmp_fix*.mjs
+frontend/write_*.py
+frontend/*_out.txt
+frontend/vitest_*.txt
+frontend/i18n_audit.txt
+frontend/italian_*.txt
+frontend/fix_analysis_b64.txt
+frontend/src/pages/*.bak
+frontend/scripts/probe*.mjs
+frontend/scripts/*.png
+frontend/scripts/*-debug.txt

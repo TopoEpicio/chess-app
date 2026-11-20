@@ -1,0 +1,1932 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chess Training — Analisi · Broadcast Studio (Variante B)</title>
+<meta name="description" content="Mockup di design: pagina Analisi ridisegnata come una regia broadcast. Variante B — Broadcast Studio.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   1. DESIGN TOKENS
+   ============================================================ */
+:root{
+  --bg:#0B0E13;
+  --panel:#12171F;
+  --panel-2:#0F141B;
+  --raised:#18202B;
+  --raised-2:#1E2836;
+  --line:#243040;
+  --line-soft:#1A2430;
+  --text:#E6EDF5;
+  --muted:#8A99AD;
+  --muted-2:#6A7A8E;
+  --mint:#38E0A6;
+  --mint-dim:#1E8E6B;
+  --blue:#4D7CFE;
+  --red:#FF4D6D;
+  --amber:#FFC857;
+  --violet:#A78BFA;
+  --orange:#FF8A5C;
+  --sans:"Space Grotesk","Segoe UI",system-ui,sans-serif;
+  --mono:"IBM Plex Mono","Cascadia Mono",ui-monospace,Consolas,monospace;
+  --r:5px;
+  --r-sm:3px;
+  --shadow:0 22px 44px -28px rgba(0,0,0,.95);
+  --glow-mint:0 0 26px rgba(56,224,166,.30);
+  --glow-blue:0 0 24px rgba(77,124,254,.30);
+}
+
+/* ============================================================
+   2. BASE / ATMOSPHERE
+   ============================================================ */
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  font-size:14px;
+  line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+/* stage light: two soft coloured washes + a faint technical grid */
+body::before{
+  content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(820px 420px at 16% -8%, rgba(56,224,166,.085), transparent 62%),
+    radial-gradient(760px 420px at 92% -12%, rgba(77,124,254,.10), transparent 64%),
+    radial-gradient(1100px 520px at 50% 112%, rgba(56,224,166,.05), transparent 62%);
+}
+body::after{
+  content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.20;
+  background-image:
+    linear-gradient(to right, rgba(36,48,64,.55) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(36,48,64,.55) 1px, transparent 1px);
+  background-size:72px 72px;
+  -webkit-mask-image:radial-gradient(120% 90% at 50% 0%, #000 20%, transparent 78%);
+  mask-image:radial-gradient(120% 90% at 50% 0%, #000 20%, transparent 78%);
+}
+.grain{
+  position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.035;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.app{position:relative;z-index:2}
+a{color:inherit}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:disabled{cursor:not-allowed;opacity:.42}
+:focus-visible{outline:2px solid var(--mint);outline-offset:2px;border-radius:2px}
+svg{display:block}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.skip{position:absolute;left:12px;top:-60px;z-index:99;background:var(--mint);color:#04150F;padding:8px 14px;border-radius:var(--r-sm);font-weight:600;text-decoration:none;transition:top .2s}
+.skip:focus{top:12px}
+.wrap{max-width:1360px;margin:0 auto;padding:0 20px}
+
+/* micro label — the workhorse of the system */
+.micro{
+  font-size:9.5px;line-height:1.2;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--muted);font-weight:600;font-family:var(--sans);
+}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* ============================================================
+   3. BROADCAST BAR
+   ============================================================ */
+.bcast{
+  position:sticky;top:0;z-index:40;
+  display:flex;align-items:center;gap:16px;
+  height:54px;padding:0 20px;
+  background:linear-gradient(180deg,#0E141C 0%,#0B0E13 100%);
+  border-bottom:1px solid var(--line);
+  box-shadow:0 1px 0 rgba(255,255,255,.02),0 12px 24px -20px #000;
+}
+.brand{display:flex;align-items:center;gap:9px;flex:0 0 auto}
+.brand__mark{
+  width:26px;height:26px;border-radius:var(--r-sm);
+  display:grid;place-items:center;
+  background:linear-gradient(155deg,rgba(56,224,166,.20),rgba(56,224,166,.04));
+  border:1px solid rgba(56,224,166,.42);
+  color:var(--mint);font-size:17px;line-height:1;
+  box-shadow:inset 0 0 12px rgba(56,224,166,.16);
+}
+.brand__name{font-size:12.5px;font-weight:700;letter-spacing:.10em;text-transform:uppercase}
+.brand__name span{color:var(--muted);font-weight:500}
+.bcast__sep{width:1px;height:22px;background:var(--line);flex:0 0 auto}
+.live-badge{
+  display:inline-flex;align-items:center;gap:8px;flex:0 0 auto;
+  height:26px;padding:0 10px;border-radius:var(--r-sm);
+  background:rgba(255,77,109,.09);border:1px solid rgba(255,77,109,.38);
+  color:#FFDCE2;font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+}
+.dot-live{width:7px;height:7px;border-radius:50%;background:var(--red);position:relative;box-shadow:0 0 10px rgba(255,77,109,.9)}
+.dot-live::after{
+  content:"";position:absolute;inset:-4px;border-radius:50%;border:1px solid var(--red);
+  animation:pulse 2s ease-out infinite;
+}
+@keyframes pulse{0%{transform:scale(.5);opacity:.9}70%{transform:scale(1.9);opacity:0}100%{opacity:0}}
+.bcast__event{display:flex;align-items:center;gap:9px;min-width:0}
+.bcast__event .sep{color:var(--muted-2)}
+.event-name{font-size:12.5px;font-weight:500;color:#C9D5E3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.event-round{font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap}
+.bcast__right{margin-left:auto;display:flex;align-items:center;gap:10px;flex:0 0 auto}
+.onair{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.onair b{color:#C9D5E3;font-weight:500}
+.bbtn{
+  width:32px;height:32px;border-radius:var(--r-sm);
+  display:grid;place-items:center;color:var(--muted);
+  border:1px solid var(--line);background:rgba(255,255,255,.015);
+  transition:color .15s,border-color .15s,background .15s,transform .15s;
+}
+.bbtn:hover{color:var(--text);border-color:rgba(56,224,166,.55);background:rgba(56,224,166,.07)}
+.bbtn:active{transform:translateY(1px)}
+.bbtn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.bcast__clock{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.02em;min-width:74px;text-align:right}
+.bcast__rule{position:absolute;left:0;right:0;bottom:-1px;height:2px;background:linear-gradient(90deg,var(--mint),rgba(56,224,166,.12) 34%,rgba(77,124,254,.55) 72%,var(--blue));opacity:.85}
+.bcast__rule i{position:absolute;inset:0;width:62%;background:rgba(11,14,19,.55)}
+
+/* ============================================================
+   4. PLAYER STRIPS
+   ============================================================ */
+.players{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(240px,320px) minmax(0,1fr);
+  border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,rgba(24,32,43,.55),rgba(12,16,22,.4));
+}
+.pcard{display:flex;align-items:center;gap:12px;padding:10px 18px;min-width:0;position:relative}
+.pcard--white{border-right:1px solid var(--line-soft)}
+.pcard--black{border-left:1px solid var(--line-soft);flex-direction:row-reverse;text-align:right}
+.pcard--white::before,.pcard--black::after{
+  content:"";position:absolute;top:0;bottom:0;width:3px;
+}
+.pcard--white::before{left:0;background:linear-gradient(180deg,var(--mint),rgba(56,224,166,.15))}
+.pcard--black::after{right:0;background:linear-gradient(180deg,var(--blue),rgba(77,124,254,.15))}
+.pavatar{
+  position:relative;flex:0 0 auto;width:46px;height:46px;border-radius:var(--r-sm);overflow:hidden;
+  background:linear-gradient(160deg,#22303E,#141B24);border:1px solid var(--line);
+  display:grid;place-items:center;
+}
+.pavatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(.9) contrast(1.02)}
+.pavatar__fb{font-family:var(--mono);font-size:13px;color:var(--muted);letter-spacing:.04em}
+.pcard--white .pavatar{box-shadow:0 0 0 1px rgba(56,224,166,.25),0 0 18px -6px rgba(56,224,166,.5)}
+.pcard--black .pavatar{box-shadow:0 0 0 1px rgba(77,124,254,.28),0 0 18px -6px rgba(77,124,254,.5)}
+.pid{min-width:0;flex:1 1 auto}
+.pname{display:flex;align-items:baseline;gap:7px;font-size:17px;font-weight:600;letter-spacing:-.01em;line-height:1.2;white-space:nowrap}
+.pcard--black .pname{justify-content:flex-end}
+.pname .nat{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.06em}
+.tchip{
+  font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.06em;
+  padding:1px 4px;border-radius:2px;border:1px solid var(--line);color:var(--muted);
+  background:rgba(255,255,255,.03);
+}
+.pmeta{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden}
+.pcard--black .pmeta{justify-content:flex-end}
+.flag{width:16px;height:11px;border-radius:1px;box-shadow:0 0 0 1px rgba(255,255,255,.14);flex:0 0 auto;display:inline-block;overflow:hidden}
+.flag--it{background:linear-gradient(90deg,#0E8C4A 0 33.3%,#F2F5F7 33.3% 66.6%,#C4363B 66.6%)}
+.flag--de{background:linear-gradient(180deg,#1A1A1A 0 33.3%,#C4363B 33.3% 66.6%,#E8C24B 66.6%)}
+.pclock{flex:0 0 auto;text-align:right;padding-left:12px}
+.pcard--black .pclock{text-align:left;padding-left:0;padding-right:12px}
+.pclock__val{font-family:var(--mono);font-size:23px;font-weight:500;letter-spacing:-.01em;line-height:1;font-variant-numeric:tabular-nums}
+.pcard--white .pclock__val{color:#EAF2F9;text-shadow:0 0 20px rgba(56,224,166,.20)}
+.pcard--black .pclock__val{color:#DCE6F2}
+.pclock .micro{margin-bottom:4px;display:block}
+.pcard__turn{
+  display:inline-flex;align-items:center;gap:5px;margin-top:4px;
+  font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--mint);text-transform:uppercase;
+}
+.pcard__turn i{width:5px;height:5px;border-radius:50%;background:var(--mint);box-shadow:0 0 8px var(--mint);animation:blink 2.4s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.matchmeta{
+  display:flex;flex-direction:column;justify-content:center;align-items:center;gap:3px;
+  padding:8px 12px;text-align:center;min-width:0;
+  background:linear-gradient(180deg,rgba(11,14,19,.35),rgba(11,14,19,.1));
+}
+.matchmeta__open{font-size:12.5px;font-weight:500;color:#C9D5E3;line-height:1.25}
+.matchmeta__sub{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.matchmeta__chips{display:flex;align-items:center;gap:6px;margin-top:3px;flex-wrap:wrap;justify-content:center}
+.chip{
+  display:inline-flex;align-items:center;gap:5px;height:19px;padding:0 7px;border-radius:2px;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;
+  border:1px solid var(--line);color:var(--muted);background:rgba(255,255,255,.025);
+  white-space:nowrap;
+}
+.chip--mint{color:var(--mint);border-color:rgba(56,224,166,.35);background:rgba(56,224,166,.07)}
+.chip--amber{color:var(--amber);border-color:rgba(255,200,87,.32);background:rgba(255,200,87,.06)}
+.chip--red{color:#FF8FA2;border-color:rgba(255,77,109,.35);background:rgba(255,77,109,.07)}
+.chip--blue{color:#93B0FF;border-color:rgba(77,124,254,.35);background:rgba(77,124,254,.07)}
+
+/* ============================================================
+   5. CONSOLE GRID
+   ============================================================ */
+.console{
+  display:grid;
+  grid-template-columns:284px minmax(0,1fr) 396px;
+  grid-template-areas:"rail stage data";
+  gap:12px;
+  align-items:stretch;
+  padding:12px 0 0;
+}
+.panel{
+  background:linear-gradient(180deg,#131A24 0%,#10151D 100%);
+  border:1px solid var(--line);
+  border-radius:var(--r);
+  box-shadow:var(--shadow);
+  min-width:0;
+  position:relative;
+  animation:rise .55s cubic-bezier(.2,.75,.25,1) both;
+}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.rail{grid-area:rail;display:flex;flex-direction:column;animation-delay:.05s}
+.stage{grid-area:stage;display:flex;flex-direction:column;gap:10px;min-width:0;animation-delay:.1s;padding:9px 9px 10px}
+.data{grid-area:data;display:flex;flex-direction:column;min-height:0;animation-delay:.16s}
+.panel__head{display:flex;align-items:center;gap:8px;padding:9px 11px;border-bottom:1px solid var(--line-soft)}
+.panel__head .micro{color:#A9B8C9}
+.panel__head .spacer{margin-left:auto}
+.iconbtn{
+  width:22px;height:22px;border-radius:2px;display:grid;place-items:center;color:var(--muted);
+  border:1px solid transparent;transition:.15s;
+}
+.iconbtn:hover{color:var(--text);border-color:var(--line);background:rgba(255,255,255,.04)}
+.iconbtn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+
+/* ============================================================
+   6. TELEMETRY RAIL
+   ============================================================ */
+.rail__body{padding:10px;display:flex;flex-direction:column;gap:10px;flex:1;min-height:0}
+.rec{
+  position:relative;padding:8px 10px 9px;border-radius:var(--r-sm);
+  border:1px solid rgba(56,224,166,.30);
+  background:linear-gradient(120deg,rgba(56,224,166,.12),rgba(56,224,166,.02) 62%);
+  overflow:hidden;
+}
+.rec::before{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--mint);box-shadow:0 0 14px var(--mint)}
+.rec__row{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;margin-top:3px}
+.rec__san{font-family:var(--mono);font-size:16px;font-weight:600;color:#EAFFF8;letter-spacing:-.01em}
+.rec__san em{color:var(--mint);font-style:normal}
+.rec__ev{font-family:var(--mono);font-size:13px;color:var(--mint);text-shadow:0 0 14px rgba(56,224,166,.45)}
+.rec__note{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:3px;letter-spacing:.04em}
+
+.depth{padding:0 1px}
+.depth__row{display:flex;align-items:baseline;justify-content:space-between;gap:6px}
+.depth__val{font-family:var(--mono);font-size:12px;color:#C9D5E3}
+.depth__val b{color:var(--text);font-weight:600}
+.depth__track{
+  position:relative;height:8px;margin-top:6px;border-radius:1px;overflow:hidden;
+  background:
+    repeating-linear-gradient(90deg,rgba(36,48,64,.9) 0 1px,transparent 1px 10%),
+    #0D131A;
+  border:1px solid var(--line-soft);
+}
+.depth__fill{
+  height:100%;width:0;
+  background:linear-gradient(90deg,rgba(56,224,166,.35),var(--mint));
+  box-shadow:0 0 14px rgba(56,224,166,.55);
+  transition:width 1.2s cubic-bezier(.2,.8,.2,1);
+}
+.depth__meta{display:flex;justify-content:space-between;gap:6px;margin-top:5px;font-family:var(--mono);font-size:9px;color:var(--muted-2);letter-spacing:.04em}
+
+.elist{display:flex;flex-direction:column;gap:6px;margin-top:2px}
+.eline{
+  display:grid;grid-template-columns:18px minmax(0,1fr);gap:8px;
+  width:100%;text-align:left;padding:7px 8px 8px 6px;border-radius:var(--r-sm);
+  border:1px solid var(--line-soft);background:rgba(255,255,255,.012);
+  transition:border-color .15s,background .15s,transform .15s;
+}
+.eline:hover{border-color:rgba(56,224,166,.40);background:rgba(56,224,166,.05);transform:translateX(1px)}
+.eline.is-active{border-color:rgba(56,224,166,.48);background:linear-gradient(90deg,rgba(56,224,166,.10),rgba(56,224,166,.01))}
+.eline__rank{
+  font-family:var(--mono);font-size:10px;color:var(--muted-2);padding-top:2px;
+  display:flex;justify-content:center;
+}
+.eline.is-active .eline__rank{color:var(--mint)}
+.eline__top{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.eline__ev{font-family:var(--mono);font-size:12px;font-weight:600;color:#DCE8F5}
+.eline__tag{font-family:var(--mono);font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-2)}
+.bar{display:block;height:3px;margin:6px 0;background:#0D131A;border-radius:1px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;border-radius:1px;transition:width 1.1s cubic-bezier(.2,.8,.2,1) .15s}
+.bar i.mint{background:linear-gradient(90deg,rgba(56,224,166,.45),var(--mint));box-shadow:0 0 10px rgba(56,224,166,.6)}
+.bar i.blue{background:linear-gradient(90deg,rgba(77,124,254,.45),var(--blue))}
+.bar i.dim{background:linear-gradient(90deg,rgba(138,153,173,.35),rgba(138,153,173,.75))}
+.pv{display:block;font-family:var(--mono);font-size:10px;line-height:1.5;color:#A9B8C9;word-spacing:.02em;overflow-wrap:anywhere}
+.pv b{color:#DCE8F5;font-weight:500}
+.eline__foot{display:flex;gap:8px;font-family:var(--mono);font-size:8.5px;color:var(--muted-2);margin-top:4px;letter-spacing:.04em}
+
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line-soft);border:1px solid var(--line-soft);border-radius:var(--r-sm);overflow:hidden}
+.stat{background:#0E141C;padding:6px 8px}
+.stat b{display:block;font-family:var(--mono);font-size:12.5px;font-weight:500;color:#DCE8F5;letter-spacing:-.01em}
+.stat b i{font-style:normal;font-size:9px;color:var(--muted);margin-left:1px}
+.stat span{display:block;font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted-2);margin-top:1px}
+
+.moments{margin-top:auto;border-top:1px solid var(--line-soft);padding-top:8px}
+.moment{display:flex;align-items:center;gap:7px;padding:4px 2px;font-family:var(--mono);font-size:10px;color:#B6C4D4;border-bottom:1px dashed rgba(36,48,64,.7)}
+.moment:last-child{border-bottom:0}
+.moment .dot{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
+.moment b{font-weight:500;color:#E6EDF5}
+.moment .ev{margin-left:auto;color:var(--muted)}
+.moment .ev.up{color:var(--mint)}
+.moment .ev.down{color:var(--red)}
+
+/* ============================================================
+   7. BOARD STAGE
+   ============================================================ */
+.stage__top{display:flex;align-items:center;gap:10px;padding:0 2px}
+.stage__top .micro{color:#A9B8C9}
+.stage__top .right{margin-left:auto;display:flex;align-items:center;gap:6px}
+.stage__top .pos{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.04em}
+.viewchip{
+  display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 7px;border-radius:2px;
+  border:1px solid var(--line);font-family:var(--mono);font-size:9px;letter-spacing:.06em;color:var(--muted);
+  text-transform:uppercase;background:rgba(255,255,255,.02);
+}
+.boardwrap{display:flex;align-items:stretch;gap:9px;width:100%;max-width:592px;margin:0 auto}
+.evalcol{flex:0 0 auto;width:42px;display:flex;flex-direction:column;align-items:stretch;justify-content:space-between}
+.evalcol__top{text-align:center;padding-bottom:5px}
+.evalcol__num{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--mint);text-shadow:0 0 16px rgba(56,224,166,.5);display:block;line-height:1}
+.evalcol__lbl{display:block;font-size:8px;letter-spacing:.14em;color:var(--muted-2);text-transform:uppercase;margin-top:2px}
+.evalbar{
+  position:relative;flex:1;width:13px;margin:0 auto;border-radius:2px;overflow:hidden;
+  background:linear-gradient(180deg,rgba(255,77,109,.55),rgba(255,77,109,.22) 48%,rgba(255,77,109,.10));
+  border:1px solid #2A3746;
+  box-shadow:0 0 0 1px rgba(0,0,0,.5),0 0 22px -6px rgba(56,224,166,.35);
+}
+.evalbar__fill{
+  position:absolute;left:0;right:0;bottom:0;height:54%;
+  background:linear-gradient(180deg,var(--mint) 0%,rgba(56,224,166,.35) 100%);
+  box-shadow:0 0 18px rgba(56,224,166,.65);
+  animation:evalGlow 4.5s ease-in-out infinite;
+}
+@keyframes evalGlow{0%,100%{box-shadow:0 0 16px rgba(56,224,166,.5)}50%{box-shadow:0 0 26px rgba(56,224,166,.85)}}
+.evalbar__mark{position:absolute;left:-4px;right:-4px;height:2px;background:#EFFFFA;box-shadow:0 0 10px #fff,0 0 18px rgba(56,224,166,.9)}
+.evalbar__ticks{position:absolute;inset:0;background:repeating-linear-gradient(180deg,transparent 0 10px,rgba(11,14,19,.5) 10px 11px);pointer-events:none}
+.evalcol__bot{text-align:center;padding-top:5px}
+.evalcol__depth{font-family:var(--mono);font-size:9.5px;color:#C9D5E3;letter-spacing:.02em;display:block;line-height:1.25}
+.evalcol__depth b{color:var(--mint);font-weight:600}
+.evalcol__dlbl{display:block;font-size:7.5px;letter-spacing:.12em;color:var(--muted-2);text-transform:uppercase;margin-top:1px}
+
+.boardframe{
+  flex:1;min-width:0;padding:7px;border-radius:var(--r);
+  border:1px solid #2B3949;
+  background:linear-gradient(155deg,#1C2532 0%,#0D1218 100%);
+  box-shadow:0 0 0 1px rgba(0,0,0,.55),0 34px 60px -34px #000,inset 0 1px 0 rgba(255,255,255,.06);
+  position:relative;
+}
+.boardframe::after{
+  content:"";position:absolute;inset:7px;border-radius:2px;pointer-events:none;
+  box-shadow:inset 0 0 60px rgba(0,0,0,.45);
+}
+#board{width:100%;height:auto;display:block;border-radius:2px;background:#0A0F15}
+.boardframe.is-flash{animation:flash .5s ease-out}
+@keyframes flash{0%{box-shadow:0 0 0 1px rgba(56,224,166,.9),0 0 40px rgba(56,224,166,.35)}100%{box-shadow:0 0 0 1px rgba(0,0,0,.55),0 34px 60px -34px #000}}
+.coachhint{
+  display:none;position:absolute;left:14px;top:14px;z-index:3;max-width:212px;
+  padding:6px 8px 7px;border-radius:2px;background:rgba(10,14,20,.92);
+  border:1px solid rgba(56,224,166,.45);box-shadow:0 0 20px -6px rgba(56,224,166,.7);
+  font-family:var(--mono);font-size:9px;line-height:1.4;color:#C9D5E3;pointer-events:none;
+}
+.coachhint b{display:block;color:var(--mint);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px}
+.boardframe.show-coach .coachhint{display:block}
+.pc{font-family:"Segoe UI Symbol","Apple Symbols","Noto Sans Symbols 2","DejaVu Sans",serif;user-select:none;paint-order:stroke fill;stroke-linejoin:round}
+.coord{font-family:var(--mono);font-size:16px;font-weight:500;letter-spacing:.02em;user-select:none}
+.arrow{stroke-linejoin:round;stroke-linecap:round}
+
+/* lower third — coach comment as broadcast overlay */
+.lowerthird{
+  display:flex;align-items:stretch;border:1px solid var(--line);border-radius:var(--r);
+  background:linear-gradient(100deg,rgba(56,224,166,.11),rgba(18,24,32,.86) 34%,rgba(15,20,27,.94));
+  overflow:hidden;position:relative;
+}
+.lowerthird__accent{flex:0 0 3px;background:linear-gradient(180deg,var(--mint),rgba(56,224,166,.3));position:relative;overflow:hidden}
+.lowerthird__accent::after{
+  content:"";position:absolute;left:0;right:0;height:60%;
+  background:linear-gradient(180deg,transparent,rgba(255,255,255,.85),transparent);
+  animation:sweep 5.5s ease-in-out infinite;opacity:.5;
+}
+@keyframes sweep{0%{top:-60%}55%{top:110%}100%{top:110%}}
+.lowerthird__body{padding:7px 12px 8px;min-width:0;flex:1}
+.lowerthird__head{display:flex;align-items:center;gap:8px}
+.lowerthird__name{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#DCE8F5}
+.lowerthird__badge{margin-left:auto;display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;color:var(--mint);text-transform:uppercase;border:1px solid rgba(56,224,166,.3);border-radius:2px;padding:1px 5px}
+.lowerthird p{margin:3px 0 0;font-size:12px;line-height:1.45;color:#C4D2E1}
+.lowerthird p b{color:#F0F7FF;font-weight:600}
+
+/* primary actions */
+.actions{display:flex;gap:7px;flex-wrap:wrap}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  height:34px;padding:0 12px;border-radius:var(--r-sm);
+  border:1px solid var(--line);background:rgba(255,255,255,.02);color:#C9D5E3;
+  font-size:11.5px;font-weight:500;letter-spacing:.01em;white-space:nowrap;
+  transition:.15s;flex:1 1 auto;
+}
+.btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
+.btn:hover{border-color:rgba(56,224,166,.5);color:#fff;background:rgba(56,224,166,.08)}
+.btn:active{transform:translateY(1px)}
+.btn--primary{border-color:rgba(56,224,166,.55);color:#DFFFF4;background:rgba(56,224,166,.10);box-shadow:inset 0 0 20px rgba(56,224,166,.08)}
+.btn--primary:hover{background:rgba(56,224,166,.18);box-shadow:0 0 20px -4px rgba(56,224,166,.45)}
+.btn--muted{color:var(--muted)}
+
+/* ============================================================
+   8. DATA PANEL / TABS
+   ============================================================ */
+.data__head{display:flex;align-items:center;gap:8px;padding:9px 11px;border-bottom:1px solid var(--line-soft);flex:0 0 auto}
+.data__head .micro{color:#A9B8C9}
+.tabs{display:flex;gap:3px;padding:7px;background:rgba(9,13,18,.6);border-bottom:1px solid var(--line-soft);flex:0 0 auto}
+.tab{
+  flex:1 1 0;min-width:0;height:27px;border-radius:2px;
+  font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:var(--muted);
+  border:1px solid transparent;display:grid;place-items:center;position:relative;
+  transition:color .15s,background .15s,border-color .15s;
+}
+.tab:hover{color:#DCE8F5;background:rgba(255,255,255,.035)}
+.tab[aria-selected="true"]{
+  color:#EAFFF8;background:linear-gradient(180deg,#1D2836,#16202C);
+  border-color:rgba(56,224,166,.42);box-shadow:0 0 20px -10px rgba(56,224,166,.9);
+}
+.tab[aria-selected="true"]::after{
+  content:"";position:absolute;left:6px;right:6px;bottom:-1px;height:2px;background:var(--mint);box-shadow:0 0 10px var(--mint);
+}
+.data__body{flex:1 1 auto;min-height:0;overflow:auto;padding:10px;scrollbar-width:thin;scrollbar-color:#2A3746 transparent}
+.data__body::-webkit-scrollbar{width:8px}
+.data__body::-webkit-scrollbar-thumb{background:#22303F;border-radius:4px;border:2px solid #10151D}
+.pane{display:none}
+.pane.is-active{display:block;animation:fade .28s ease-out}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* --- summary --- */
+.acc{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line-soft);border:1px solid var(--line-soft);border-radius:var(--r-sm);overflow:hidden}
+.acc__side{background:#0E141C;padding:8px 10px 9px}
+.acc__side--b{text-align:right}
+.acc__num{font-family:var(--mono);font-size:24px;font-weight:500;line-height:1.05;letter-spacing:-.02em;color:#EAF2F9}
+.acc__num small{font-size:12px;color:var(--muted);margin-left:1px}
+.acc__bar{height:3px;background:#0A0F15;margin-top:6px;border-radius:1px;overflow:hidden}
+.acc__bar i{display:block;height:100%;width:0;transition:width 1s cubic-bezier(.2,.8,.2,1) .2s}
+.acc__bar--w i{background:linear-gradient(90deg,rgba(56,224,166,.5),var(--mint));box-shadow:0 0 10px rgba(56,224,166,.55)}
+.acc__bar--b i{background:linear-gradient(90deg,var(--blue),rgba(77,124,254,.45));margin-left:auto}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line-soft);border:1px solid var(--line-soft);border-top:0;border-radius:0 0 var(--r-sm) var(--r-sm);overflow:hidden;margin-top:1px}
+.kpi{background:#0E141C;padding:6px 9px 7px}
+.kpi__v{font-family:var(--mono);font-size:13px;color:#E6EDF5;letter-spacing:-.01em}
+.kpi__v span{color:var(--muted-2);font-size:10px}
+.kpi__l{font-size:8px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted-2);margin-top:1px}
+.sec{margin-top:12px}
+.sec__head{display:flex;align-items:center;gap:7px;margin-bottom:6px}
+.sec__head .micro{color:#A9B8C9}
+.sec__head .spacer{margin-left:auto}
+.sec__note{font-family:var(--mono);font-size:9px;color:var(--muted-2)}
+.cls{display:grid;grid-template-columns:7px minmax(0,1fr) 88px 22px;align-items:center;gap:8px;padding:3px 0}
+.cls__dot{width:6px;height:6px;border-radius:50%}
+.cls__l{font-size:10.5px;color:#B6C4D4}
+.cls__bar{height:5px;background:#0C1219;border-radius:1px;overflow:hidden}
+.cls__bar i{display:block;height:100%;width:0;border-radius:1px;transition:width .9s cubic-bezier(.2,.8,.2,1) .25s}
+.cls__n{font-family:var(--mono);font-size:10.5px;color:#DCE8F5;text-align:right}
+.phase__row{display:grid;grid-template-columns:58px minmax(0,1fr) 20px minmax(0,1fr) 20px;gap:6px;align-items:center;padding:2.5px 0}
+.phase__l{font-size:10px;color:#B6C4D4}
+.phase__bar{height:4px;background:#0C1219;border-radius:1px;overflow:hidden}
+.phase__bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,rgba(56,224,166,.35),var(--mint));transition:width .9s cubic-bezier(.2,.8,.2,1) .3s}
+.phase__bar i.b{background:linear-gradient(90deg,rgba(77,124,254,.35),var(--blue))}
+.phase__v{font-family:var(--mono);font-size:9.5px;color:#DCE8F5;text-align:right}
+.cmp{border:1px solid var(--line-soft);border-radius:var(--r-sm);overflow:hidden}
+.cmp__row{display:grid;grid-template-columns:minmax(0,1fr) 62px 62px;align-items:center;padding:4px 8px;border-bottom:1px solid rgba(36,48,64,.5)}
+.cmp__row:last-child{border-bottom:0}
+.cmp__row:nth-child(even){background:rgba(255,255,255,.012)}
+.cmp__row span{font-size:10px;color:#B6C4D4}
+.cmp__row b{font-family:var(--mono);font-size:10px;font-weight:400;color:#DCE8F5;text-align:right}
+.cmp__head{padding-top:3px;padding-bottom:3px;background:rgba(9,13,18,.6)}
+.cmp__head span,.cmp__head b{font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted-2);font-family:var(--sans);font-weight:600}
+.insight{
+  margin-top:12px;padding:9px 10px;border-radius:var(--r-sm);
+  border:1px solid rgba(77,124,254,.28);background:linear-gradient(110deg,rgba(77,124,254,.10),rgba(77,124,254,.02));
+  font-size:11px;line-height:1.45;color:#C4D2E1;
+}
+.insight b{color:#EAF2F9;font-weight:600}
+.insight .micro{color:#93B0FF;display:block;margin-bottom:3px}
+.footnote{margin-top:10px;padding-top:7px;border-top:1px solid var(--line-soft);font-family:var(--mono);font-size:8.5px;color:var(--muted-2);letter-spacing:.03em;display:flex;justify-content:space-between;gap:8px}
+
+/* --- graph --- */
+.chartcard{border:1px solid var(--line-soft);border-radius:var(--r-sm);background:linear-gradient(180deg,#0C1219,#0A0F15);padding:8px 4px 2px;position:relative;overflow:hidden}
+.chartcard svg{width:100%;height:auto;display:block}
+.chart-legend{display:flex;align-items:center;gap:10px;margin-top:7px;padding:0 4px}
+.chart-legend span{font-family:var(--mono);font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-2);display:inline-flex;align-items:center;gap:4px}
+.chart-legend i{width:10px;height:2px;display:inline-block}
+.mini-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line-soft);border:1px solid var(--line-soft);border-radius:var(--r-sm);overflow:hidden;margin-top:8px}
+.mini-stats div{background:#0E141C;padding:6px 8px}
+.mini-stats b{display:block;font-family:var(--mono);font-size:12px;color:#E6EDF5;font-weight:500}
+.mini-stats span{display:block;font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted-2);margin-top:1px}
+
+/* --- moves --- */
+.mtable{border:1px solid var(--line-soft);border-radius:var(--r-sm);overflow:hidden}
+.mrow{display:grid;grid-template-columns:24px 1fr 1fr;align-items:stretch;border-bottom:1px solid rgba(36,48,64,.5)}
+.mrow:last-child{border-bottom:0}
+.mrow:nth-child(odd){background:rgba(255,255,255,.012)}
+.mrow__n{font-family:var(--mono);font-size:9.5px;color:var(--muted-2);display:flex;align-items:center;justify-content:flex-end;padding-right:5px;background:rgba(9,13,18,.4)}
+.mcell{
+  display:flex;align-items:center;gap:6px;padding:4px 6px;
+  font-family:var(--mono);font-size:11px;color:#C9D5E3;text-align:left;
+  border-left:1px solid rgba(36,48,64,.5);transition:background .12s;
+}
+.mcell:hover{background:rgba(56,224,166,.07)}
+.mcell .dot{width:5px;height:5px;border-radius:50%;flex:0 0 auto}
+.mcell.is-current{background:rgba(56,224,166,.13);color:#fff;box-shadow:inset 2px 0 0 var(--mint)}
+.mcell.is-current .dot{box-shadow:0 0 8px currentColor}
+.mcell .ev{margin-left:auto;font-size:8.5px;color:var(--muted-2)}
+
+/* --- arrows --- */
+.arow{display:flex;align-items:center;gap:9px;padding:8px 9px;border:1px solid var(--line-soft);border-radius:var(--r-sm);background:rgba(255,255,255,.012);margin-bottom:6px;transition:border-color .15s}
+.arow:hover{border-color:rgba(56,224,166,.32)}
+.arow__key{width:22px;height:22px;border-radius:2px;display:grid;place-items:center;flex:0 0 auto;border:1px solid var(--line)}
+.arow__key i{width:10px;height:2px;display:block;position:relative;border-radius:1px}
+.arow__key i::after{content:"";position:absolute;right:-1px;top:-2.5px;border:3.5px solid transparent;border-left-color:inherit}
+.arow__txt{min-width:0;flex:1}
+.arow__t{font-size:11.5px;color:#DCE8F5;line-height:1.2}
+.arow__s{font-family:var(--mono);font-size:8.5px;color:var(--muted-2);margin-top:2px;letter-spacing:.04em}
+.sw{width:30px;height:17px;border-radius:9px;background:#0A0F15;border:1px solid var(--line);position:relative;flex:0 0 auto;transition:.2s}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:11px;height:11px;border-radius:50%;background:var(--muted-2);transition:.2s}
+.sw[aria-checked="true"]{background:rgba(56,224,166,.16);border-color:rgba(56,224,166,.5)}
+.sw[aria-checked="true"]::after{left:15px;background:var(--mint);box-shadow:0 0 10px var(--mint)}
+.slider{margin-top:9px;padding:9px}
+.slider__top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.slider input[type=range]{width:100%;height:14px;accent-color:var(--mint);cursor:pointer;background:transparent}
+.slider__val{font-family:var(--mono);font-size:10px;color:var(--mint)}
+.preview{border:1px solid var(--line-soft);border-radius:var(--r-sm);background:#0A0F15;padding:8px;margin-top:8px}
+.preview svg{width:100%;height:auto}
+
+/* --- coach --- */
+.coachcard{border:1px solid var(--line);border-radius:var(--r-sm);overflow:hidden;background:linear-gradient(160deg,rgba(56,224,166,.06),rgba(16,21,29,.6))}
+.coachcard__top{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line-soft)}
+.coachcard__av{width:26px;height:26px;border-radius:2px;display:grid;place-items:center;background:linear-gradient(150deg,#24323F,#141B24);border:1px solid var(--line);font-family:var(--mono);font-size:10px;color:var(--mint);flex:0 0 auto}
+.coachcard p{margin:9px 10px;font-size:11.5px;line-height:1.55;color:#C4D2E1}
+.coachcard p b{color:#F0F7FF}
+.patterns{display:flex;flex-wrap:wrap;gap:4px;padding:0 10px 10px}
+.patterns .chip{font-size:9px;height:18px}
+.conf{padding:8px 10px 10px;border-top:1px solid var(--line-soft)}
+.conf__bar{height:4px;background:#0A0F15;border-radius:1px;overflow:hidden;margin-top:5px}
+.conf__bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,rgba(56,224,166,.4),var(--mint));box-shadow:0 0 10px rgba(56,224,166,.5);transition:width 1s ease .3s}
+.coach-next{display:flex;align-items:center;gap:8px;margin:0 10px 10px;padding:7px 8px;border-radius:2px;border:1px dashed rgba(36,48,64,.9);background:rgba(9,13,18,.5)}
+.coach-next b{font-family:var(--mono);font-size:12px;color:var(--mint)}
+
+/* ============================================================
+   9. TICKER (footer)
+   ============================================================ */
+.ticker{margin-top:12px;border-top:1px solid var(--line);background:linear-gradient(180deg,#0D1219,#090C11);position:relative}
+.ticker__strip{
+  display:flex;align-items:flex-end;gap:3px;overflow-x:auto;padding:13px 20px 8px;
+  scrollbar-width:thin;scrollbar-color:#243040 transparent;scroll-behavior:smooth;
+}
+.ticker__strip::-webkit-scrollbar{height:6px}
+.ticker__strip::-webkit-scrollbar-thumb{background:#22303F;border-radius:3px}
+.mv{
+  position:relative;flex:0 0 auto;min-width:46px;display:flex;align-items:center;justify-content:center;gap:5px;
+  padding:5px 7px;border-radius:3px;border:1px solid transparent;transition:background .14s,border-color .14s;
+}
+.mv:hover{background:rgba(255,255,255,.04);border-color:var(--line)}
+.mv__n{font-family:var(--mono);font-size:8px;color:var(--muted-2);align-self:flex-end;padding-bottom:2px}
+.mv__san{font-family:var(--mono);font-size:12px;color:#C9D5E3;letter-spacing:-.01em}
+.mv__dot{width:4px;height:4px;border-radius:50%;flex:0 0 auto;align-self:flex-end;margin-bottom:2px}
+.mv.is-current{background:rgba(56,224,166,.13);border-color:rgba(56,224,166,.55);box-shadow:0 0 22px -8px rgba(56,224,166,.9)}
+.mv.is-current .mv__san{color:#fff}
+.mv.is-current::before{content:"";position:absolute;top:-8px;left:50%;transform:translateX(-50%);border:4px solid transparent;border-top-color:var(--mint);filter:drop-shadow(0 0 4px var(--mint))}
+.mv--result{color:var(--amber);border:1px solid rgba(255,200,87,.35);background:rgba(255,200,87,.07);font-family:var(--mono);font-size:11px;padding:5px 9px;min-width:0}
+.ticker__bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 20px 7px;border-top:1px solid var(--line-soft);background:rgba(8,11,15,.55)}
+.navgroup{display:flex;align-items:center;gap:4px}
+.nbtn{
+  height:26px;padding:0 9px;border-radius:2px;border:1px solid var(--line);background:rgba(255,255,255,.02);
+  display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:#C9D5E3;transition:.14s;white-space:nowrap;
+}
+.nbtn:hover{border-color:rgba(56,224,166,.5);color:#fff;background:rgba(56,224,166,.08)}
+.nbtn:active{transform:translateY(1px)}
+.nbtn svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ncount{
+  font-family:var(--mono);font-size:11.5px;color:#E6EDF5;padding:0 6px;min-width:62px;text-align:center;
+  letter-spacing:.02em;
+}
+.ncount b{color:var(--mint);font-weight:600}
+.ticker__sep{width:1px;height:18px;background:var(--line);flex:0 0 auto}
+.hints{display:flex;align-items:center;gap:12px;margin-left:auto;flex-wrap:wrap}
+.hint{display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--muted-2)}
+kbd{
+  font-family:var(--mono);font-size:9px;min-width:17px;height:17px;padding:0 4px;
+  display:inline-flex;align-items:center;justify-content:center;
+  border:1px solid var(--line);border-bottom-width:2px;border-radius:2px;
+  background:#141C26;color:#B6C4D4;
+}
+
+/* ============================================================
+   10. OFF-AIR SHEET (design system appendix)
+   ============================================================ */
+.spec{
+  margin-top:24px;padding:22px 0 30px;position:relative;
+  background:linear-gradient(180deg,rgba(6,9,13,.92),rgba(8,11,16,.6));
+  border-top:1px dashed rgba(56,224,166,.28);
+}
+.spec__head{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap;margin-bottom:14px}
+.offair{
+  display:inline-flex;align-items:center;gap:6px;height:20px;padding:0 8px;border-radius:2px;
+  border:1px dashed rgba(255,200,87,.45);color:var(--amber);
+  font-family:var(--mono);font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;
+}
+.offair i{width:5px;height:5px;border-radius:50%;background:var(--amber)}
+.spec__title{font-size:21px;font-weight:600;letter-spacing:-.02em;margin:0;line-height:1.2}
+.spec__title em{font-style:normal;color:var(--mint)}
+.spec__lede{margin:3px 0 0;font-size:12px;color:var(--muted);max-width:62ch}
+.spec__grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:2px}
+.prev{
+  border:1px solid var(--line);border-radius:var(--r);overflow:hidden;
+  background:var(--panel);box-shadow:var(--shadow);min-width:0;
+}
+.prev__chrome{display:flex;align-items:center;gap:7px;height:21px;padding:0 8px;background:#0C1117;border-bottom:1px solid var(--line-soft)}
+.prev__dots{display:flex;gap:3px}
+.prev__dots i{width:4px;height:4px;border-radius:50%;background:#2A3746;display:block}
+.prev__url{font-family:var(--mono);font-size:8px;color:var(--muted-2);letter-spacing:.04em}
+.prev__live{margin-left:auto;font-family:var(--mono);font-size:7px;letter-spacing:.12em;color:var(--mint)}
+.prev__screen{padding:7px;background:linear-gradient(180deg,#0E141C,#0A0E14);min-height:196px}
+.prev figcaption{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:6px 9px;border-top:1px solid var(--line-soft);background:rgba(9,13,18,.6)}
+.prev figcaption b{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:#DCE8F5;font-weight:600}
+.prev figcaption span{font-family:var(--mono);font-size:8px;color:var(--muted-2);letter-spacing:.06em;text-transform:uppercase}
+
+/* mini app language */
+.m{font-size:8px;line-height:1.35;color:#B6C4D4}
+.m-bar{display:flex;align-items:center;gap:5px;padding-bottom:5px;border-bottom:1px solid var(--line-soft);margin-bottom:6px}
+.m-bar b{font-size:7px;letter-spacing:.12em;text-transform:uppercase;color:#C9D5E3;font-weight:600}
+.m-bar .m-mark{width:13px;height:13px;border-radius:2px;display:grid;place-items:center;border:1px solid rgba(56,224,166,.4);color:var(--mint);font-size:9px;line-height:1;background:rgba(56,224,166,.08)}
+.m-bar .m-tag{margin-left:auto;font-family:var(--mono);font-size:6px;letter-spacing:.14em;color:var(--muted-2);border:1px solid var(--line);border-radius:1px;padding:0 3px}
+.m-h{font-family:var(--sans);font-size:12px;font-weight:600;letter-spacing:-.01em;color:#E6EDF5;line-height:1.15}
+.m-sub{font-size:7px;color:var(--muted-2);font-family:var(--mono);letter-spacing:.04em}
+.m-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line-soft);border:1px solid var(--line-soft);margin:6px 0;border-radius:1px;overflow:hidden}
+.m-kpis div{background:#0E141C;padding:3px 4px}
+.m-kpis b{display:block;font-family:var(--mono);font-size:9px;color:#E6EDF5;font-weight:500;line-height:1.2}
+.m-kpis span{font-size:6px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted-2)}
+.m-row{display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:1px dashed rgba(36,48,64,.55)}
+.m-row:last-child{border-bottom:0}
+.m-row .m-t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:7.5px;color:#C9D5E3}
+.m-row .m-n{font-family:var(--mono);font-size:7px;color:var(--muted-2)}
+.m-bar2{width:38px;height:3px;background:#0A0F15;border-radius:1px;overflow:hidden;flex:0 0 auto}
+.m-bar2 i{display:block;height:100%;background:linear-gradient(90deg,rgba(56,224,166,.4),var(--mint))}
+.m-dot{width:4px;height:4px;border-radius:50%;flex:0 0 auto}
+.m-grid2{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.m-tile{border:1px solid var(--line-soft);border-radius:2px;padding:4px 5px;background:rgba(255,255,255,.015)}
+.m-tile b{display:block;font-size:7.5px;color:#DCE8F5;font-weight:500}
+.m-tile span{font-family:var(--mono);font-size:6.5px;color:var(--muted-2)}
+.m-tile .m-row{padding:2px 0;border:0}
+.m-pill{display:inline-flex;align-items:center;gap:3px;height:11px;padding:0 4px;border-radius:1px;border:1px solid var(--line);font-family:var(--mono);font-size:6px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:rgba(255,255,255,.02)}
+.m-pill--mint{color:var(--mint);border-color:rgba(56,224,166,.3);background:rgba(56,224,166,.07)}
+.m-pill--blue{color:#93B0FF;border-color:rgba(77,124,254,.3);background:rgba(77,124,254,.07)}
+.m-pill--amber{color:var(--amber);border-color:rgba(255,200,87,.3);background:rgba(255,200,87,.06)}
+
+/* tokens */
+.tokens{display:grid;grid-template-columns:1.05fr 1.35fr 1fr;gap:12px;margin-top:12px}
+.tok{border:1px solid var(--line);border-radius:var(--r);background:linear-gradient(180deg,#111821,#0D1219);padding:10px 11px;min-width:0}
+.tok__head{display:flex;align-items:baseline;gap:8px;margin-bottom:8px}
+.tok__head .micro{color:#A9B8C9}
+.tok__head span{font-family:var(--mono);font-size:8px;color:var(--muted-2);margin-left:auto;letter-spacing:.04em}
+.type-row{display:flex;align-items:baseline;gap:9px;padding:3px 0;border-bottom:1px dashed rgba(36,48,64,.7)}
+.type-row:last-child{border-bottom:0}
+.type-row .aa{font-size:18px;font-weight:600;letter-spacing:-.02em;color:#EAF2F9;min-width:42px;line-height:1.2}
+.type-row .aa.mono{font-family:var(--mono);font-size:15px;font-weight:500}
+.type-row .meta{font-family:var(--mono);font-size:8px;color:var(--muted-2);line-height:1.5}
+.swatches{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.swatch{border:1px solid var(--line);border-radius:2px;overflow:hidden}
+.swatch i{display:block;height:22px}
+.swatch b{display:block;padding:3px 4px 0;font-family:var(--mono);font-size:7.5px;color:#C9D5E3;font-weight:400}
+.swatch span{display:block;padding:0 4px 3px;font-size:6.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-2)}
+.token-line{display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px dashed rgba(36,48,64,.7);font-size:9.5px;color:#B6C4D4}
+.token-line:last-child{border-bottom:0}
+.token-line b{font-family:var(--mono);font-size:8.5px;color:#DCE8F5;font-weight:400}
+.state-demo{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap}
+.state-demo .btn{flex:0 0 auto;height:25px;font-size:9px;padding:0 8px}
+.spec__foot{margin-top:14px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-family:var(--mono);font-size:8.5px;color:var(--muted-2);letter-spacing:.05em}
+
+/* ============================================================
+   11. RESPONSIVE
+   ============================================================ */
+@media (max-width:1240px){
+  .console{grid-template-columns:252px minmax(0,1fr) 356px}
+  .pname{font-size:15.5px}
+}
+@media (max-width:1080px){
+  .console{grid-template-columns:minmax(0,1fr);grid-template-areas:"stage" "data" "rail";gap:10px}
+  .boardwrap{max-width:562px}
+  .data__body{overflow:visible;max-height:none}
+  .rail__body{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
+  .rail__body > .moments{grid-column:1/-1}
+  .spec__grid{grid-template-columns:1fr 1fr}
+  .spec__grid .prev:last-child{grid-column:1/-1;max-width:520px}
+  .tokens{grid-template-columns:1fr 1fr}
+  .tok:last-child{grid-column:1/-1}
+}
+@media (max-width:860px){
+  .bcast__event{display:none}
+  .onair{display:none}
+  .bcast__clock{display:none}
+  .players{grid-template-columns:1fr 1fr}
+  .matchmeta{grid-column:1/-1;order:3;border-top:1px solid var(--line-soft);flex-direction:row;flex-wrap:wrap;gap:6px;padding:6px 12px}
+  .matchmeta__open{font-size:11.5px}
+  .pclock__val{font-size:19px}
+  .pname{font-size:15px}
+  .pavatar{width:38px;height:38px}
+  .evalcol{width:36px}
+}
+@media (max-width:720px){
+  .wrap,.bcast{padding-left:12px;padding-right:12px}
+  .console{padding-top:8px}
+  .bcast{height:50px;gap:9px}
+  .brand__name span{display:none}
+  .live-badge{font-size:9px;padding:0 8px;letter-spacing:.12em}
+  .bcast__right{gap:6px}
+  .bbtn{width:29px;height:29px}
+  .pcard{padding:8px 10px;gap:8px}
+  .pname{gap:5px;font-size:13.5px}
+  .pmeta{font-size:10px}
+  .pmeta .pmeta-x{display:none}
+  .pclock{padding-left:4px}
+  .pcard--black .pclock{padding-right:4px}
+  .pclock__val{font-size:16px}
+  .pclock .micro{font-size:8px;letter-spacing:.1em}
+  .boardwrap{gap:7px}
+  .evalcol{width:32px}
+  .evalbar{width:10px}
+  .evalcol__num{font-size:11px}
+  .evalcol__depth{font-size:8.5px}
+  .lowerthird p{font-size:11.5px}
+  .stage__top .viewchip{display:none}
+  .actions{gap:6px}
+  .btn{height:32px;font-size:10.5px;padding:0 9px;flex:1 1 46%}
+  .btn:last-child{flex:1 1 100%}
+  .tabs{padding:6px;gap:2px}
+  .tab{font-size:8.5px;letter-spacing:.03em;height:26px}
+  .data__body{padding:9px}
+  .rail__body{grid-template-columns:1fr}
+  .spec__grid{grid-template-columns:1fr}
+  .spec__grid .prev:last-child{grid-column:auto;max-width:none}
+  .tokens{grid-template-columns:1fr}
+  .tok:last-child{grid-column:auto}
+  .ticker__strip{padding:12px 12px 8px}
+  .ticker__bar{padding:6px 12px 8px;gap:8px}
+  .hints{margin-left:0;width:100%;gap:9px}
+  .hint{font-size:9px}
+  .ncount{min-width:52px;font-size:10.5px}
+  .nbtn{font-size:10px;padding:0 7px}
+  .spec{padding:18px 0 24px}
+  .spec__title{font-size:18px}
+  .spec__lede{font-size:11px}
+  .prev__screen{min-height:0}
+  .stage__top .pos{font-size:9px}
+}
+@media (max-width:420px){
+  .brand__name{font-size:11px}
+  .pavatar{width:34px;height:34px}
+  .pname{font-size:12.5px}
+  .tchip{display:none}
+  .matchmeta__open{font-size:11px}
+  .evalcol{width:28px}
+  .lowerthird__body{padding:6px 9px 7px}
+  .lowerthird p{font-size:11px;line-height:1.4}
+  .lowerthird__badge{display:none}
+  .mv{min-width:42px;padding:4px 5px}
+  .mv__san{font-size:11px}
+  .hint:nth-child(n+3){display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important}
+}
+</style>
+<style>
+html,body{width:1440px;overflow:hidden;background:#0B0E13}
+.app{transform:scale(1.85);transform-origin:0 0}
+.spec{display:none}
+</style>
+</head>
+<body>
+<div class="grain" aria-hidden="true"></div>
+<a class="skip" href="#main">Vai all'analisi</a>
+
+<div class="app">
+
+  <!-- ============ BROADCAST BAR ============ -->
+  <header class="bcast">
+    <div class="brand">
+      <span class="brand__mark" aria-hidden="true">&#9822;</span>
+      <span class="brand__name">Chess <span>Training</span></span>
+    </div>
+    <span class="bcast__sep" aria-hidden="true"></span>
+    <span class="live-badge"><span class="dot-live" aria-hidden="true"></span>Live analysis</span>
+    <div class="bcast__event">
+      <span class="event-name">Torneo Città Aperta</span>
+      <span class="sep" aria-hidden="true">·</span>
+      <span class="event-round">Turno 4</span>
+    </div>
+    <div class="bcast__right">
+      <div class="onair"><span class="dot-live" aria-hidden="true" style="width:5px;height:5px"></span>ON AIR <b id="onair">01:12:44</b></div>
+      <span class="bcast__clock" id="clock">21:04:12 CET</span>
+      <button class="bbtn" type="button" aria-label="Impostazioni analisi">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 5.5h7M12 5.5h2M2 10.5h2.5M7.5 10.5H14"/><circle cx="10" cy="5.5" r="1.6"/><circle cx="5.5" cy="10.5" r="1.6"/></svg>
+      </button>
+      <button class="bbtn" type="button" aria-label="Cambia tema">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8.2 2.4a5.4 5.4 0 1 0 5.4 5.4 4.3 4.3 0 0 1-5.4-5.4Z"/></svg>
+      </button>
+      <button class="bbtn" type="button" aria-label="Schermo intero">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 2.5H2.5V6M10 2.5h3.5V6M6 13.5H2.5V10M10 13.5h3.5V10"/></svg>
+      </button>
+    </div>
+    <span class="bcast__rule" aria-hidden="true"><i></i></span>
+  </header>
+
+  <!-- ============ PLAYER STRIPS ============ -->
+  <section class="players" aria-label="Giocatori e incontro">
+    <div class="pcard pcard--white">
+      <div class="pavatar">
+        <span class="pavatar__fb">AR</span>
+        <img src="assets/player-white.png" alt="Ritratto di A. Rossi" onerror="this.remove()">
+      </div>
+      <div class="pid">
+        <div class="pname">A. Rossi <span class="nat">ITA</span><span class="tchip">CM</span></div>
+        <div class="pmeta">
+          <span class="flag flag--it" aria-hidden="true"></span>
+          <span>Elo 1842</span><span class="pmeta-x">·</span>
+          <span>28 anni</span><span class="pmeta-x">·</span>
+          <span>1ª scacchiera</span>
+        </div>
+        <div class="pcard__turn"><i aria-hidden="true"></i>Al tratto</div>
+      </div>
+      <div class="pclock">
+        <span class="micro">Tempo</span>
+        <span class="pclock__val">04:12</span>
+      </div>
+    </div>
+
+    <div class="matchmeta">
+      <div class="matchmeta__open">Gambetto di Donna Rifiutato</div>
+      <div class="matchmeta__sub">Ragozin · D38</div>
+      <div class="matchmeta__chips">
+        <span class="chip chip--amber">1–0</span>
+        <span class="chip">34 mosse</span>
+        <span class="chip">15+10</span>
+        <span class="chip">16 nov 2026</span>
+      </div>
+    </div>
+
+    <div class="pcard pcard--black">
+      <div class="pavatar">
+        <span class="pavatar__fb">KM</span>
+        <img src="assets/player-black.png" alt="Ritratto di K. Müller" onerror="this.remove()">
+      </div>
+      <div class="pid">
+        <div class="pname">K. Müller <span class="nat">GER</span><span class="tchip">GM</span></div>
+        <div class="pmeta">
+          <span class="flag flag--de" aria-hidden="true"></span>
+          <span>Elo 1876</span><span class="pmeta-x">·</span>
+          <span>41 anni</span><span class="pmeta-x">·</span>
+          <span>2ª scacchiera</span>
+        </div>
+        <div class="pmeta" style="margin-top:3px;font-family:var(--mono);font-size:9px;color:var(--muted-2)">ULTIMA: 9... c5</div>
+      </div>
+      <div class="pclock">
+        <span class="micro">Tempo</span>
+        <span class="pclock__val">03:47</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ MAIN CONSOLE ============ -->
+  <div class="wrap">
+    <main class="console" id="main">
+
+      <!-- ---------- TELEMETRY RAIL ---------- -->
+      <aside class="panel rail" aria-label="Telemetria del motore">
+        <div class="panel__head">
+          <span class="micro">Motore · MultiPV 3</span>
+          <span class="chip chip--mint" style="margin-left:auto">SF 17</span>
+          <button class="iconbtn" type="button" aria-label="Impostazioni motore">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.1"/><path d="M8 1.8v1.6M8 12.6v1.6M1.8 8h1.6M12.6 8h1.6M3.6 3.6l1.1 1.1M11.3 11.3l1.1 1.1M12.4 3.6l-1.1 1.1M4.7 11.3l-1.1 1.1"/></svg>
+          </button>
+        </div>
+        <div class="rail__body">
+
+          <div class="rec">
+            <span class="micro">Mossa consigliata · linea 1</span>
+            <div class="rec__row">
+              <span class="rec__san"><em>10.</em> Qf5</span>
+              <span class="rec__ev">+0.32</span>
+            </div>
+            <div class="rec__note">donna in f5 · attacca h7, guarda c8</div>
+          </div>
+
+          <div class="depth">
+            <div class="depth__row">
+              <span class="micro">Profondità</span>
+              <span class="depth__val"><b>22</b> / 40</span>
+            </div>
+            <div class="depth__track"><div class="depth__fill" style="width:55%"></div></div>
+            <div class="depth__meta"><span>agg. 0.4 s fa</span><span>smp · 8 thread</span></div>
+          </div>
+
+          <div class="elist">
+            <button class="eline is-active" type="button" aria-label="Linea 1, +0,32, aprila sulla scacchiera">
+              <span class="eline__rank">1</span>
+              <span>
+                <span class="eline__top"><span class="eline__ev">+0.32</span><span class="eline__tag">migliore</span></span>
+                <span class="bar"><i class="mint" style="width:100%"></i></span>
+                <span class="pv">1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Nf3 Bb4 5. Bg5 h6 6. Bh4 g5 7. Bg3 Nxe4 8. Qc2 Nxg3 9. hxg3 c5 <b>10. Qf5</b></span>
+                <span class="eline__foot"><span>depth 22</span><span>1.42 M nodi</span></span>
+              </span>
+            </button>
+            <button class="eline" type="button" aria-label="Linea 2, +0,21, aprila sulla scacchiera">
+              <span class="eline__rank">2</span>
+              <span>
+                <span class="eline__top"><span class="eline__ev">+0.21</span><span class="eline__tag">alternativa</span></span>
+                <span class="bar"><i class="blue" style="width:68%"></i></span>
+                <span class="pv">1. Nf3 d5 2. d4 Nf6 3. c4 e6 4. Nc3 Bb4</span>
+                <span class="eline__foot"><span>depth 21</span><span>984 k nodi</span></span>
+              </span>
+            </button>
+            <button class="eline" type="button" aria-label="Linea 3, +0,18, aprila sulla scacchiera">
+              <span class="eline__rank">3</span>
+              <span>
+                <span class="eline__top"><span class="eline__ev">+0.18</span><span class="eline__tag">alternativa</span></span>
+                <span class="bar"><i class="dim" style="width:56%"></i></span>
+                <span class="pv">1. e4 e6 2. d4 d5 3. Nc3 Bb4</span>
+                <span class="eline__foot"><span>depth 21</span><span>912 k nodi</span></span>
+              </span>
+            </button>
+          </div>
+
+          <div class="stats">
+            <div class="stat"><b>1.42<i>M</i></b><span>Nodi</span></div>
+            <div class="stat"><b>862<i>k</i></b><span>NPS</span></div>
+            <div class="stat"><b>128<i>MB</i></b><span>Hash</span></div>
+            <div class="stat"><b>8</b><span>Thread</span></div>
+          </div>
+
+          <div class="moments">
+            <div class="micro" style="margin-bottom:4px">Momenti chiave</div>
+            <div class="moment"><span class="dot" style="background:var(--red)"></span><b>12. g5</b><span>grave</span><span class="ev up">+0.62</span></div>
+            <div class="moment"><span class="dot" style="background:var(--red)"></span><b>24… Qa5</b><span>grave</span><span class="ev up">+1.05</span></div>
+            <div class="moment"><span class="dot" style="background:var(--red)"></span><b>31. Ke2</b><span>grave</span><span class="ev down">−0.45</span></div>
+            <div class="moment"><span class="dot" style="background:var(--violet)"></span><b>33. Rh7</b><span>brillante</span><span class="ev up">+2.60</span></div>
+          </div>
+
+        </div>
+      </aside>
+
+      <!-- ---------- BOARD STAGE ---------- -->
+      <section class="panel stage" aria-label="Scacchiera e commento in diretta">
+        <div class="stage__top">
+          <span class="micro">Scacchiera</span>
+          <span class="viewchip" id="viewChip">Prospettiva bianco</span>
+          <span class="right"><span class="pos" id="posLabel">POS 18 / 34</span></span>
+        </div>
+
+        <div class="boardwrap">
+          <div class="evalcol">
+            <div class="evalcol__top">
+              <span class="evalcol__num">+0.32</span>
+              <span class="evalcol__lbl">Eval</span>
+            </div>
+            <div class="evalbar" role="img" aria-label="Valutazione più 0,32: leggero vantaggio del bianco">
+              <div class="evalbar__fill" style="height:54%"></div>
+              <div class="evalbar__mark" style="bottom:54%"></div>
+              <div class="evalbar__ticks" aria-hidden="true"></div>
+            </div>
+            <div class="evalcol__bot">
+              <span class="evalcol__depth"><b>22</b> / 40</span>
+              <span class="evalcol__dlbl">Depth</span>
+            </div>
+          </div>
+
+          <div class="boardframe" id="boardFrame">
+            <div class="coachhint" aria-hidden="true"><b>Suggerimento</b>La donna in f5 attacca h7 e libera la colonna h.</div>
+            <svg id="board" viewBox="-34 -4 848 846" role="img" aria-label="Posizione dopo la nona mossa del nero, 9...c5. Tratto al bianco."></svg>
+          </div>
+        </div>
+
+        <!-- broadcast lower third -->
+        <div class="lowerthird">
+          <div class="lowerthird__accent" aria-hidden="true"></div>
+          <div class="lowerthird__body">
+            <div class="lowerthird__head">
+              <span class="lowerthird__name">Coach · G. Halvarsson</span>
+              <span class="lowerthird__badge"><span class="dot-live" aria-hidden="true" style="width:4px;height:4px"></span>in diretta</span>
+            </div>
+            <p>Il nero ha spinto in <b>g5</b> per liberarsi, ma quel pedone è ora un bersaglio fisso: nessun pezzo lo difende e la casa <b>f5</b> resta scoperta. Con <b>10. Qf5</b> la donna attacca h7 e guarda c8, mentre il cavallo in c3 tiene il centro.</p>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn--primary" type="button">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.2v9.6M3.2 8h9.6"/></svg>
+            Nuova posizione
+          </button>
+          <button class="btn" type="button">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="3" width="10" height="10" rx="1.5"/><path d="M6 8h4M8 6v4"/></svg>
+            Gioca contro bot
+          </button>
+          <button class="btn" type="button">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.4"/><circle cx="8" cy="8" r="2"/><path d="M8 2.6V1M8 15v-1.6M2.6 8H1M15 8h-1.6"/></svg>
+            Crea puzzle da questa posizione
+          </button>
+        </div>
+      </section>
+
+      <!-- ---------- DATA PANEL ---------- -->
+      <aside class="panel data" aria-label="Pannello dati dell'analisi">
+        <div class="data__head">
+          <span class="micro">Pannello dati</span>
+          <span class="chip chip--mint" style="margin-left:auto">Analisi completa</span>
+          <button class="iconbtn" type="button" aria-label="Esporta analisi">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v7.2M5.2 6.9 8 9.7l2.8-2.8M3 12.4h10"/></svg>
+          </button>
+        </div>
+
+        <div class="tabs" role="tablist" aria-label="Sezioni dell'analisi">
+          <button class="tab" role="tab" type="button" id="tab-summary" aria-controls="pane-summary" aria-selected="true">Riepilogo</button>
+          <button class="tab" role="tab" type="button" id="tab-graph" aria-controls="pane-graph" aria-selected="false" tabindex="-1">Grafico</button>
+          <button class="tab" role="tab" type="button" id="tab-moves" aria-controls="pane-moves" aria-selected="false" tabindex="-1">Mosse</button>
+          <button class="tab" role="tab" type="button" id="tab-arrows" aria-controls="pane-arrows" aria-selected="false" tabindex="-1">Freece</button>
+          <button class="tab" role="tab" type="button" id="tab-coach" aria-controls="pane-coach" aria-selected="false" tabindex="-1">Coach</button>
+        </div>
+
+        <div class="data__body" id="dataBody">
+
+          <!-- RIEPILOGO -->
+          <section class="pane is-active" id="pane-summary" role="tabpanel" aria-labelledby="tab-summary" tabindex="0">
+            <div class="acc">
+              <div class="acc__side">
+                <span class="micro">Bianco · precisione</span>
+                <div class="acc__num">87.4<small>%</small></div>
+                <div class="acc__bar acc__bar--w"><i data-grow="87.4"></i></div>
+              </div>
+              <div class="acc__side acc__side--b">
+                <span class="micro">Nero · precisione</span>
+                <div class="acc__num">84.1<small>%</small></div>
+                <div class="acc__bar acc__bar--b"><i data-grow="84.1"></i></div>
+              </div>
+            </div>
+            <div class="kpis">
+              <div class="kpi"><div class="kpi__v">24 <span>/ 31</span></div><div class="kpi__l">ACPL</div></div>
+              <div class="kpi"><div class="kpi__v">1 <span>/ 2</span></div><div class="kpi__l">Errori gravi</div></div>
+              <div class="kpi"><div class="kpi__v">28</div><div class="kpi__l">Mosse migliori</div></div>
+            </div>
+
+            <div class="sec">
+              <div class="sec__head">
+                <span class="micro">Classificazioni</span>
+                <span class="spacer"></span>
+                <span class="sec__note">33 mosse · 1–0</span>
+              </div>
+              <div id="clsList"></div>
+            </div>
+
+            <div class="sec">
+              <div class="sec__head">
+                <span class="micro">Precisione per fase</span>
+                <span class="spacer"></span>
+                <span class="sec__note">bianco · nero</span>
+              </div>
+              <div class="phase">
+                <div class="phase__row"><span class="phase__l">Apertura</span><span class="phase__bar"><i data-grow="96"></i></span><span class="phase__v">96</span><span class="phase__bar"><i class="b" data-grow="92"></i></span><span class="phase__v">92</span></div>
+                <div class="phase__row"><span class="phase__l">Mediogioco</span><span class="phase__bar"><i data-grow="86"></i></span><span class="phase__v">86</span><span class="phase__bar"><i class="b" data-grow="78"></i></span><span class="phase__v">78</span></div>
+                <div class="phase__row"><span class="phase__l">Finale</span><span class="phase__bar"><i data-grow="71"></i></span><span class="phase__v">71</span><span class="phase__bar"><i class="b" data-grow="64"></i></span><span class="phase__v">64</span></div>
+              </div>
+            </div>
+
+            <div class="sec">
+              <div class="sec__head">
+                <span class="micro">Testa a testa</span>
+                <span class="spacer"></span>
+                <span class="sec__note">partita</span>
+              </div>
+              <div class="cmp">
+                <div class="cmp__row cmp__head"><span>&nbsp;</span><b>Bianco</b><b>Nero</b></div>
+                <div class="cmp__row"><span>Mosse top-1</span><b>28</b><b>19</b></div>
+                <div class="cmp__row"><span>Tempo medio</span><b>8.4 s</b><b>11.2 s</b></div>
+                <div class="cmp__row"><span>Vantaggio max</span><b>+2.60</b><b>+0.10</b></div>
+              </div>
+            </div>
+
+            <div class="insight">
+              <span class="micro">Lettura del match</span>
+              Il bianco vince la partita <b>al 78%</b> sulle mosse giocate, ma il vantaggio nasce da due errori gravi del nero (<b>12… g5</b> e <b>24… Qa5</b>) più che da una preparazione superiore.
+            </div>
+
+            <div class="footnote">
+              <span>Stockfish 17 · depth 22 · 1.42 M nodi</span>
+              <span>16 nov · 21:04</span>
+            </div>
+          </section>
+
+          <!-- GRAFICO -->
+          <section class="pane" id="pane-graph" role="tabpanel" aria-labelledby="tab-graph" tabindex="0" hidden>
+            <div class="sec__head" style="margin-top:0">
+              <span class="micro">Valutazione per mossa</span>
+              <span class="spacer"></span>
+              <span class="sec__note">centipedoni · + bianco</span>
+            </div>
+            <div class="chartcard">
+              <svg id="evalChart" viewBox="0 0 400 212" role="img" aria-label="Grafico della valutazione: il bianco passa da +0,15 a +2,60, con un calo a −0,45 alla mossa 31."></svg>
+            </div>
+            <div class="chart-legend">
+              <span><i style="background:var(--mint)"></i>Bianco</span>
+              <span><i style="background:var(--red)"></i>Nero</span>
+              <span><i style="background:var(--muted)"></i>Mossa corrente 18</span>
+            </div>
+            <div class="mini-stats">
+              <div><b>+2.45</b><span>Pendenza max</span></div>
+              <div><b>31</b><span>Punto critico</span></div>
+              <div><b>+0.32</b><span>Ora</span></div>
+            </div>
+            <div class="insight">
+              <span class="micro">Trend</span>
+              La curva resta vicina allo zero fino a <b>12… g5</b>, poi il bianco prende campo. Il crollo a <b>−0,45</b> alla 31ª è il momento in cui il nero poteva pareggiare: <b>32… f5</b> restituisce tutto.
+            </div>
+          </section>
+
+          <!-- MOSSE -->
+          <section class="pane" id="pane-moves" role="tabpanel" aria-labelledby="tab-moves" tabindex="0" hidden>
+            <div class="sec__head" style="margin-top:0">
+              <span class="micro">Partita · notazione</span>
+              <span class="spacer"></span>
+              <span class="sec__note">tocca una mossa</span>
+            </div>
+            <div class="mtable" id="moveTable"></div>
+            <div class="footnote">
+              <span>Ogni mossa con valutazione del motore</span>
+              <span>34 mosse</span>
+            </div>
+          </section>
+
+          <!-- FRECCE -->
+          <section class="pane" id="pane-arrows" role="tabpanel" aria-labelledby="tab-arrows" tabindex="0" hidden>
+            <div class="sec__head" style="margin-top:0">
+              <span class="micro">Livelli sovrapposti</span>
+              <span class="spacer"></span>
+              <span class="sec__note" id="arrowCount">3 frecce attive</span>
+            </div>
+
+            <div class="arow">
+              <span class="arow__key" style="border-color:rgba(56,224,166,.45)"><i style="background:var(--mint);border-left-color:var(--mint)"></i></span>
+              <span class="arow__txt">
+                <span class="arow__t">Freccia migliore</span>
+                <span class="arow__s">linea 1 · 10. Qf5 · +0.32</span>
+              </span>
+              <button class="sw" role="switch" aria-checked="true" data-arrow="best" aria-label="Mostra la freccia della mossa migliore"></button>
+            </div>
+
+            <div class="arow">
+              <span class="arow__key" style="border-color:rgba(77,124,254,.45)"><i style="background:var(--blue);border-left-color:var(--blue)"></i></span>
+              <span class="arow__txt">
+                <span class="arow__t">Seconda linea</span>
+                <span class="arow__s">linea 2 · 10. Ne5 · +0.21</span>
+              </span>
+              <button class="sw" role="switch" aria-checked="true" data-arrow="second" aria-label="Mostra la freccia della seconda linea"></button>
+            </div>
+
+            <div class="arow">
+              <span class="arow__key" style="border-color:rgba(255,200,87,.45)"><i style="background:var(--amber);border-left-color:var(--amber)"></i></span>
+              <span class="arow__txt">
+                <span class="arow__t">Ultima mossa</span>
+                <span class="arow__s">evidenzia 9… c5 (c7 → c5)</span>
+              </span>
+              <button class="sw" role="switch" aria-checked="true" data-arrow="last" aria-label="Evidenzia l'ultima mossa giocata"></button>
+            </div>
+
+            <div class="arow">
+              <span class="arow__key" style="border-color:rgba(138,153,173,.35)"><i style="background:var(--muted);border-left-color:var(--muted)"></i></span>
+              <span class="arow__txt">
+                <span class="arow__t">Suggerimento coach</span>
+                <span class="arow__s">sovrapposizione testuale</span>
+              </span>
+              <button class="sw" role="switch" aria-checked="false" data-arrow="coach" aria-label="Mostra il suggerimento del coach"></button>
+            </div>
+
+            <div class="slider">
+              <div class="slider__top">
+                <span class="micro">Opacità frecce</span>
+                <span class="slider__val" id="opacityVal">100%</span>
+              </div>
+              <input type="range" id="opacityRange" min="20" max="100" value="100" step="5" aria-label="Opacità delle frecce">
+            </div>
+
+            <div class="preview">
+              <svg id="arrowPreview" viewBox="0 0 200 100" aria-hidden="true"></svg>
+            </div>
+          </section>
+
+          <!-- COACH -->
+          <section class="pane" id="pane-coach" role="tabpanel" aria-labelledby="tab-coach" tabindex="0" hidden>
+            <div class="coachcard">
+              <div class="coachcard__top">
+                <span class="coachcard__av">GH</span>
+                <span>
+                  <span class="micro" style="display:block">G. Halvarsson</span>
+                  <span style="font-size:10px;color:var(--muted)">Grande Maestro · commento tecnico</span>
+                </span>
+                <span class="chip chip--mint" style="margin-left:auto">live</span>
+              </div>
+              <p>
+                Il nero ha spinto in <b>g5</b> per liberarsi, ma quel pedone è ora un bersaglio fisso: nessun pezzo lo difende e la casa <b>f5</b> resta scoperta. Con <b>10. Qf5</b> la donna attacca h7 e guarda c8, mentre il cavallo in c3 tiene il centro.
+                Se il nero scambia in d4, il bianco ricattura e resta con la coppia di alfieri contro un re ancora al centro: è questa la partita che vuole.
+              </p>
+              <div class="patterns">
+                <span class="chip">pedone debole</span>
+                <span class="chip">re al centro</span>
+                <span class="chip">coppia di alfieri</span>
+                <span class="chip">colonna h</span>
+              </div>
+              <div class="coach-next">
+                <span class="micro" style="flex:1">Prossimo passo</span>
+                <b>10. Qf5</b>
+                <span class="chip chip--mint">+0.32</span>
+              </div>
+              <div class="conf">
+                <div style="display:flex;justify-content:space-between;align-items:baseline">
+                  <span class="micro">Confidenza della lettura</span>
+                  <span class="mono" style="font-size:10px;color:var(--mint)">86%</span>
+                </div>
+                <div class="conf__bar"><i data-grow="86"></i></div>
+              </div>
+            </div>
+
+            <div class="insight" style="margin-top:9px">
+              <span class="micro">Alternativa</span>
+              <b>10. Ne5</b> è la scelta più solida: guadagna spazio e obbliga il nero a difendere g5, ma lascia al bianco meno iniziativa sulla colonna h.
+            </div>
+          </section>
+
+        </div>
+      </aside>
+
+    </main>
+  </div>
+
+  <!-- ============ TICKER / FOOTER ============ -->
+  <footer class="ticker" aria-label="Navigazione mosse">
+    <div class="ticker__strip" id="tickerStrip"></div>
+    <div class="ticker__bar">
+      <div class="navgroup">
+        <button class="nbtn" type="button" id="prevBtn"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3.5 5.5 8l4.5 4.5"/></svg>Precedente</button>
+        <span class="ncount"><b id="curMove">18</b> / 34</span>
+        <button class="nbtn" type="button" id="nextBtn">Successiva<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg></button>
+      </div>
+      <span class="ticker__sep" aria-hidden="true"></span>
+      <div class="navgroup">
+        <button class="nbtn" type="button" id="flipBtn"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 6.5A5 5 0 0 1 12.4 5M13 9.5A5 5 0 0 1 3.6 11"/><path d="M12.6 2.6V5H10M3.4 13.4V11H6"/></svg>Ruota</button>
+        <button class="nbtn" type="button" id="resetBtn"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8a5 5 0 1 0 1.6-3.7M3 2.6V5h2.4"/></svg>Reset</button>
+      </div>
+      <span class="chip chip--mint" style="margin-left:2px"><span class="dot-live" aria-hidden="true" style="width:4px;height:4px"></span>analisi live</span>
+      <div class="hints">
+        <span class="hint"><kbd>&larr;</kbd><kbd>&rarr;</kbd> naviga</span>
+        <span class="hint"><kbd>F</kbd> flip</span>
+        <span class="hint"><kbd>Space</kbd> analizza</span>
+      </div>
+    </div>
+  </footer>
+
+</div>
+
+<!-- ============ OFF-AIR SHEET ============ -->
+<section class="spec" aria-labelledby="spec-title">
+  <div class="wrap">
+    <div class="spec__head">
+      <div>
+        <span class="offair"><i aria-hidden="true"></i>Fuori onda · sistema</span>
+        <h2 class="spec__title" id="spec-title">La stessa regia, <em>sulle altre pagine</em></h2>
+        <p class="spec__lede">Tre schermate chiave nella lingua visiva della diretta: barra superiore con stato, pannelli a griglia stretta, numeri in monospazio, un solo accento acceso per schermata.</p>
+      </div>
+    </div>
+
+    <div class="spec__grid">
+
+      <!-- HOME PREVIEW -->
+      <figure class="prev">
+        <div class="prev__chrome">
+          <span class="prev__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="prev__url">chess.training / home</span>
+          <span class="prev__live">&#9679; LIVE</span>
+        </div>
+        <div class="prev__screen m">
+          <div class="m-bar"><span class="m-mark" aria-hidden="true">&#9822;</span><b>Chess Training</b><span class="m-tag">HOME</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px">
+            <div>
+              <div class="m-h">Buonasera,<br>Lorenzo</div>
+              <div class="m-sub" style="margin-top:2px">Lega Oro · 3° posto</div>
+            </div>
+            <div style="text-align:right">
+              <span class="m-pill m-pill--mint">streak 12 gg</span>
+              <div class="m-sub" style="margin-top:3px">rating 1842</div>
+            </div>
+          </div>
+          <div class="m-kpis">
+            <div><b>4h 12'</b><span>Studio</span></div>
+            <div><b>18/20</b><span>Puzzle</span></div>
+            <div><b>+64</b><span>Elo 30gg</span></div>
+          </div>
+          <div class="m-row"><span class="m-dot" style="background:var(--mint)"></span><span class="m-t">Ragozin · D38</span><span class="m-bar2"><i style="width:68%"></i></span><span class="m-n">68%</span></div>
+          <div class="m-row"><span class="m-dot" style="background:var(--blue)"></span><span class="m-t">Finali di torre</span><span class="m-bar2"><i style="width:41%"></i></span><span class="m-n">41%</span></div>
+          <div class="m-row"><span class="m-dot" style="background:var(--amber)"></span><span class="m-t">Tattiche · forchette</span><span class="m-bar2"><i style="width:86%"></i></span><span class="m-n">86%</span></div>
+          <div style="display:flex;align-items:center;gap:5px;margin-top:6px;padding-top:5px;border-top:1px solid var(--line-soft)">
+            <span class="m-sub" style="flex:1">Prossima sessione · 20:30</span>
+            <span class="m-pill m-pill--mint">inizia</span>
+          </div>
+        </div>
+        <figcaption><b>Home</b><span>Dashboard giocatore</span></figcaption>
+      </figure>
+
+      <!-- STUDIO PREVIEW -->
+      <figure class="prev">
+        <div class="prev__chrome">
+          <span class="prev__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="prev__url">chess.training / studio</span>
+          <span class="prev__live" style="color:var(--blue)">&#9679; SYNC</span>
+        </div>
+        <div class="prev__screen m">
+          <div class="m-bar"><span class="m-mark" aria-hidden="true">&#9822;</span><b>Chess Training</b><span class="m-tag">STUDIO</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <div class="m-h">Repertori</div>
+            <span class="m-pill">128 linee</span>
+          </div>
+          <div class="m-sub" style="margin-top:2px">3 capitoli · 12 da ripassare</div>
+          <div style="margin-top:6px">
+            <div class="m-row" style="padding:4px 0">
+              <span class="m-dot" style="background:var(--mint)"></span>
+              <span class="m-t">Bianco · 1.d4</span>
+              <span class="m-bar2"><i style="width:72%"></i></span>
+              <span class="m-n">72%</span>
+            </div>
+            <div class="m-row" style="padding:4px 0">
+              <span class="m-dot" style="background:var(--blue)"></span>
+              <span class="m-t">Nero · Siciliana</span>
+              <span class="m-bar2"><i style="width:58%"></i></span>
+              <span class="m-n">58%</span>
+            </div>
+            <div class="m-row" style="padding:4px 0">
+              <span class="m-dot" style="background:var(--violet)"></span>
+              <span class="m-t">Nero · Ragozin</span>
+              <span class="m-bar2"><i style="width:84%"></i></span>
+              <span class="m-n">84%</span>
+            </div>
+          </div>
+          <div style="border:1px dashed rgba(36,48,64,.95);border-radius:2px;padding:5px;text-align:center;margin-top:6px">
+            <span class="m-sub" style="color:var(--mint)">+ Nuovo capitolo</span>
+          </div>
+          <div style="display:flex;gap:4px;margin-top:6px">
+            <span class="m-pill m-pill--mint">drill 8'</span>
+            <span class="m-pill">ripasso</span>
+            <span class="m-pill">esporta pgn</span>
+          </div>
+        </div>
+        <figcaption><b>Studio</b><span>Repertori e capitoli</span></figcaption>
+      </figure>
+
+      <!-- PUZZLES PREVIEW -->
+      <figure class="prev">
+        <div class="prev__chrome">
+          <span class="prev__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="prev__url">chess.training / puzzle</span>
+          <span class="prev__live" style="color:var(--amber)">&#9679; 12/20</span>
+        </div>
+        <div class="prev__screen m">
+          <div class="m-bar"><span class="m-mark" aria-hidden="true">&#9822;</span><b>Chess Training</b><span class="m-tag">PUZZLE</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <div class="m-h">Serie giornaliera</div>
+            <span class="m-pill m-pill--amber">12 / 20</span>
+          </div>
+          <div class="m-sub" style="margin-top:2px">difficoltà media · 94% precisione</div>
+          <div class="m-grid2" style="margin-top:6px">
+            <div class="m-tile"><b>Inchiodature</b><span>240 puzzle</span><div class="m-row"><span class="m-dot" style="background:var(--red)"></span><span class="m-n">media</span><span class="m-n" style="margin-left:auto">1 800</span></div></div>
+            <div class="m-tile"><b>Forchette</b><span>180 puzzle</span><div class="m-row"><span class="m-dot" style="background:var(--amber)"></span><span class="m-n">facile</span><span class="m-n" style="margin-left:auto">1 420</span></div></div>
+            <div class="m-tile"><b>Finali</b><span>120 puzzle</span><div class="m-row"><span class="m-dot" style="background:var(--mint)"></span><span class="m-n">esperto</span><span class="m-n" style="margin-left:auto">2 210</span></div></div>
+            <div class="m-tile"><b>Matto in 2</b><span>96 puzzle</span><div class="m-row"><span class="m-dot" style="background:var(--blue)"></span><span class="m-n">media</span><span class="m-n" style="margin-left:auto">1 950</span></div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:5px;margin-top:6px;padding-top:5px;border-top:1px solid var(--line-soft)">
+            <span class="m-sub" style="flex:1">Tempo medio 34 s · streak 5</span>
+            <span class="m-pill m-pill--mint">continua</span>
+          </div>
+        </div>
+        <figcaption><b>Puzzle</b><span>Categorie e serie</span></figcaption>
+      </figure>
+    </div>
+
+    <!-- TOKEN STRIP -->
+    <div class="tokens">
+      <div class="tok">
+        <div class="tok__head"><span class="micro">Tipografia</span><span>Space Grotesk · Plex Mono</span></div>
+        <div class="type-row"><span class="aa">Aa</span><span class="meta">Display 32 / 600<br>-0.02em · titoli e nomi</span></div>
+        <div class="type-row"><span class="aa" style="font-size:14px">Aa</span><span class="meta">UI 13 / 500<br>testo e controlli</span></div>
+        <div class="type-row"><span class="aa mono">1.42</span><span class="meta">Mono 11 / 400<br>dati, notazione, orologi</span></div>
+        <div class="type-row"><span class="aa mono" style="font-size:9px;letter-spacing:.16em">EVAL</span><span class="meta">Micro 9.5 / 600<br>tracking .16em maiuscolo</span></div>
+      </div>
+
+      <div class="tok">
+        <div class="tok__head"><span class="micro">Colore</span><span>6 base + 2 dati</span></div>
+        <div class="swatches">
+          <div class="swatch"><i style="background:#0B0E13"></i><b>#0B0E13</b><span>Stage</span></div>
+          <div class="swatch"><i style="background:#12171F"></i><b>#12171F</b><span>Panel</span></div>
+          <div class="swatch"><i style="background:#243040"></i><b>#243040</b><span>Border</span></div>
+          <div class="swatch"><i style="background:#E6EDF5"></i><b>#E6EDF5</b><span>Testo</span></div>
+          <div class="swatch"><i style="background:#38E0A6"></i><b>#38E0A6</b><span>Mint</span></div>
+          <div class="swatch"><i style="background:#4D7CFE"></i><b>#4D7CFE</b><span>Blue</span></div>
+          <div class="swatch"><i style="background:#FF4D6D"></i><b>#FF4D6D</b><span>Live</span></div>
+          <div class="swatch"><i style="background:#FFC857"></i><b>#FFC857</b><span>Amber</span></div>
+        </div>
+        <div class="m-sub" style="margin-top:7px;line-height:1.5">Glow solo su eval, live e stato attivo. Violet #A78BFA e orange #FF8A5C sono riservati alle classificazioni.</div>
+      </div>
+
+      <div class="tok">
+        <div class="tok__head"><span class="micro">Spazio e forma</span><span>griglia 4 / 8</span></div>
+        <div class="token-line"><span>Raggio pannello</span><b>5 px</b></div>
+        <div class="token-line"><span>Raggio chip / bottone</span><b>2 px</b></div>
+        <div class="token-line"><span>Bordo</span><b>1 px #243040</b></div>
+        <div class="token-line"><span>Gap console</span><b>12 px</b></div>
+        <div class="token-line"><span>Focus ring</span><b>2 px mint · offset 2</b></div>
+        <div class="state-demo">
+          <button class="btn btn--primary" type="button">Attivo</button>
+          <button class="btn" type="button">Default</button>
+          <button class="btn btn--muted" type="button" disabled>Disabilitato</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="spec__foot">
+      <span>Variante B · Broadcast Studio — mockup di design, non codice di produzione</span>
+      <span>Analisi · Home · Studio · Puzzle — 1440 / 390 px</span>
+    </div>
+  </div>
+</section>
+
+
+<script>
+/* ============================================================
+   MOCKUP SCRIPT — vanilla, no dependencies
+   ============================================================ */
+(function () {
+  'use strict';
+
+  /* ---------- data ---------- */
+  var GLYPH = { k: '\u265A', q: '\u265B', r: '\u265C', b: '\u265D', n: '\u265E', p: '\u265F' };
+  var FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+  var FEN = 'rnbqk2r/pp3p1p/4p2p/2pp2p1/1bPP4/2N2NP1/PPQ1PPP1/R3KB1R w Qk - 1 10';
+
+  var CLS = {
+    brill:   { label: 'Brillante',    color: '#A78BFA' },
+    best:    { label: 'Migliore',     color: '#38E0A6' },
+    excel:   { label: 'Eccellente',   color: '#4D7CFE' },
+    good:    { label: 'Buona',        color: '#8A99AD' },
+    inacc:   { label: 'Imprecisione', color: '#FFC857' },
+    error:   { label: 'Errore',       color: '#FF8A5C' },
+    blunder: { label: 'Errore grave', color: '#FF4D6D' }
+  };
+  var ORDER = ['brill', 'best', 'excel', 'good', 'inacc', 'error', 'blunder'];
+
+  var MOVES = [
+    ['d4', 'best'], ['d5', 'good'], ['c4', 'best'], ['e6', 'good'],
+    ['Nc3', 'excel'], ['Nf6', 'good'], ['Nf3', 'best'], ['Bb4', 'excel'],
+    ['Bg5', 'best'], ['h6', 'inacc'], ['Bh4', 'excel'], ['g5', 'blunder'],
+    ['Bg3', 'best'], ['Nxe4', 'good'], ['Qc2', 'excel'], ['Nxg3', 'good'],
+    ['hxg3', 'best'], ['c5', 'good'], ['Ne5', 'brill'], ['Nc6', 'good'],
+    ['Nxc6', 'excel'], ['bxc6', 'good'], ['dxc5', 'best'], ['Qa5', 'blunder'],
+    ['Bd3', 'excel'], ['Bxc3+', 'good'], ['bxc3', 'inacc'], ['Qxc5', 'good'],
+    ['Qxc5', 'excel'], ['Bxc5', 'good'], ['Ke2', 'blunder'], ['f5', 'error'],
+    ['Rh7', 'brill']
+  ].map(function (m) { return { san: m[0], cls: m[1] }; });
+
+  /* evaluation in pawns, white's perspective, one value per half-move */
+  var EVALS = [0.15, 0.12, 0.22, 0.20, 0.28, 0.24, 0.32, 0.28, 0.36, 0.30, 0.38,
+    0.62, 0.55, 0.48, 0.52, 0.46, 0.40, 0.32, 0.55, 0.48, 0.60, 0.52, 0.78, 1.05,
+    0.95, 0.88, 0.70, 0.95, 1.15, 1.05, -0.45, 0.80, 2.60];
+
+  var TOTAL = 34;
+  var current = 18;
+  var flipped = false;
+  var arrows = { best: true, second: true, last: true, coach: false };
+  var arrowOpacity = 1;
+
+  /* ---------- helpers ---------- */
+  function el(id) { return document.getElementById(id); }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function fmtEval(v) { return (v > 0 ? '+' : v < 0 ? '\u2212' : '') + Math.abs(v).toFixed(2); }
+
+  function parseFen(fen) {
+    var out = {};
+    fen.split(' ')[0].split('/').forEach(function (row, i) {
+      var rank = 8 - i, f = 0;
+      for (var c = 0; c < row.length; c++) {
+        var ch = row[c];
+        if (ch >= '1' && ch <= '8') { f += +ch; }
+        else {
+          out[FILES[f] + rank] = { c: ch === ch.toUpperCase() ? 'w' : 'b', p: ch.toLowerCase() };
+          f++;
+        }
+      }
+    });
+    return out;
+  }
+  var POS = parseFen(FEN);
+
+  function sqXY(sq) {
+    var fi = FILES.indexOf(sq.charAt(0));
+    var rank = +sq.charAt(1);
+    var x = flipped ? (7 - fi) * 100 + 50 : fi * 100 + 50;
+    var y = flipped ? (rank - 1) * 100 + 50 : (8 - rank) * 100 + 50;
+    return [x, y];
+  }
+
+  function arrowPoly(x1, y1, x2, y2, color, opacity, scale) {
+    scale = scale || 1;
+    var dx = x2 - x1, dy = y2 - y1;
+    var len = Math.sqrt(dx * dx + dy * dy) || 1;
+    var ux = dx / len, uy = dy / len, px = -uy, py = ux;
+    var head = Math.min(46 * scale, len * 0.4), hw = 40 * scale, sh = 17 * scale, sp = 38 * scale;
+    var sx = x1 + ux * sp, sy = y1 + uy * sp;
+    var bx = x2 - ux * head, by = y2 - uy * head;
+    var tx = x2 - ux * 4 * scale, ty = y2 - uy * 4 * scale;
+    var pts = [
+      [sx + px * sh / 2, sy + py * sh / 2],
+      [bx + px * sh / 2, by + py * sh / 2],
+      [bx + px * hw / 2, by + py * hw / 2],
+      [tx, ty],
+      [bx - px * hw / 2, by - py * hw / 2],
+      [bx - px * sh / 2, by - py * sh / 2],
+      [sx - px * sh / 2, sy - py * sh / 2]
+    ].map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ');
+    return '<polygon class="arrow" points="' + pts + '" fill="' + color + '" opacity="' + opacity +
+      '" stroke="' + color + '" stroke-width="' + (3 * scale).toFixed(1) + '"/>';
+  }
+
+  /* ---------- chessboard ---------- */
+  function renderBoard() {
+    var svg = el('board');
+    var out = '';
+    var lastFrom = 'c7', lastTo = 'c5';
+    var dr, dc, fi, rank, sq, x, y, isDark, fill;
+
+    for (dr = 0; dr < 8; dr++) {
+      for (dc = 0; dc < 8; dc++) {
+        fi = flipped ? 7 - dc : dc;
+        rank = flipped ? dr + 1 : 8 - dr;
+        sq = FILES[fi] + rank;
+        isDark = (fi + rank) % 2 === 1;
+        fill = isDark ? '#46606C' : '#B7C6CB';
+        out += '<rect x="' + dc * 100 + '" y="' + dr * 100 + '" width="100" height="100" fill="' + fill + '"/>';
+        /* last move wash */
+        if (arrows.last && (sq === lastFrom || sq === lastTo)) {
+          out += '<rect x="' + (dc * 100 + 1) + '" y="' + (dr * 100 + 1) + '" width="98" height="98" fill="#FFC857" opacity="0.26"/>' +
+                 '<rect x="' + (dc * 100 + 1) + '" y="' + (dr * 100 + 1) + '" width="98" height="98" fill="none" stroke="#FFC857" stroke-width="2.5" opacity="0.85"/>';
+        }
+        /* coordinates are drawn on the mat, outside the grid */
+      }
+    }
+
+    /* mat coordinates */
+    for (dc = 0; dc < 8; dc++) {
+      out += '<text class="coord" x="' + (dc * 100 + 50) + '" y="826" text-anchor="middle" font-size="15" fill="#7C8EA1">' + FILES[flipped ? 7 - dc : dc] + '</text>';
+    }
+    for (dr = 0; dr < 8; dr++) {
+      out += '<text class="coord" x="-14" y="' + (dr * 100 + 55) + '" text-anchor="middle" font-size="15" fill="#7C8EA1">' + (flipped ? dr + 1 : 8 - dr) + '</text>';
+    }
+    out += '<rect x="0" y="0" width="800" height="800" fill="none" stroke="rgba(0,0,0,.55)" stroke-width="2"/>';
+
+    /* pieces */
+    Object.keys(POS).forEach(function (square) {
+      var piece = POS[square];
+      var c = sqXY(square);
+      var white = piece.c === 'w';
+      out += '<text class="pc" x="' + c[0] + '" y="' + (c[1] + 4) + '" font-size="88" text-anchor="middle" dominant-baseline="central" fill="' +
+        (white ? '#F7FBFF' : '#0D141B') + '" stroke="' +
+        (white ? '#0B1117' : '#9DB0BE') + '" stroke-width="' +
+        (white ? '5' : '2.4') + '" opacity="' + (white ? '.99' : '.98') + '">' + GLYPH[piece.p] + '</text>';
+    });
+
+    /* arrows: best (mint) + second (blue) */
+    if (arrows.best) {
+      var b1 = sqXY('c2'), b2 = sqXY('f5');
+      out += arrowPoly(b1[0], b1[1], b2[0], b2[1], '#38E0A6', arrowOpacity, 1);
+      out += arrowPoly(b1[0], b1[1], b2[0], b2[1], '#38E0A6', 0.35 * arrowOpacity, 1);
+    }
+    if (arrows.second) {
+      var s1 = sqXY('f3'), s2 = sqXY('e5');
+      out += arrowPoly(s1[0], s1[1], s2[0], s2[1], '#4D7CFE', arrowOpacity * 0.95, 0.86);
+    }
+    /* best-move origin marker */
+    if (arrows.best) {
+      var o = sqXY('c2');
+      out += '<circle cx="' + o[0] + '" cy="' + o[1] + '" r="9" fill="none" stroke="#38E0A6" stroke-width="3" opacity="' + (0.9 * arrowOpacity) + '"/>';
+    }
+
+    svg.innerHTML = out;
+  }
+
+  function toggleFlip() {
+    flipped = !flipped;
+    renderBoard();
+    el('viewChip').textContent = flipped ? 'Prospettiva nero' : 'Prospettiva bianco';
+    el('board').setAttribute('aria-label', flipped
+      ? 'Posizione dopo 9...c5, scacchiera ruotata dal lato del nero.'
+      : 'Posizione dopo 9...c5, tratto al bianco.');
+  }
+
+  /* ---------- ticker ---------- */
+  function buildTicker() {
+    var strip = el('tickerStrip');
+    var html = '';
+    MOVES.forEach(function (m, i) {
+      var ply = i + 1;
+      var isWhite = ply % 2 === 1;
+      var moveNo = Math.ceil(ply / 2);
+      html += '<button class="mv" type="button" data-ply="' + ply + '" aria-label="Mossa ' + moveNo +
+        (isWhite ? '.' : '...') + ' ' + m.san + '">' +
+        (isWhite ? '<span class="mv__n">' + moveNo + '</span>' : '') +
+        '<span class="mv__san">' + m.san + '</span>' +
+        '<span class="mv__dot" style="background:' + CLS[m.cls].color + '"></span></button>';
+    });
+    html += '<span class="mv mv--result" aria-label="Risultato 1 a 0">1&ndash;0</span>';
+    strip.innerHTML = html;
+  }
+
+  function setMove(n) {
+    current = Math.max(0, Math.min(TOTAL, n));
+    el('curMove').textContent = current;
+    el('posLabel').textContent = 'POS ' + pad(current) + ' / ' + TOTAL;
+    Array.prototype.forEach.call(document.querySelectorAll('.mv[data-ply]'), function (node) {
+      node.classList.toggle('is-current', +node.dataset.ply === current);
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.mcell[data-ply]'), function (node) {
+      node.classList.toggle('is-current', +node.dataset.ply === current);
+    });
+    var active = document.querySelector('.mv.is-current');
+    if (active) {
+      var strip = el('tickerStrip');
+      var sr = strip.getBoundingClientRect();
+      var ar = active.getBoundingClientRect();
+      strip.scrollLeft += (ar.left - sr.left) - (strip.clientWidth - ar.width) / 2;
+    }
+    var cell = document.querySelector('.mcell.is-current');
+    if (cell && cell.closest('.mtable')) cell.scrollIntoView({ block: 'nearest' });
+  }
+
+  /* ---------- classification bars ---------- */
+  function buildClassifications() {
+    var counts = {};
+    MOVES.forEach(function (m) { counts[m.cls] = (counts[m.cls] || 0) + 1; });
+    var max = 0;
+    ORDER.forEach(function (k) { max = Math.max(max, counts[k] || 0); });
+    el('clsList').innerHTML = ORDER.map(function (k) {
+      var n = counts[k] || 0;
+      return '<div class="cls">' +
+        '<span class="cls__dot" style="background:' + CLS[k].color + ';box-shadow:0 0 8px ' + CLS[k].color + '80"></span>' +
+        '<span class="cls__l">' + CLS[k].label + '</span>' +
+        '<span class="cls__bar"><i data-grow="' + Math.round(n / max * 100) + '" style="background:' + CLS[k].color + '"></i></span>' +
+        '<span class="cls__n">' + n + '</span></div>';
+    }).join('');
+  }
+
+  /* ---------- move table ---------- */
+  function buildMoveTable() {
+    var html = '';
+    for (var i = 0; i < MOVES.length; i += 2) {
+      var w = MOVES[i], b = MOVES[i + 1];
+      html += '<div class="mrow"><span class="mrow__n">' + (i / 2 + 1) + '</span>' +
+        cell(w, i + 1) + (b ? cell(b, i + 2) : '<span class="mcell" aria-hidden="true"></span>') + '</div>';
+    }
+    el('moveTable').innerHTML = html;
+  }
+  function cell(m, ply) {
+    return '<button class="mcell" type="button" data-ply="' + ply + '" aria-label="Vai alla mossa ' + ply + '">' +
+      '<span class="dot" style="background:' + CLS[m.cls].color + '"></span>' + m.san +
+      '<span class="ev">' + fmtEval(EVALS[ply - 1]) + '</span></button>';
+  }
+
+  /* ---------- grow animations ---------- */
+  function grow(root) {
+    (root || document).querySelectorAll('[data-grow]').forEach(function (node) {
+      window.requestAnimationFrame(function () { node.style.width = node.dataset.grow + '%'; });
+    });
+  }
+
+  /* ---------- tabs ---------- */
+  var TABS = ['summary', 'graph', 'moves', 'arrows', 'coach'];
+  function selectTab(id) {
+    TABS.forEach(function (key) {
+      var tab = el('tab-' + key);
+      var pane = el('pane-' + key);
+      var on = key === id;
+      tab.setAttribute('aria-selected', String(on));
+      tab.tabIndex = on ? 0 : -1;
+      pane.classList.toggle('is-active', on);
+      if (on) { pane.removeAttribute('hidden'); } else { pane.setAttribute('hidden', ''); }
+    });
+    grow(el('pane-' + id));
+    if (id === 'graph') drawChart();
+    if (id === 'moves') { buildMoveTable(); setMove(current); }
+  }
+
+  /* ---------- evaluation chart ---------- */
+  var chartDrawn = false;
+  function drawChart() {
+    if (chartDrawn) return;
+    var svg = el('evalChart');
+    if (!svg) return;
+    chartDrawn = true;
+
+    var W = 400, H = 212, L = 27, R = 10, T = 12, B = 26;
+    var min = -1.0, max = 2.9, n = EVALS.length;
+    var X = function (i) { return L + (i - 1) / (n - 1) * (W - L - R); };
+    var Y = function (v) { return T + (max - v) / (max - min) * (H - T - B); };
+    var zero = Y(0);
+    var pts = EVALS.map(function (v, i) { return [X(i + 1), Y(v)]; });
+
+    var d = 'M' + pts[0][0].toFixed(1) + ',' + pts[0][1].toFixed(1);
+    for (var i = 0; i < pts.length - 1; i++) {
+      var p0 = pts[i], p1 = pts[i + 1], mx = (p0[0] + p1[0]) / 2;
+      d += ' C' + mx.toFixed(1) + ',' + p0[1].toFixed(1) + ' ' + mx.toFixed(1) + ',' + p1[1].toFixed(1) +
+        ' ' + p1[0].toFixed(1) + ',' + p1[1].toFixed(1);
+    }
+    var area = d + ' L' + pts[n - 1][0].toFixed(1) + ',' + zero.toFixed(1) +
+      ' L' + pts[0][0].toFixed(1) + ',' + zero.toFixed(1) + ' Z';
+
+    var out = '<defs>' +
+      '<linearGradient id="gMint" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0" stop-color="#38E0A6" stop-opacity=".38"/><stop offset="1" stop-color="#38E0A6" stop-opacity=".02"/></linearGradient>' +
+      '<linearGradient id="gRed" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0" stop-color="#FF4D6D" stop-opacity=".04"/><stop offset="1" stop-color="#FF4D6D" stop-opacity=".34"/></linearGradient>' +
+      '<clipPath id="cAbove"><rect x="0" y="0" width="' + W + '" height="' + zero.toFixed(1) + '"/></clipPath>' +
+      '<clipPath id="cBelow"><rect x="0" y="' + zero.toFixed(1) + '" width="' + W + '" height="' + (H - zero).toFixed(1) + '"/></clipPath>' +
+      '<filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3.4"/></filter>' +
+      '</defs>';
+
+    /* horizontal grid */
+    [2, 1, 0].forEach(function (v) {
+      var y = Y(v);
+      out += '<line x1="' + L + '" y1="' + y.toFixed(1) + '" x2="' + (W - R) + '" y2="' + y.toFixed(1) +
+        '" stroke="' + (v === 0 ? '#3A4B5E' : '#1D2834') + '" stroke-width="1"' +
+        (v === 0 ? ' stroke-dasharray="3 3"' : '') + '/>';
+      out += '<text x="' + (L - 5) + '" y="' + (y + 3).toFixed(1) + '" text-anchor="end" font-size="7.5" fill="#6A7A8E" font-family="IBM Plex Mono, monospace">' +
+        (v > 0 ? '+' + v : '0') + '</text>';
+    });
+
+    /* areas + line, clipped above / below zero */
+    out += '<path d="' + area + '" fill="url(#gMint)" clip-path="url(#cAbove)"/>';
+    out += '<path d="' + area + '" fill="url(#gRed)" clip-path="url(#cBelow)"/>';
+    out += '<path d="' + d + '" fill="none" stroke="#38E0A6" stroke-width="5" opacity=".45" filter="url(#softGlow)" clip-path="url(#cAbove)"/>';
+    out += '<path d="' + d + '" fill="none" stroke="#FF4D6D" stroke-width="5" opacity=".45" filter="url(#softGlow)" clip-path="url(#cBelow)"/>';
+    out += '<path d="' + d + '" fill="none" stroke="#38E0A6" stroke-width="1.8" clip-path="url(#cAbove)"/>';
+    out += '<path d="' + d + '" fill="none" stroke="#FF4D6D" stroke-width="1.8" clip-path="url(#cBelow)"/>';
+
+    /* classification ticks */
+    MOVES.forEach(function (m, idx) {
+      out += '<rect x="' + (X(idx + 1) - 1.5).toFixed(1) + '" y="' + (H - B + 4) + '" width="3" height="6" rx="1" fill="' +
+        CLS[m.cls].color + '" opacity=".85"/>';
+    });
+
+    /* x labels */
+    [1, 6, 12, 18, 24, 30, 33].forEach(function (ply) {
+      out += '<text x="' + X(ply).toFixed(1) + '" y="' + (H - 4) + '" text-anchor="middle" font-size="7.5" fill="#6A7A8E" font-family="IBM Plex Mono, monospace">' + ply + '</text>';
+    });
+
+    /* current move marker */
+    var cx = X(18), cy = Y(EVALS[17]);
+    out += '<line x1="' + cx.toFixed(1) + '" y1="' + T + '" x2="' + cx.toFixed(1) + '" y2="' + (H - B) +
+      '" stroke="#38E0A6" stroke-width="1" stroke-dasharray="2 3" opacity=".55"/>';
+    out += '<circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="4.6" fill="#0B0E13" stroke="#38E0A6" stroke-width="1.6"/>';
+    out += '<circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="1.8" fill="#38E0A6"/>';
+    out += '<rect x="' + (cx + 7).toFixed(1) + '" y="' + (cy - 19).toFixed(1) + '" width="24" height="13" rx="2" fill="#18202B" stroke="#38E0A6" stroke-opacity=".5"/>';
+    out += '<text x="' + (cx + 19).toFixed(1) + '" y="' + (cy - 10).toFixed(1) + '" text-anchor="middle" font-size="7.5" fill="#38E0A6" font-family="IBM Plex Mono, monospace">18</text>';
+
+    /* final value callout */
+    var fx = pts[n - 1][0], fy = pts[n - 1][1];
+    out += '<circle cx="' + fx.toFixed(1) + '" cy="' + fy.toFixed(1) + '" r="2.4" fill="#38E0A6"/>';
+    out += '<text x="' + (fx - 4).toFixed(1) + '" y="' + (fy - 8).toFixed(1) + '" text-anchor="end" font-size="8" fill="#EAFFF8" font-family="IBM Plex Mono, monospace">+2.60</text>';
+
+    svg.innerHTML = out;
+  }
+
+  /* ---------- arrow preview ---------- */
+  function drawPreview() {
+    var svg = el('arrowPreview');
+    if (!svg) return;
+    svg.innerHTML =
+      '<rect x="0" y="0" width="200" height="100" rx="2" fill="#0A0F15"/>' +
+      '<text x="7" y="14" font-size="6.5" fill="#6A7A8E" font-family="IBM Plex Mono, monospace" letter-spacing="1.2">LIVELLI</text>' +
+      '<text x="193" y="14" text-anchor="end" font-size="6.5" fill="#38E0A6" font-family="IBM Plex Mono, monospace">Qf5</text>' +
+      arrowPoly(36, 76, 128, 30, '#38E0A6', 1, 0.42) +
+      arrowPoly(148, 78, 96, 46, '#4D7CFE', 0.95, 0.38) +
+      arrowPoly(24, 40, 74, 58, '#FFC857', 0.85, 0.34) +
+      '<text x="7" y="93" font-size="6.5" fill="#6A7A8E" font-family="IBM Plex Mono, monospace">migliore</text>' +
+      '<text x="193" y="93" text-anchor="end" font-size="6.5" fill="#6A7A8E" font-family="IBM Plex Mono, monospace">seconda</text>';
+  }
+
+  /* ---------- wiring ---------- */
+  function init() {
+    renderBoard();
+    buildTicker();
+    buildClassifications();
+    buildMoveTable();
+    drawChart();
+    drawPreview();
+    setMove(18);
+    grow(document);
+
+    /* tabs */
+    Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (tab, idx) {
+      tab.addEventListener('click', function () { selectTab(TABS[idx]); });
+      tab.addEventListener('keydown', function (e) {
+        if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+        e.preventDefault();
+        var next = (idx + (e.key === 'ArrowRight' ? 1 : TABS.length - 1)) % TABS.length;
+        selectTab(TABS[next]);
+        el('tab-' + TABS[next]).focus();
+      });
+    });
+
+    /* move navigation */
+    el('tickerStrip').addEventListener('click', function (e) {
+      var btn = e.target.closest('.mv[data-ply]');
+      if (btn) setMove(+btn.dataset.ply);
+    });
+    el('prevBtn').addEventListener('click', function () { setMove(current - 1); });
+    el('nextBtn').addEventListener('click', function () { setMove(current + 1); });
+
+    el('moveTable').addEventListener('click', function (e) {
+      var btn = e.target.closest('.mcell[data-ply]');
+      if (btn) setMove(+btn.dataset.ply);
+    });
+
+    el('flipBtn').addEventListener('click', toggleFlip);
+    el('resetBtn').addEventListener('click', function () {
+      if (flipped) { flipped = false; el('viewChip').textContent = 'Prospettiva bianco'; }
+      setMove(18);
+      renderBoard();
+      var frame = el('boardFrame');
+      frame.classList.remove('is-flash');
+      void frame.offsetWidth;
+      frame.classList.add('is-flash');
+    });
+
+    /* arrow layer switches */
+    Array.prototype.forEach.call(document.querySelectorAll('.sw'), function (sw) {
+      sw.addEventListener('click', function () {
+        var on = sw.getAttribute('aria-checked') !== 'true';
+        sw.setAttribute('aria-checked', String(on));
+        arrows[sw.dataset.arrow] = on;
+        el('boardFrame').classList.toggle('show-coach', arrows.coach);
+        renderBoard();
+        var total = Object.keys(arrows).filter(function (k) { return arrows[k]; }).length;
+        el('arrowCount').textContent = total + ' frecce attive';
+      });
+    });
+
+    var range = el('opacityRange');
+    range.addEventListener('input', function () {
+      arrowOpacity = +range.value / 100;
+      el('opacityVal').textContent = range.value + '%';
+      renderBoard();
+    });
+
+    /* keyboard shortcuts */
+    document.addEventListener('keydown', function (e) {
+      var tag = (e.target.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+      if (e.key === 'ArrowLeft') { e.preventDefault(); setMove(current - 1); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); setMove(current + 1); }
+      else if (e.key === 'f' || e.key === 'F') { toggleFlip(); }
+      else if (e.key === ' ') { e.preventDefault(); pulseAnalysis(); }
+    });
+
+    /* clocks */
+    var onair = 3600 + 12 * 60 + 44;
+    setInterval(function () { onair++; el('onair').textContent = pad(Math.floor(onair / 3600)) + ':' + pad(Math.floor(onair / 60) % 60) + ':' + pad(onair % 60); }, 1000);
+    function clock() {
+      var d = new Date();
+      el('clock').textContent = pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()) + ' CET';
+    }
+    clock();
+    setInterval(clock, 1000);
+  }
+
+  var pulseTimer;
+  function pulseAnalysis() {
+    var fill = document.querySelector('.depth__fill');
+    var rule = document.querySelector('.bcast__rule');
+    el('posLabel').textContent = 'ANALISI IN CORSO…';
+    fill.style.width = '72%';
+    if (rule) rule.style.filter = 'brightness(1.9)';
+    clearTimeout(pulseTimer);
+    pulseTimer = setTimeout(function () {
+      fill.style.width = '55%';
+      if (rule) rule.style.filter = '';
+      el('posLabel').textContent = 'POS ' + pad(current) + ' / ' + TOTAL;
+    }, 1700);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+})();
+</script>
+
+
+</body>
+</html>

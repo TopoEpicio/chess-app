@@ -1,0 +1,6 @@
+export type { PuzzleTheme, GamePhase, TacticalMoment } from './types.ts'
+export { PUZZLE_THEMES, GAME_PHASES } from './types.ts'
+export { PatternDetector } from './patterns.ts'
+export { DifficultyCalculator } from './difficulty.ts'
+export { PhaseDetector } from './phase.ts'
+export { PositionEvaluator } from './eval.ts'

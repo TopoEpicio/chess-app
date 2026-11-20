@@ -1,0 +1,225 @@
+import { useTranslation } from 'react-i18next'
+import { useState } from 'react'
+import type { MoveAnalysisData, MoveClassification } from '../../types/analysis'
+import { CLASSIFICATION_META } from '../../types/analysis'
+import { clsx } from 'clsx'
+
+function evalDisplay(eval_: number): string {
+  if (eval_ === 0) return '0.0'
+  return eval_ > 0 ? `+${eval_.toFixed(1)}` : eval_.toFixed(1)
+}
+
+export function MoveClassificationTable({ moves, classificationCounts = {}, currentIndex, onMoveSelect }: Props) {
+  const { t } = useTranslation('common')
+  const [filter, setFilter] = useState<FilterMode>('all')
+  const [tooltipIdx, setTooltipIdx] = useState<number | null>(null)
+
+  const pairs: Array<{
+    wi: number
+    bi?: number
+    w: MoveAnalysisData
+    b?: MoveAnalysisData
+    moveNum: number
+  }> = []
+
+  for (let i = 0; i < moves.length; i++) {
+    if (moves[i].is_white) {
+      const bi = i + 1 < moves.length && !moves[i + 1].is_white ? i + 1 : undefined
+      pairs.push({
+        wi: i,
+        bi,
+        w: moves[i],
+        b: bi !== undefined ? moves[bi] : undefined,
+        moveNum: moves[i].move_number,
+      })
+    }
+  }
+
+  const filteredPairs = filter === 'all'
+    ? pairs
+    : pairs.filter(p => {
+        const wErr = p.w.classification !== 'best' && p.w.classification !== 'excellent' && p.w.classification !== 'good' && p.w.classification !== 'book' && p.w.classification !== 'forced'
+        const bErr = p.b && p.b.classification !== 'best' && p.b.classification !== 'excellent' && p.b.classification !== 'good' && p.b.classification !== 'book' && p.b.classification !== 'forced'
+        if (filter === 'blunders') return p.w.classification === 'blunder' || p.b?.classification === 'blunder'
+        return wErr || bErr
+      })
+
+  const [expandWhite, setExpandWhite] = useState<string | null>(null)
+  const [expandBlack, setExpandBlack] = useState<string | null>(null)
+
+  const summaryOrder: MoveClassification[] = ['brilliant', 'good', 'inaccuracy', 'mistake', 'blunder']
+
+  function navigateToClassification(classification: string, isWhite: boolean) {
+    const startSearch = currentIndex === -1 ? 0 : currentIndex + 1
+    for (let i = startSearch; i < moves.length; i++) {
+      if (moves[i].classification === classification && moves[i].is_white === isWhite) {
+        onMoveSelect(i)
+        return
+      }
+    }
+    for (let i = 0; i < startSearch; i++) {
+      if (moves[i].classification === classification && moves[i].is_white === isWhite) {
+        onMoveSelect(i)
+        return
+      }
+    }
+  }
+
+  return (
+    <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-5">
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
+          {t('analysis.moves')}
+        </div>
+        <div className="flex gap-1">
+          {(['all', 'errors', 'blunders'] as const).map(mode => (
+            <button
+              key={mode}
+              onClick={() => setFilter(mode)}
+              className={clsx(
+                'px-2 py-1 rounded text-[10px] font-medium transition-colors',
+                filter === mode
+                  ? 'bg-[var(--color-primary)] text-white'
+                  : 'bg-[var(--color-bg)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)]'
+              )}
+            >
+              {mode === 'all' ? t('games.filterAll') : mode === 'errors' ? t('analysis.mistakes') : t('analysis.blunders')}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-0.5 text-sm max-h-80 overflow-y-auto">
+        {filteredPairs.length === 0 && (
+          <p className="text-[var(--color-text-secondary)] italic text-center py-4">{t('analysis.noMovesMatch')}</p>
+        )}
+
+        {filteredPairs.map((pair) => {
+          const wMeta = CLASSIFICATION_META[pair.w.classification] ?? CLASSIFICATION_META.best
+          const bMeta = pair.b ? (CLASSIFICATION_META[pair.b.classification] ?? CLASSIFICATION_META.best) : null
+          const isWhiteActive = pair.wi === currentIndex
+          const isBlackActive = pair.bi !== undefined && pair.bi === currentIndex
+
+          return (
+            <div
+              key={pair.wi}
+              className="grid grid-cols-[36px_1fr_46px_24px_1fr_46px_24px] gap-1 px-2 py-1.5 rounded hover:bg-[var(--color-bg-hover)]/50"
+            >
+              <span className="text-[var(--color-text-secondary)] flex items-center">{pair.moveNum}.</span>
+
+              <div className="relative">
+                <span
+                  className={clsx(
+                    'cursor-pointer font-mono px-1 rounded text-[13px]',
+                    isWhiteActive ? 'bg-[var(--color-bg)] font-semibold ring-1 ring-[var(--color-primary)]' : 'hover:bg-[var(--color-bg-hover)]',
+                    wMeta.label !== CLASSIFICATION_META.best.label && `border-l-2`,
+                  )}
+                  style={{ borderLeftColor: wMeta.color, borderLeftStyle: wMeta.label !== CLASSIFICATION_META.best.label ? 'solid' : 'none', borderLeftWidth: wMeta.label !== CLASSIFICATION_META.best.label ? 2 : 0 }}
+                  onClick={() => onMoveSelect(pair.wi)}
+                  onMouseEnter={() => setTooltipIdx(pair.wi)}
+                  onMouseLeave={() => setTooltipIdx(null)}
+                >
+                  {pair.w.san}
+                </span>
+
+                {tooltipIdx === pair.wi && pair.w.best_move_san !== pair.w.san && (
+                  <div className="absolute z-10 left-0 -bottom-10 bg-[var(--color-bg)] text-[var(--color-text)] text-[11px] px-3 py-1.5 rounded whitespace-nowrap pointer-events-none border border-[var(--color-border)]">
+                    {t('analysis.bestMoveWhiteLabel', { san: pair.w.best_move_san, eval: evalDisplay(pair.w.best_eval) })}
+                  </div>
+                )}
+              </div>
+
+              <span className="text-[11px] text-[var(--color-text-secondary)] font-mono flex items-center">{evalDisplay(pair.w.played_eval)}</span>
+
+              <span className="flex items-center justify-center" style={{ color: wMeta.color }}>
+                <span className={clsx('text-[10px]', wMeta.symbol ? 'font-bold' : 'text-sage-300')}>
+                  {wMeta.symbol || '•'}
+                </span>
+              </span>
+
+              {pair.b ? (
+                <>
+                  <div className="relative">
+                    <span
+                      className={clsx(
+                        'cursor-pointer font-mono px-1 rounded text-[13px]',
+                        isBlackActive ? 'bg-[var(--color-bg)] font-semibold ring-1 ring-[var(--color-primary)]' : 'hover:bg-[var(--color-bg-hover)]',
+                        bMeta!.label !== CLASSIFICATION_META.best.label && `border-l-2`,
+                      )}
+                      style={{ borderLeftColor: bMeta!.color, borderLeftStyle: bMeta!.label !== CLASSIFICATION_META.best.label ? 'solid' : 'none', borderLeftWidth: bMeta!.label !== CLASSIFICATION_META.best.label ? 2 : 0 }}
+                      onClick={() => onMoveSelect(pair.bi!)}
+                      onMouseEnter={() => setTooltipIdx(pair.bi!)}
+                      onMouseLeave={() => setTooltipIdx(null)}
+                    >
+                      {pair.b.san}
+                    </span>
+                    {tooltipIdx === pair.bi && pair.b.best_move_san !== pair.b.san && (
+                      <div className="absolute z-10 left-0 -bottom-10 bg-[var(--color-bg)] text-[var(--color-text)] text-[11px] px-3 py-1.5 rounded whitespace-nowrap pointer-events-none border border-[var(--color-border)]">
+                        {t('analysis.bestMoveBlackLabel', { san: pair.b.best_move_san, eval: evalDisplay(pair.b.best_eval) })}
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-[11px] text-[var(--color-text-secondary)] font-mono flex items-center">{evalDisplay(pair.b.played_eval)}</span>
+                  <span className="flex items-center justify-center" style={{ color: bMeta!.color }}>
+                    <span className={clsx('text-[10px]', bMeta!.symbol ? 'font-bold' : 'text-sage-300')}>
+                      {bMeta!.symbol || '•'}
+                    </span>
+                  </span>
+                </>
+              ) : (
+                <><span /><span /><span /></>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Summary */}
+      <div className="border-t border-[var(--color-border)] pt-3 mt-3">
+        <div className="flex flex-wrap gap-2 text-[11px]">
+          {summaryOrder.map(cls => {
+            const meta = CLASSIFICATION_META[cls]
+            const count = classificationCounts[cls] ?? 0
+            if (count === 0 && cls !== 'good') return null
+            const whiteCount = moves.filter(m => m.is_white && m.classification === cls).length
+            const blackCount = moves.filter(m => !m.is_white && m.classification === cls).length
+            return (
+              <div key={cls} className="flex items-center gap-1 px-2 py-1 rounded-full bg-[var(--color-bg)]">
+                <span className="font-bold" style={{ color: meta.color }}>{meta.symbol || '✓'}</span>
+                {whiteCount > 0 && (
+                  <button
+                    onClick={() => navigateToClassification(cls, true)}
+                    className="text-[var(--color-text-secondary)] hover:text-[var(--color-success)] hover:underline cursor-pointer"
+                    title={t('analysis.goToFirstWhite', { label: t(`analysis.cls.${cls}`).toLowerCase() })}
+                  >
+                    {whiteCount}W
+                  </button>
+                )}
+                {blackCount > 0 && (
+                  <button
+                    onClick={() => navigateToClassification(cls, false)}
+                    className="text-[var(--color-text-secondary)] hover:text-[var(--color-danger)] hover:underline cursor-pointer"
+                    title={t('analysis.goToFirstBlack', { label: t(`analysis.cls.${cls}`).toLowerCase() })}
+                  >
+                    {blackCount}B
+                  </button>
+                )}
+                <span className="text-[var(--color-text-muted)]">{t(`analysis.cls.${cls}`)}</span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+interface Props {
+  moves: MoveAnalysisData[]
+  /** Optional: in free analysis there is no saved game, hence no counts. */
+  classificationCounts?: Record<string, number>
+  currentIndex: number
+  onMoveSelect: (moveIndex: number) => void
+}
+
+type FilterMode = 'all' | 'errors' | 'blunders'

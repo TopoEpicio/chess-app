@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analisi Live — Chess Training</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --stage: #0B0E13;
+      --panel: #12171F;
+      --panel-raised: #18202B;
+      --border: #243040;
+      --border-bright: #2E3D52;
+      --text: #E6EDF5;
+      --text-muted: #8A99AD;
+      --text-dim: #5A6A85;
+      --mint: #38E0A6;
+      --mint-dim: #2BC490;
+      --electric: #4D7CFE;
+      --electric-dim: #3D68E8;
+      --live-red: #FF4D6D;
+      --live-red-dim: #E83D5A;
+      --amber: #FFC857;
+      --amber-dim: #E6B44A;
+      --danger: #FF4D6D;
+      --success: #38E0A6;
+      --warning: #FFC857;
+      --glow-mint: rgba(56, 224, 166, 0.35);
+      --glow-electric: rgba(77, 124, 254, 0.35);
+      --glow-red: rgba(255, 77, 109, 0.35);
+      --focus: #38E0A6;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; -webkit-font-smoothing: antialiased; }
+    body {
+      font-family: 'Space Grotesk', -apple-system, sans-serif;
+      background: var(--stage);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    .font-mono { font-family: 'IBM Plex Mono', 'SF Mono', Menlo, monospace; }
+
+    /* Broadcast Bar */
+    .broadcast-bar {
+      height: 48px; background: linear-gradient(180deg, #0F131A 0%, #0B0E13 100%);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px; position: sticky; top: 0; z-index: 100;
+    }
+    .broadcast-left { display: flex; align-items: center; gap: 16px; }
+    .live-badge { display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px; border-radius: 100px; background: rgba(255, 77, 109, 0.15); border: 1px solid var(--live-red); font-size: 11px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; font-family: 'IBM Plex Mono', monospace; }
+    .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--live-red); animation: pulse 1.5s ease-in-out infinite; box-shadow: 0 0 12px var(--live-red), 0 0 24px var(--live-red); }
+    @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.9); } }
+    .event-label { font-size: 13px; font-weight: 500; color: var(--text-muted); letter-spacing: 0.02em; }
+    .broadcast-center { flex: 1; display: flex; justify-content: center; }
+    .player-strips { display: flex; align-items: center; gap: 24px; }
+    .player-strip { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .player-strip.white { flex-direction: row; }
+    .player-strip.black { flex-direction: row-reverse; }
+    .player-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--electric), #7B9EFF); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; font-family: 'IBM Plex Mono', monospace; flex-shrink: 0; }
+    .player-strip.black .player-avatar { background: linear-gradient(135deg, var(--amber), #FFD97A); color: #0B0E13; }
+    .player-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .player-name { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .player-meta { display: flex; align-items: center; gap: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-dim); }
+    .player-rating { font-weight: 600; color: var(--text); }
+    .player-flag { width: 20px; height: 14px; border-radius: 2px; background: linear-gradient(45deg, #0033A0 50%, #FFD700 50%); }
+    .player-strip.black .player-flag { background: linear-gradient(45deg, #FF0000 50%, #FFFFFF 50%, #000000 50%); }
+    .player-clock { font-family: 'IBM Plex Mono', monospace; font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--mint); text-shadow: 0 0 16px var(--glow-mint); letter-spacing: 0.05em; background: rgba(56, 224, 166, 0.08); padding: 2px 10px; border-radius: 6px; border: 1px solid rgba(56, 224, 166, 0.2); }
+    .player-strip.black .player-clock { color: var(--amber); text-shadow: 0 0 16px rgba(255, 200, 87, 0.4); background: rgba(255, 200, 87, 0.08); border-color: rgba(255, 200, 87, 0.2); }
+    .broadcast-right { display: flex; align-items: center; gap: 8px; }
+    .icon-btn { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; }
+    .icon-btn:hover { background: var(--panel-raised); border-color: var(--border-bright); box-shadow: 0 0 20px rgba(56, 224, 166, 0.1); }
+    .icon-btn svg { width: 18px; height: 18px; stroke: var(--text-muted); transition: stroke 0.15s; }
+    .icon-btn:hover svg { stroke: var(--mint); }
+
+    /* Main Layout */
+    .main-grid { display: grid; grid-template-columns: 320px 1fr 380px; gap: 16px; padding: 16px 24px 24px; max-width: 1920px; margin: 0 auto; }
+    @media (max-width: 1400px) { .main-grid { grid-template-columns: 1fr; } }
+
+    /* Telemetry Rail (Left) */
+    .telemetry-rail { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 20px; height: fit-content; position: sticky; top: 64px; max-height: calc(100vh - 80px); overflow-y: auto; }
+    .telemetry-section { border-top: 1px solid var(--border); padding-top: 16px; }
+    .telemetry-section:first-child { border-top: none; padding-top: 0; }
+    .section-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .section-label::before { content: ''; width: 8px; height: 8px; border-radius: 2px; background: var(--mint); }
+
+    /* Engine Lines as Bars */
+    .engine-bars { display: flex; flex-direction: column; gap: 14px; }
+    .engine-bar { background: var(--panel-raised); border: 1px solid var(--border); border-radius: 8px; padding: 12px; transition: all 0.2s; position: relative; overflow: hidden; }
+    .engine-bar:hover { border-color: var(--border-bright); box-shadow: 0 0 24px rgba(56, 224, 166, 0.08); }
+    .engine-bar.rank-1 { border-color: rgba(56, 224, 166, 0.4); box-shadow: 0 0 24px var(--glow-mint); }
+    .bar-header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+    .bar-rank { font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; color: var(--mint); letter-spacing: -0.02em; }
+    .bar-eval { font-family: 'IBM Plex Mono', monospace; font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .bar-eval.white { color: var(--mint); }
+    .bar-eval.black { color: var(--danger); }
+    .bar-eval.equal { color: var(--amber); }
+    .bar-strength { height: 6px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+    .bar-strength-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+    .bar-strength-fill.white { background: linear-gradient(90deg, var(--mint), #5FF0C0); box-shadow: 0 0 12px var(--glow-mint); }
+    .bar-strength-fill.black { background: linear-gradient(90deg, var(--danger), #FF7A90); box-shadow: 0 0 12px var(--glow-red); }
+    .bar-strength-fill.equal { background: linear-gradient(90deg, var(--amber), #FFE08A); box-shadow: 0 0 12px rgba(255, 200, 87, 0.4); }
+    .bar-pv { font-family: 'IBM Plex Mono', monospace; font-size: 11px; line-height: 1.8; color: var(--text-muted); white-space: pre-wrap; word-break: break-word; }
+    .bar-pv .mv-num { color: var(--text-dim); }
+    .bar-pv .mv-san { color: var(--text); }
+    .bar-depth { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--electric); margin-top: 8px; display: flex; align-items: center; gap: 6px; }
+    .bar-depth::before { content: 'DEPTH'; letter-spacing: 0.1em; font-weight: 600; }
+
+    /* Depth Gauge */
+    .depth-gauge { background: var(--panel-raised); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+    .gauge-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .gauge-title { font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 600; color: var(--text); }
+    .gauge-value { font-family: 'IBM Plex Mono', monospace; font-size: 24px; font-weight: 700; color: var(--mint); }
+    .gauge-track { height: 8px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden; position: relative; }
+    .gauge-fill { height: 100%; background: linear-gradient(90deg, var(--electric), var(--mint)); border-radius: 4px; transition: width 0.5s ease; box-shadow: 0 0 16px var(--glow-electric); }
+    .gauge-markers { display: flex; justify-content: space-between; margin-top: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-dim); }
+    .gauge-target { position: absolute; top: -2px; width: 2px; height: 12px; background: var(--amber); transform: translateX(-50%); }
+    .gauge-target::after { content: attr(data-label); position: absolute; top: -20px; left: 50%; transform: translateX(-50%); font-size: 9px; color: var(--amber); white-space: nowrap; }
+
+    /* Engine Stats */
+    .engine-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .stat-box { background: var(--panel-raised); border: 1px solid var(--border); border-radius: 8px; padding: 14px; text-align: center; }
+    .stat-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; }
+    .stat-value { font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+    .stat-value.mint { color: var(--mint); }
+    .stat-value.electric { color: var(--electric); }
+    .stat-value.amber { color: var(--amber); }
+
+    /* Board Center */
+    .board-center { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
+    .board-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .board-title { font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+    .board-eval-readout { display: flex; align-items: center; gap: 16px; }
+    .eval-numeric { font-family: 'IBM Plex Mono', monospace; font-size: 28px; font-weight: 700; color: var(--mint); text-shadow: 0 0 24px var(--glow-mint); letter-spacing: 0.02em; }
+    .eval-numeric.black { color: var(--danger); text-shadow: 0 0 24px var(--glow-red); }
+    .eval-depth { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--electric); background: rgba(77, 124, 254, 0.1); padding: 4px 12px; border-radius: 6px; border: 1px solid rgba(77, 124, 254, 0.3); letter-spacing: 0.05em; }
+    .board-wrapper { position: relative; aspect-ratio: 1 / 1; background: #0A0D12; flex: 1; min-height: 500px; }
+    .chessboard { width: 100%; height: 100%; display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); }
+    .square { position: relative; }
+    .square.light { background: #1A1F2A; }
+    .square.dark { background: #0F141C; }
+    .square.highlight-lastmove::after { content: ''; position: absolute; inset: 2px; border: 2px solid var(--amber); border-radius: 2px; pointer-events: none; box-shadow: 0 0 12px var(--amber); }
+    .square .piece { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: clamp(28px, 5vw, 56px); line-height: 1; user-select: none; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)); }
+    .coordinates { position: absolute; inset: 0; pointer-events: none; display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); }
+    .coord-file { position: absolute; bottom: 6px; left: 0; right: 0; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 500; color: var(--text-dim); text-transform: lowercase; }
+    .coord-rank { position: absolute; top: 6px; left: 6px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 500; color: var(--text-dim); }
+    .arrow-layer { position: absolute; inset: 0; pointer-events: none; z-index: 10; }
+    .arrow-layer svg { width: 100%; height: 100%; }
+    .arrow-layer path { fill: none; stroke-width: 10; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.4)); }
+    .arrow-best { stroke: var(--mint); filter: drop-shadow(0 0 8px var(--mint)) drop-shadow(0 4px 12px rgba(0,0,0,0.4)); }
+    .arrow-second { stroke: var(--electric); opacity: 0.9; filter: drop-shadow(0 0 8px var(--electric)) drop-shadow(0 4px 12px rgba(0,0,0,0.4)); }
+    .eval-bar-vertical { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); width: 16px; height: 80%; min-height: 300px; background: linear-gradient(180deg, var(--danger) 0%, var(--danger) 50%, var(--mint) 50%, var(--mint) 100%); border-radius: 8px; box-shadow: 0 0 24px rgba(56, 224, 166, 0.2), 0 0 24px rgba(255, 77, 109, 0.2); z-index: 5; }
+    .eval-bar-vertical::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 2px; background: var(--amber); transform: translateY(-50%); }
+    .eval-marker-v { position: absolute; left: -6px; width: 28px; height: 4px; background: var(--amber); border-radius: 2px; transform: translateX(-50%); box-shadow: 0 0 12px var(--amber); transition: top 0.3s ease; z-index: 2; }
+    .board-toolbar { padding: 16px 20px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; background: rgba(18, 23, 31, 0.8); backdrop-filter: blur(8px); }
+    .move-nav { display: flex; align-items: center; gap: 8px; }
+    .move-nav-btn { width: 40px; height: 40px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel-raised); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; }
+    .move-nav-btn:hover { background: var(--border); border-color: var(--border-bright); box-shadow: 0 0 16px var(--glow-mint); }
+    .move-nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .move-nav-btn svg { width: 20px; height: 20px; stroke: var(--text); }
+    .move-counter { font-family: 'IBM Plex Mono', monospace; font-size: 16px; font-weight: 700; color: var(--text); min-width: 90px; text-align: center; letter-spacing: 0.05em; }
+    .board-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* Data Panel (Right) */
+    .data-panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; height: fit-content; position: sticky; top: 64px; max-height: calc(100vh - 80px); }
+    .data-tabs { display: flex; background: var(--panel-raised); border-bottom: 1px solid var(--border); padding: 4px; }
+    .data-tab { flex: 1; padding: 10px 8px; text-align: center; font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); background: transparent; border: none; border-radius: 6px; cursor: pointer; transition: all 0.15s; position: relative; }
+    .data-tab:hover { color: var(--text); background: var(--panel); }
+    .data-tab.active { color: var(--mint); background: var(--panel); box-shadow: 0 0 16px var(--glow-mint); }
+    .data-tab.active::after { content: ''; position: absolute; bottom: -1px; left: 50%; transform: translateX(-50%); width: 20px; height: 2px; background: var(--mint); box-shadow: 0 0 8px var(--mint); }
+    .data-content { flex: 1; padding: 16px; overflow-y: auto; }
+    .data-pane { display: none; }
+    .data-pane.active { display: block; animation: slideUp 0.2s ease; }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+    /* Summary */
+    .kpi-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+    .kpi-card { background: var(--panel-raised); border: 1px solid var(--border); border-radius: 10px; padding: 16px; position: relative; overflow: hidden; }
+    .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--electric), var(--mint)); }
+    .kpi-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; }
+    .kpi-value { font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; color: var(--text); line-height: 1.2; }
+    .kpi-value.mint { color: var(--mint); }
+    .kpi-value.electric { color: var(--electric); }
+    .kpi-value.amber { color: var(--amber); }
+    .kpi-value.danger { color: var(--danger); }
+
+    .class-bars { display: flex; flex-direction: column; gap: 10px; }
+    .class-bar { background: var(--panel-raised); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+    .class-bar-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .class-bar-name { font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 500; color: var(--text); display: flex; align-items: center; gap: 8px; }
+    .class-bar-dot { width: 8px; height: 8px; border-radius: 2px; }
+    .class-bar-count { font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600; color: var(--text-muted); }
+    .class-bar-track { height: 6px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden; }
+    .class-bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+
+    /* Chart */
+    .chart-container { height: 280px; background: var(--panel-raised); border: 1px solid var(--border); border-radius: 10px; position: relative; }
+    .chart-svg { width: 100%; height: 100%; }
+
+    /* Move List */
+    .move-list-dense { font-family: 'IBM Plex Mono', monospace; font-size: 11px; line-height: 2.4; color: var(--text); }
+    .move-list-dense .mv-num { color: var(--text-dim); }
+    .move-list-dense .mv-white { color: var(--text); }
+    .move-list-dense .mv-black { color: var(--text); }
+    .move-list-dense .mv-class { display: inline-block; width: 14px; height: 14px; border-radius: 3px; margin-left: 4px; vertical-align: middle; }
+    .move-list-dense .mv-current { background: rgba(56, 224, 166, 0.2); color: var(--mint); padding: 0 6px; border-radius: 4px; border: 1px solid var(--mint); }
+
+    /* Freece / Arrows */
+    .arrow-list { display: flex; flex-direction: column; gap: 12px; }
+    .arrow-item { background: var(--panel-raised); border: 1px solid var(--border); border-radius: 8px; padding: 14px; display: flex; align-items: flex-start; gap: 12px; }
+    .arrow-color { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .arrow-color svg { width: 16px; height: 16px; stroke: #0B0E13; }
+    .arrow-info { flex: 1; }
+    .arrow-label { font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+    .arrow-desc { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-muted); }
+
+    /* Coach */
+    .coach-broadcast { background: var(--panel-raised); border: 1px solid var(--border); border-radius: 10px; padding: 20px; border-left: 3px solid var(--mint); }
+    .coach-header-b { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .coach-badge { padding: 4px 10px; border-radius: 100px; background: rgba(56, 224, 166, 0.15); border: 1px solid var(--mint); font-family: 'IBM Plex Mono', monospace; font-size: 9px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mint); }
+    .coach-title-b { font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 600; color: var(--text); }
+    .coach-text-b { font-size: 13px; line-height: 1.8; color: var(--text-muted); margin-bottom: 16px; }
+    .coach-key-points { display: flex; flex-direction: column; gap: 8px; }
+    .coach-point { display: flex; align-items: flex-start; gap: 10px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid var(--border); }
+    .coach-point-num { font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; color: var(--mint); background: rgba(56, 224, 166, 0.1); width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .coach-point-text { font-size: 12px; color: var(--text); line-height: 1.6; }
+
+    /* Bottom Ticker */
+    .ticker { position: fixed; bottom: 0; left: 0; right: 0; background: linear-gradient(180deg, rgba(18, 23, 31, 0.95) 0%, #0B0E13 100%); border-top: 1px solid var(--border); padding: 12px 24px; z-index: 200; backdrop-filter: blur(12px); }
+    .ticker-inner { max-width: 1920px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+    .ticker-moves { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
+    .ticker-move { padding: 4px 10px; border-radius: 6px; background: var(--panel-raised); border: 1px solid var(--border); white-space: nowrap; transition: all 0.15s; }
+    .ticker-move:hover { border-color: var(--mint); box-shadow: 0 0 12px var(--glow-mint); }
+    .ticker-move.current { background: rgba(56, 224, 166, 0.15); border-color: var(--mint); color: var(--mint); }
+    .ticker-move .cls-dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-left: 6px; vertical-align: middle; }
+    .ticker-controls { display: flex; align-items: center; gap: 12px; }
+    .ticker-btn { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel-raised); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; }
+    .ticker-btn:hover { background: var(--border); border-color: var(--mint); box-shadow: 0 0 12px var(--glow-mint); }
+    .ticker-btn svg { width: 18px; height: 18px; stroke: var(--text); }
+    .ticker-counter { font-family: 'IBM Plex Mono', monospace; font-size: 14px; font-weight: 700; color: var(--text); min-width: 70px; text-align: center; }
+    .ticker-hints { display: flex; gap: 20px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-dim); }
+    .ticker-hints kbd { background: var(--panel-raised); border: 1px solid var(--border); padding: 2px 8px; border-radius: 4px; font-family: inherit; color: var(--text-muted); }
+
+    /* Buttons */
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 8px; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.02em; border: 1px solid transparent; cursor: pointer; transition: all 0.15s; text-decoration: none; }
+    .btn-primary { background: var(--mint); color: #0B0E13; border-color: var(--mint); }
+    .btn-primary:hover { background: #4FF0B8; border-color: #4FF0B8; box-shadow: 0 0 24px var(--glow-mint); }
+    .btn-secondary { background: var(--panel-raised); color: var(--text); border-color: var(--border); }
+    .btn-secondary:hover { background: var(--border); border-color: var(--border-bright); }
+    .btn-danger { background: var(--danger); color: #0B0E13; border-color: var(--danger); }
+    .btn-danger:hover { background: #FF6B85; border-color: #FF6B85; box-shadow: 0 0 24px var(--glow-red); }
+    .btn-ghost { background: transparent; color: var(--text-muted); border-color: transparent; }
+    .btn-ghost:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+    .btn-sm { padding: 7px 14px; font-size: 11px; }
+    .btn svg { width: 14px; height: 14px; }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .broadcast-bar { padding: 0 16px; height: auto; min-height: 48px; flex-wrap: wrap; gap: 12px; }
+      .player-strips { flex-direction: column; width: 100%; gap: 8px; }
+      .player-strip { width: 100%; justify-content: space-between; }
+      .player-strip.black { flex-direction: row; }
+      .main-grid { grid-template-columns: 1fr; padding: 12px 16px 100px; }
+      .telemetry-rail, .data-panel { position: static; max-height: none; }
+      .board-header { flex-direction: column; align-items: stretch; gap: 12px; }
+      .board-eval-readout { justify-content: space-between; }
+      .board-wrapper { min-height: 400px; }
+      .eval-bar-vertical { position: static; width: 100%; height: 16px; min-height: 16px; transform: none; top: auto; right: auto; margin-top: 12px; background: linear-gradient(90deg, var(--danger) 0%, var(--danger) 50%, var(--mint) 50%, var(--mint) 100%); }
+      .eval-bar-vertical::before { top: 0; bottom: 0; left: 50%; width: 2px; height: auto; transform: translateX(-50%); }
+      .eval-marker-v { left: 50%; top: -6px; width: 4px; height: 28px; transform: translateX(-50%); }
+      .board-toolbar { flex-direction: column; align-items: stretch; }
+      .move-nav { justify-content: center; }
+      .board-actions { justify-content: center; }
+      .ticker { padding: 10px 16px; }
+      .ticker-inner { flex-direction: column; gap: 12px; align-items: stretch; }
+      .ticker-controls { justify-content: center; }
+      .ticker-hints { justify-content: center; }
+    }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+    }
+
+    :focus:not(:focus-visible) { outline: none; }
+    :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  </style>
+</head>
+<body>
+  <!-- Broadcast Bar -->
+  <header class="broadcast-bar" role="banner">
+    <div class="broadcast-left">
+      <div class="live-badge" aria-live="polite">
+        <span class="live-dot" aria-hidden="true"></span>
+        LIVE ANALYSIS
+      </div>
+      <span class="event-label">Torneo Città Aperta · Turno 4</span>
+    </div>
+    <div class="broadcast-center">
+      <div class="player-strips" role="region" aria-label="Giocatori e orologi">
+        <div class="player-strip white">
+          <div class="player-avatar">AR</div>
+          <div class="player-info">
+            <span class="player-name">A. Rossi</span>
+            <div class="player-meta">
+              <span class="player-rating font-mono">1842</span>
+              <span aria-hidden="true">•</span>
+              <span class="player-flag" aria-label="Italia" role="img"></span>
+            </div>
+          </div>
+          <div class="player-clock font-mono" aria-label="Orologio Bianco: 12 minuti 34 secondi">12:34</div>
+        </div>
+        <div class="player-strip black">
+          <div class="player-clock font-mono" aria-label="Orologio Nero: 11 minuti 52 secondi">11:52</div>
+          <div class="player-info" style="text-align: right;">
+            <span class="player-name">K. Müller</span>
+            <div class="player-meta" style="justify-content: flex-end;">
+              <span class="player-flag" aria-label="Germania" role="img"></span>
+              <span aria-hidden="true">•</span>
+              <span class="player-rating font-mono">1876</span>
+            </div>
+          </div>
+          <div class="player-avatar">KM</div>
+        </div>
+      </div>
+    </div>
+    <div class="broadcast-right">
+      <button class="icon-btn" aria-label="Schermo intero" title="Schermo intero"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg></button>
+      <button class="icon-btn" aria-label="Impostazioni" title="Impostazioni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+    </div>
+  </header>
+
+  <!-- Main Grid -->
+  <main class="main-grid" role="main">
+    <!-- Telemetry Rail (Left) -->
+    <aside class="telemetry-rail" aria-label="Telemetria motore">
+      <section class="telemetry-section" aria-labelledby="lines-title">
+        <h3 class="section-label" id="lines-title">Linee Principali</h3>
+        <div class="engine-bars" role="list" aria-label="Top 3 varianti motore">
+          <article class="engine-bar rank-1" role="listitem" aria-label="Linea 1, vantaggio bianco +0.32">
+            <div class="bar-header">
+              <span class="bar-rank">#1</span>
+              <span class="bar-eval white font-mono">+0.32</span>
+            </div>
+            <div class="bar-strength"><div class="bar-strength-fill white" style="width: 58%;" aria-hidden="true"></div></div>
+            <div class="bar-pv font-mono"><span class="mv-num">1.</span><span class="mv-san"> d4</span> <span class="mv-san">d5</span> <span class="mv-num">2.</span><span class="mv-san"> c4</span> <span class="mv-san">e6</span> <span class="mv-num">3.</span><span class="mv-san"> Nc3</span> <span class="mv-san">Nf6</span> <span class="mv-num">4.</span><span class="mv-san"> Nf3</span> <span class="mv-san">Bb4</span> <span class="mv-num">5.</span><span class="mv-san"> Bg5</span> <span class="mv-san">h6</span> <span class="mv-num">6.</span><span class="mv-san"> Bh4</span> <span class="mv-san">g5</span> <span class="mv-num">7.</span><span class="mv-san"> Bg3</span> <span class="mv-san">Nxe4</span></div>
+            <div class="bar-depth font-mono">22</div>
+          </article>
+          <article class="engine-bar" role="listitem" aria-label="Linea 2, vantaggio bianco +0.21">
+            <div class="bar-header">
+              <span class="bar-rank">#2</span>
+              <span class="bar-eval white font-mono">+0.21</span>
+            </div>
+            <div class="bar-strength"><div class="bar-strength-fill white" style="width: 42%;" aria-hidden="true"></div></div>
+            <div class="bar-pv font-mono"><span class="mv-num">1.</span><span class="mv-san"> Nf3</span> <span class="mv-san">d5</span> <span class="mv-num">2.</span><span class="mv-san"> d4</span> <span class="mv-san">Nf6</span> <span class="mv-num">3.</span><span class="mv-san"> c4</span> <span class="mv-san">e6</span> <span class="mv-num">4.</span><span class="mv-san"> Nc3</span> <span class="mv-san">Bb4</span></div>
+            <div class="bar-depth font-mono">21</div>
+          </article>
+          <article class="engine-bar" role="listitem" aria-label="Linea 3, vantaggio bianco +0.18">
+            <div class="bar-header">
+              <span class="bar-rank">#3</span>
+              <span class="bar-eval white font-mono">+0.18</span>
+            </div>
+            <div class="bar-strength"><div class="bar-strength-fill white" style="width: 35%;" aria-hidden="true"></div></div>
+            <div class="bar-pv font-mono"><span class="mv-num">1.</span><span class="mv-san"> e4</span> <span class="mv-san">e6</span> <span class="mv-num">2.</span><span class="mv-san"> d4</span> <span class="mv-san">d5</span> <span class="mv-num">3.</span><span class="mv-san"> Nc3</span> <span class="mv-san">Bb4</span></div>
+            <div class="bar-depth font-mono">21</div>
+          </article>
+        </div>
+      </section>
+
+      <section class="telemetry-section" aria-labelledby="depth-title">
+        <div class="depth-gauge">
+          <div class="gauge-header">
+            <span class="gauge-title">PROFONDITÀ RICERCA</span>
+            <span class="gauge-value font-mono">22</span>
+          </div>
+          <div class="gauge-track" role="progressbar" aria-valuenow="22" aria-valuemin="16" aria-valuemax="40" aria-label="Profondità ricerca 22 di 40">
+            <div class="gauge-fill" style="width: 21.4%;"></div>
+            <div class="gauge-target" style="left: 39.3%;" data-label="TARGET 40"></div>
+          </div>
+          <div class="gauge-markers">
+            <span>BASE 16</span>
+            <span>ATTUALE 22</span>
+            <span>TARGET 40</span>
+            <span>∞</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="telemetry-section" aria-labelledby="stats-title">
+        <h3 class="section-label" id="stats-title">Statistiche Motore</h3>
+        <div class="engine-stats">
+          <div class="stat-box"><div class="stat-label">NODI</div><div class="stat-value font-mono mint">2.4M</div></div>
+          <div class="stat-box"><div class="stat-label">NPS</div><div class="stat-value font-mono electric">185K</div></div>
+          <div class="stat-box"><div class="stat-label">HASH</div><div class="stat-value font-mono amber">16 MB</div></div>
+          <div class="stat-box"><div class="stat-label">THREADS</div><div class="stat-value font-mono">1</div></div>
+          <div class="stat-box"><div class="stat-label">MULTI PV</div><div class="stat-value font-mono">3</div></div>
+          <div class="stat-box"><div class="stat-label">TEMPO</div><div class="stat-value font-mono">00:47</div></div>
+        </div>
+      </section>
+    </aside>
+
+    <!-- Board Center -->
+    <section class="board-center" aria-label="Scacchiera principale">
+      <header class="board-header">
+        <span class="board-title">Posizione Corrente · Mossa 18</span>
+        <div class="board-eval-readout">
+          <span class="eval-numeric white" aria-live="polite" id="evalNumeric">+0.32</span>
+          <span class="eval-depth font-mono" aria-live="polite" id="evalDepth">depth 22 / 40</span>
+        </div>
+      </header>
+      <div class="board-wrapper">
+        <div class="chessboard" id="chessboard" role="img" aria-label="Scacchiera: posizione dopo 7... Nxe4"></div>
+        <div class="coordinates" aria-hidden="true"></div>
+        <div class="arrow-layer" aria-hidden="true">
+          <svg viewBox="0 0 512 512" preserveAspectRatio="none">
+            <path class="arrow-best" d="M192 128 L192 256" marker-end="url(#arrowhead-best)"/>
+            <path class="arrow-second" d="M320 384 L320 256" marker-end="url(#arrowhead-second)"/>
+            <defs>
+              <marker id="arrowhead-best" markerWidth="12" markerHeight="8" refX="11" refY="4" orient="auto"><polygon points="0 0, 12 4, 0 8" fill="#38E0A6"/></marker>
+              <marker id="arrowhead-second" markerWidth="12" markerHeight="8" refX="11" refY="4" orient="auto"><polygon points="0 0, 12 4, 0 8" fill="#4D7CFE"/></marker>
+            </defs>
+          </svg>
+        </div>
+        <div class="eval-bar-vertical" aria-hidden="true">
+          <div class="eval-marker-v" style="top: 34%;" aria-hidden="true"></div>
+        </div>
+      </div>
+      <footer class="board-toolbar">
+        <div class="move-nav">
+          <button class="move-nav-btn" aria-label="Inizio partita"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg></button>
+          <button class="move-nav-btn" aria-label="Mossa precedente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 17 10 12 15 7"/></svg></button>
+          <span class="move-counter font-mono">18 / 34</span>
+          <button class="move-nav-btn" aria-label="Mossa successiva"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="9 17 14 12 9 7"/></svg></button>
+          <button class="move-nav-btn" aria-label="Fine partita"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg></button>
+        </div>
+        <div class="board-actions">
+          <button class="btn btn-secondary btn-sm" aria-label="Ribalta scacchiera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Ribalta</button>
+          <button class="btn btn-secondary btn-sm" aria-label="Ripristina"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M21 12a9 9 0 1 1-9 9 9.75 9.75 0 0 1 6.74-2.74L21 16"/></svg> Ripristina</button>
+          <button class="btn btn-primary btn-sm" aria-label="Nuova analisi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Analizza</button>
+        </div>
+      </footer>
+    </section>
+
+    <!-- Data Panel (Right) -->
+    <aside class="data-panel" aria-label="Dati analisi">
+      <nav class="data-tabs" role="tablist" aria-label="Sezioni dati">
+        <button class="data-tab active" role="tab" aria-selected="true" aria-controls="dp-summary" id="dtab-summary">Riepilogo</button>
+        <button class="data-tab" role="tab" aria-selected="false" aria-controls="dp-chart" id="dtab-chart">Grafico</button>
+        <button class="data-tab" role="tab" aria-selected="false" aria-controls="dp-moves" id="dtab-moves">Mosse</button>
+        <button class="data-tab" role="tab" aria-selected="false" aria-controls="dp-arrows" id="dtab-arrows">Freece</button>
+        <button class="data-tab" role="tab" aria-selected="false" aria-controls="dp-coach" id="dtab-coach">Coach</button>
+      </nav>
+      <div class="data-content">
+        <!-- Riepilogo -->
+        <div class="data-pane active" id="dp-summary" role="tabpanel" aria-labelledby="dtab-summary">
+          <div class="kpi-row">
+            <div class="kpi-card"><div class="kpi-label">Accuratezza Bianca</div><div class="kpi-value mint">87.4%</div></div>
+            <div class="kpi-card"><div class="kpi-label">Accuratezza Nera</div><div class="kpi-value electric">84.1%</div></div>
+            <div class="kpi-card"><div class="kpi-label">ACPL Bianco</div><div class="kpi-value">24</div></div>
+            <div class="kpi-card"><div class="kpi-label">ACPL Nero</div><div class="kpi-value">31</div></div>
+            <div class="kpi-card"><div class="kpi-label">Errori Gravi</div><div class="kpi-value danger">1 / 2</div></div>
+            <div class="kpi-card"><div class="kpi-label">Mosse Migliori</div><div class="kpi-value mint">28</div></div>
+          </div>
+          <div class="class-bars" role="list" aria-label="Distribuzione classificazioni">
+            <div class="class-bar" role="listitem"><div class="class-bar-header"><span class="class-bar-name"><span class="class-bar-dot" style="background: #10B981;"></span>Brillante</span><span class="class-bar-count font-mono">2</span></div><div class="class-bar-track"><div class="class-bar-fill" style="width: 5.9%; background: #10B981;"></div></div></div>
+            <div class="class-bar" role="listitem"><div class="class-bar-header"><span class="class-bar-name"><span class="class-bar-dot" style="background: #059669;"></span>Migliore</span><span class="class-bar-count font-mono">8</span></div><div class="class-bar-track"><div class="class-bar-fill" style="width: 23.5%; background: #059669;"></div></div></div>
+            <div class="class-bar" role="listitem"><div class="class-bar-header"><span class="class-bar-name"><span class="class-bar-dot" style="background: #34D399;"></span>Eccellente</span><span class="class-bar-count font-mono">12</span></div><div class="class-bar-track"><div class="class-bar-fill" style="width: 35.3%; background: #34D399;"></div></div></div>
+            <div class="class-bar" role="listitem"><div class="class-bar-header"><span class="class-bar-name"><span class="class-bar-dot" style="background: #6EE7B7;"></span>Buona</span><span class="class-bar-count font-mono">6</span></div><div class="class-bar-track"><div class="class-bar-fill" style="width: 17.6%; background: #6EE7B7;"></div></div></div>
+            <div class="class-bar" role="listitem"><div class="class-bar-header"><span class="class-bar-name"><span class="class-bar-dot" style="background: #F59E0B;"></span>Imprecisione</span><span class="class-bar-count font-mono">4</span></div><div class="class-bar-track"><div class="class-bar-fill" style="width: 11.8%; background: #F59E0B;"></div></div></div>
+            <div class="class-bar" role="listitem"><div class="class-bar-header"><span class="class-bar-name"><span class="class-bar-dot" style="background: #F97316;"></span>Errore</span><span class="class-bar-count font-mono">2</span></div><div class="class-bar-track"><div class="class-bar-fill" style="width: 5.9%; background: #F97316;"></div></div></div>
+            <div class="class-bar" role="listitem"><div class="class-bar-header"><span class="class-bar-name"><span class="class-bar-dot" style="background: #EF4444;"></span>Errore grave</span><span class="class-bar-count font-mono">1</span></div><div class="class-bar-track"><div class="class-bar-fill" style="width: 2.9%; background: #EF4444;"></div></div></div>
+          </div>
+        </div>
+
+        <!-- Grafico -->
+        <div class="data-pane" id="dp-chart" role="tabpanel" aria-labelledby="dtab-chart">
+          <div class="chart-container" aria-label="Grafico valutazione partita">
+            <svg class="chart-svg" viewBox="0 0 600 280" preserveAspectRatio="none" aria-hidden="true">
+              <defs>
+                <linearGradient id="evalGradB" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#EF4444"/><stop offset="50%" stop-color="#F59E0B"/><stop offset="50%" stop-color="#10B981"/><stop offset="100%" stop-color="#059669"/></linearGradient>
+                <linearGradient id="areaGradWB" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#10B981" stop-opacity="0.3"/><stop offset="100%" stop-color="#10B981" stop-opacity="0"/></linearGradient>
+                <linearGradient id="areaGradBB" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#EF4444" stop-opacity="0.3"/><stop offset="100%" stop-color="#EF4444" stop-opacity="0"/></linearGradient>
+              </defs>
+              <rect x="50" y="20" width="500" height="240" fill="var(--panel-raised)"/>
+              <line x1="50" y1="140" x2="550" y2="140" stroke="var(--border)" stroke-width="1"/>
+              <path d="M50 140 C90 125, 130 110, 170 115 C210 120, 250 128, 290 122 C330 116, 370 112, 410 108 C450 104, 490 100, 530 96 C570 92, 550 88" fill="none" stroke="#10B981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" filter="drop-shadow(0 0 8px #10B981)"/>
+              <circle cx="170" cy="105" r="5" fill="#10B981" filter="drop-shadow(0 0 6px #10B981)"/><circle cx="290" cy="118" r="5" fill="#F59E0B" filter="drop-shadow(0 0 6px #F59E0B)"/><circle cx="410" cy="98" r="5" fill="#EF4444" filter="drop-shadow(0 0 6px #EF4444)"/>
+            </svg>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-top: 12px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-dim);">
+            <span>Vantaggio Nero</span><span>Parità</span><span>Vantaggio Bianco</span>
+          </div>
+        </div>
+
+        <!-- Mosse -->
+        <div class="data-pane" id="dp-moves" role="tabpanel" aria-labelledby="dtab-moves">
+          <div class="move-list-dense" aria-label="Elenco mosse partita">
+            <span class="mv-num">1.</span><span class="mv-white"> d4</span> <span class="mv-black">d5</span>
+            <span class="mv-num">2.</span><span class="mv-white"> c4</span> <span class="mv-black">e6</span>
+            <span class="mv-num">3.</span><span class="mv-white"> Nc3</span> <span class="mv-black">Nf6</span>
+            <span class="mv-num">4.</span><span class="mv-white"> Nf3</span> <span class="mv-black">Bb4</span>
+            <span class="mv-num">5.</span><span class="mv-white"> Bg5</span> <span class="mv-black">h6</span>
+            <span class="mv-num">6.</span><span class="mv-white"> Bh4</span> <span class="mv-black">g5</span>
+            <span class="mv-num">7.</span><span class="mv-white mv-current"> Bg3</span> <span class="mv-black">Nxe4</span>
+            <span class="mv-num">8.</span><span class="mv-white"> Qc2</span> <span class="mv-black">Qxg5</span>
+            <span class="mv-num">9.</span><span class="mv-white"> Qxg5</span> <span class="mv-black">Bxg5</span>
+            <span class="mv-num">10.</span><span class="mv-white"> Bxc7</span> <span class="mv-black">Kd7</span>
+            <span class="mv-num">11.</span><span class="mv-white"> Bxa8</span> <span class="mv-black">Bxa8</span>
+            <span class="mv-num">12.</span><span class="mv-white"> O-O-O</span> <span class="mv-black">Be6</span>
+            <span class="mv-num">13.</span><span class="mv-white"> Rhe1</span> <span class="mv-black">Nc6</span>
+            <span class="mv-num">14.</span><span class="mv-white"> f4</span> <span class="mv-black">exf4</span>
+            <span class="mv-num">15.</span><span class="mv-white"> Nxf4</span> <span class="mv-black">Nxf4</span>
+            <span class="mv-num">16.</span><span class="mv-white"> Rxf4</span> <span class="mv-black">Qd6</span>
+            <span class="mv-num">17.</span><span class="mv-white"> Qf3</span> <span class="mv-black">Qxf3</span>
+            <span class="mv-num">18.</span><span class="mv-white"> gxf3</span> <span class="mv-black">Rg8</span>
+          </div>
+        </div>
+
+        <!-- Freece -->
+        <div class="data-pane" id="dp-arrows" role="tabpanel" aria-labelledby="dtab-arrows">
+          <div class="arrow-list">
+            <div class="arrow-item"><div class="arrow-color" style="background: var(--mint);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></div><div class="arrow-info"><div class="arrow-label">Mossa Migliore</div><div class="arrow-desc font-mono">8. Qc2 — Iniziativa, pressione su c7</div></div></div>
+            <div class="arrow-item"><div class="arrow-color" style="background: var(--electric);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></div><div class="arrow-info"><div class="arrow-label">Seconda Migliore</div><div class="arrow-desc font-mono">8. Rd1 — Controllo colonna d, solido</div></div></div>
+            <div class="arrow-item"><div class="arrow-color" style="background: #8800CC;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></div><div class="arrow-info"><div class="arrow-label">Terza Migliore</div><div class="arrow-desc font-mono">8. Qb3 — Tattico, doppia minaccia</div></div></div>
+          </div>
+        </div>
+
+        <!-- Coach -->
+        <div class="data-pane" id="dp-coach" role="tabpanel" aria-labelledby="dtab-coach">
+          <div class="coach-broadcast">
+            <div class="coach-header-b">
+              <span class="coach-badge">LIVE INSIGHT</span>
+              <span class="coach-title-b">Analisi Posizione</span>
+            </div>
+            <p class="coach-text-b">Il Nero ha accettato il sacrificio di pedone tipico della Ragozin con 7... Nxe4. Il Bianco mantiene compensazione posizionale completa: coppia degli alfieri, controllo case chiare, sviluppo superiore.</p>
+            <div class="coach-key-points">
+              <div class="coach-point"><span class="coach-point-num">1</span><span class="coach-point-text"><strong>8. Qc2</strong> è la continuazione principale: sviluppa con tempo, attacca c7 e prepara Rd1.</span></div>
+              <div class="coach-point"><span class="coach-point-num">2</span><span class="coach-point-text">Il Nero deve completare lo sviluppo: ...Be7, ...O-O, ...Nc6. Il ritardo costa tempo.</span></div>
+              <div class="coach-point"><span class="coach-point-num">3</span><span class="coach-point-text">Piano Bianco: aprire il centro con f4/e5 prima che il Nero si coordini. Iniziativa > materiale.</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Bottom Ticker -->
+  <footer class="ticker" role="contentinfo" aria-label="Controlli partita e tasti rapidi">
+    <div class="ticker-inner">
+      <div class="ticker-moves" aria-label="Mosse partita" role="list">
+        <span class="ticker-move" role="listitem">1. d4 d5 <span class="cls-dot" style="background: #10B981;"></span></span>
+        <span class="ticker-move" role="listitem">2. c4 e6 <span class="cls-dot" style="background: #059669;"></span></span>
+        <span class="ticker-move" role="listitem">3. Nc3 Nf6 <span class="cls-dot" style="background: #34D399;"></span></span>
+        <span class="ticker-move" role="listitem">4. Nf3 Bb4 <span class="cls-dot" style="background: #6EE7B7;"></span></span>
+        <span class="ticker-move" role="listitem">5. Bg5 h6 <span class="cls-dot" style="background: #F59E0B;"></span></span>
+        <span class="ticker-move" role="listitem">6. Bh4 g5 <span class="cls-dot" style="background: #34D399;"></span></span>
+        <span class="ticker-move current" role="listitem">7. Bg3 Nxe4 <span class="cls-dot" style="background: #10B981;"></span></span>
+        <span class="ticker-move" role="listitem">8. Qc2 Qxg5 <span class="cls-dot" style="background: #059669;"></span></span>
+        <span class="ticker-move" role="listitem">9. Qxg5 Bxg5 <span class="cls-dot" style="background: #34D399;"></span></span>
+        <span class="ticker-move" role="listitem">10. Bxc7 Kd7 <span class="cls-dot" style="background: #6EE7B7;"></span></span>
+        <span class="ticker-move" role="listitem">11. Bxa8 Bxa8 <span class="cls-dot" style="background: #059669;"></span></span>
+        <span class="ticker-move" role="listitem">12. O-O-O Be6 <span class="cls-dot" style="background: #34D399;"></span></span>
+        <span class="ticker-move" role="listitem">13. Rhe1 Nc6 <span class="cls-dot" style="background: #6EE7B7;"></span></span>
+        <span class="ticker-move" role="listitem">14. f4 exf4 <span class="cls-dot" style="background: #F97316;"></span></span>
+        <span class="ticker-move" role="listitem">15. Nxf4 Nxf4 <span class="cls-dot" style="background: #34D399;"></span></span>
+        <span class="ticker-move" role="listitem">16. Rxf4 Qd6 <span class="cls-dot" style="background: #059669;"></span></span>
+        <span class="ticker-move" role="listitem">17. Qf3 Qxf3 <span class="cls-dot" style="background: #6EE7B7;"></span></span>
+        <span class="ticker-move" role="listitem">18. gxf3 Rg8 <span class="cls-dot" style="background: #10B981;"></span></span>
+      </div>
+      <div class="ticker-controls">
+        <button class="ticker-btn" aria-label="Inizio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg></button>
+        <button class="ticker-btn" aria-label="Indietro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 17 10 12 15 7"/></svg></button>
+        <span class="ticker-counter font-mono">18 / 34</span>
+        <button class="ticker-btn" aria-label="Avanti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="9 17 14 12 9 7"/></svg></button>
+        <button class="ticker-btn" aria-label="Fine"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg></button>
+      </div>
+      <div class="ticker-hints">
+        <kbd>←</kbd><kbd>→</kbd> Naviga &nbsp; <kbd>F</kbd> Ribalta &nbsp; <kbd>Space</kbd> Analizza &nbsp; <kbd>R</kbd> Ripristina
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Tab switching
+    const tabs = document.querySelectorAll('.data-tab');
+    const panes = document.querySelectorAll('.data-pane');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
+        panes.forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        tab.setAttribute('aria-selected', 'true');
+        document.getElementById(tab.getAttribute('aria-controls')).classList.add('active');
+      });
+    });
+
+    // Generate chessboard
+    const board = document.getElementById('chessboard');
+    const coordinates = board.parentElement.querySelector('.coordinates');
+    const pieces = { 'r': '♜', 'n': '♞', 'b': '♝', 'q': '♛', 'k': '♚', 'p': '♟', 'R': '♖', 'N': '♘', 'B': '♗', 'Q': '♕', 'K': '♔', 'P': '♙' };
+    const fen = 'rnbqkb1r/ppp2ppp/4pn2/3p4/2PP4/2N1PN2/PP3PPP/R1BQKB1R w KQkq - 0 8';
+    const rows = fen.split(' ')[0].split('/');
+    rows.forEach((row, r) => {
+      let file = 0;
+      for (const ch of row) {
+        if (ch >= '1' && ch <= '8') file += parseInt(ch);
+        else {
+          const sq = document.createElement('div');
+          sq.className = `square ${(r + file) % 2 === 0 ? 'light' : 'dark'}`;
+          if (ch === 'N' && r === 3 && file === 4) sq.classList.add('highlight-lastmove');
+          if (ch === 'n' && r === 4 && file === 4) sq.classList.add('highlight-lastmove');
+          sq.innerHTML = `<span class="piece">${pieces[ch]}</span>`;
+          board.appendChild(sq);
+          file++;
+        }
+      }
+    });
+    files = ['a','b','c','d','e','f','g','h'];
+    files.forEach((f, i) => { const el = document.createElement('div'); el.className = 'coord-file'; el.style.gridColumn = i + 1; el.textContent = f; coordinates.appendChild(el); });
+    for (let r = 7; r >= 0; r--) { const el = document.createElement('div'); el.className = 'coord-rank'; el.style.gridRow = 8 - r; el.textContent = r + 1; coordinates.appendChild(el); }
+  </script>
+</body>
+</html>

@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analisi — Chess Training</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --canvas: #F6F1E7;
+      --paper: #FFFDF8;
+      --ink: #1D241B;
+      --ink-muted: #5A6B57;
+      --forest: #2E5B3B;
+      --forest-light: #3D7A4D;
+      --brass: #A9822F;
+      --brass-light: #C9A04A;
+      --terracotta: #B4553F;
+      --sage: #7D8A72;
+      --rule: #E3DCCB;
+      --rule-strong: #D4C9B8;
+      --shadow-soft: rgba(29, 36, 27, 0.06);
+      --shadow-card: rgba(29, 36, 27, 0.10);
+      --shadow-elevated: rgba(29, 36, 27, 0.14);
+      --focus: #2E5B3B;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --canvas: #1A1D18;
+        --paper: #222620;
+        --ink: #E8EDE6;
+        --ink-muted: #9AA996;
+        --forest: #7FC98D;
+        --forest-light: #9FDDB0;
+        --brass: #D4B85C;
+        --brass-light: #E8D48C;
+        --terracotta: #D98A7A;
+        --sage: #8AA992;
+        --rule: #2E352D;
+        --rule-strong: #3A4239;
+        --shadow-soft: rgba(0, 0, 0, 0.25);
+        --shadow-card: rgba(0, 0, 0, 0.35);
+        --shadow-elevated: rgba(0, 0, 0, 0.45);
+        --focus: #9FDDB0;
+      }
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--canvas);
+      color: var(--ink);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    .font-display { font-family: 'Fraunces', Georgia, serif; font-optical-sizing: auto; }
+    .font-mono { font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace; }
+
+    /* Layout */
+    .app-shell { display: grid; grid-template-columns: 68px 1fr; min-height: 100vh; }
+    .app-shell.sidebar-collapsed { grid-template-columns: 0 1fr; }
+
+    /* Left Rail */
+    .rail {
+      background: var(--paper);
+      border-right: 1px solid var(--rule);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 0;
+      gap: 8px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      z-index: 100;
+    }
+    .rail-brand {
+      width: 36px; height: 36px;
+      background: var(--forest);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 8px;
+    }
+    .rail-brand svg { width: 22px; height: 22px; stroke: var(--paper); }
+    .rail-nav { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+    .rail-item {
+      width: 100%; padding: 12px 0;
+      display: flex; align-items: center; justify-content: center;
+      background: transparent; border: none; cursor: pointer;
+      border-radius: 0; position: relative;
+      transition: background 0.15s ease;
+    }
+    .rail-item:hover { background: var(--rule); }
+    .rail-item.active {
+      background: transparent;
+    }
+    .rail-item.active::before {
+      content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+      width: 3px; height: 24px; background: var(--forest); border-radius: 0 3px 3px 0;
+    }
+    .rail-item svg { width: 22px; height: 22px; stroke: var(--ink-muted); transition: stroke 0.15s; }
+    .rail-item:hover svg, .rail-item.active svg { stroke: var(--forest); }
+    .rail-item .tooltip {
+      position: absolute; left: calc(100% + 8px); top: 50%; transform: translateY(-50%);
+      background: var(--ink); color: var(--paper); padding: 6px 10px;
+      border-radius: 6px; font-size: 12px; font-weight: 500; white-space: nowrap;
+      opacity: 0; visibility: hidden; transition: opacity 0.15s, visibility 0.15s;
+      pointer-events: none; box-shadow: var(--shadow-elevated);
+    }
+    .rail-item:hover .tooltip { opacity: 1; visibility: visible; }
+    .rail-divider { width: 36px; height: 1px; background: var(--rule); margin: 8px 0; }
+    .rail-footer { margin-top: auto; padding-top: 16px; width: 100%; }
+
+    /* Top Bar */
+    .top-bar {
+      grid-column: 2; height: 56px;
+      background: var(--paper);
+      border-bottom: 1px solid var(--rule);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 32px; position: sticky; top: 0; z-index: 50;
+    }
+    .top-bar-left { display: flex; align-items: center; gap: 16px; }
+    .breadcrumb { font-size: 13px; color: var(--ink-muted); font-weight: 500; letter-spacing: 0.02em; }
+    .breadcrumb span:last-child { color: var(--ink); }
+    .top-bar-center { flex: 1; max-width: 480px; margin: 0 40px; }
+    .search-field {
+      width: 100%; height: 36px; background: var(--canvas); border: 1px solid var(--rule);
+      border-radius: 8px; padding: 0 14px 0 40px; font-size: 13px; color: var(--ink);
+      font-family: inherit; transition: border-color 0.15s, box-shadow 0.15s;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%237D8A72' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: 12px center; background-size: 18px;
+    }
+    .search-field:focus { outline: none; border-color: var(--forest); box-shadow: 0 0 0 3px rgba(46, 91, 59, 0.15); }
+    .top-bar-right { display: flex; align-items: center; gap: 12px; }
+    .icon-btn {
+      width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--rule);
+      background: var(--paper); display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: background 0.15s, border-color 0.15s;
+    }
+    .icon-btn:hover { background: var(--canvas); border-color: var(--rule-strong); }
+    .icon-btn svg { width: 18px; height: 18px; stroke: var(--ink-muted); }
+    .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--forest); color: var(--paper);
+      display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px; }
+
+    /* Main Content */
+    .main-content { grid-column: 2; padding: 32px; }
+
+    /* Page Header */
+    .page-header { margin-bottom: 24px; }
+    .page-title-row { display: flex; align-items: baseline; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+    .page-title { font-size: clamp(28px, 4vw, 40px); font-weight: 500; line-height: 1.15; color: var(--ink); letter-spacing: -0.02em; }
+    .page-title .accent { color: var(--forest); font-weight: 600; }
+    .page-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px;
+      border-radius: 8px; font-size: 13px; font-weight: 500; font-family: inherit;
+      border: 1px solid transparent; cursor: pointer; transition: all 0.15s ease;
+      text-decoration: none;
+    }
+    .btn-primary { background: var(--forest); color: var(--paper); border-color: var(--forest); }
+    .btn-primary:hover { background: var(--forest-light); border-color: var(--forest-light); }
+    .btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(46, 91, 59, 0.3); }
+    .btn-secondary { background: var(--paper); color: var(--ink); border-color: var(--rule); }
+    .btn-secondary:hover { background: var(--canvas); border-color: var(--rule-strong); }
+    .btn-secondary:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(29, 36, 27, 0.15); }
+    .btn-ghost { background: transparent; color: var(--ink-muted); border-color: transparent; }
+    .btn-ghost:hover { background: var(--rule); color: var(--ink); }
+    .btn-ghost:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(29, 36, 27, 0.15); }
+    .btn-tertiary { background: transparent; color: var(--brass); border-color: var(--brass); }
+    .btn-tertiary:hover { background: var(--brass); color: var(--paper); }
+    .btn-sm { padding: 7px 14px; font-size: 12px; }
+    .btn svg { width: 16px; height: 16px; }
+
+    /* Match Header Band */
+    .match-header {
+      background: var(--paper);
+      border: 1px solid var(--rule);
+      border-radius: 16px;
+      padding: 24px 32px;
+      margin-bottom: 24px;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 32px;
+      position: relative;
+    }
+    .match-header::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--forest), var(--brass));
+    }
+    .player-block { text-align: center; }
+    .player-name { font-family: 'Fraunces', serif; font-size: clamp(22px, 3vw, 28px); font-weight: 500; color: var(--ink); margin-bottom: 4px; }
+    .player-meta { font-size: 13px; color: var(--ink-muted); display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+    .player-rating { font-family: 'JetBrains Mono', monospace; font-weight: 500; color: var(--ink); }
+    .vs-divider { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .vs-label { font-family: 'Fraunces', serif; font-size: 28px; font-weight: 600; color: var(--brass); letter-spacing: 0.05em; }
+    .result-pill { background: var(--forest); color: var(--paper); padding: 4px 16px; border-radius: 100px; font-size: 13px; font-weight: 500; letter-spacing: 0.08em; }
+    .opening-info { text-align: center; }
+    .opening-name { font-family: 'Fraunces', serif; font-size: 16px; font-weight: 400; color: var(--ink); margin-bottom: 4px; font-style: italic; }
+    .opening-meta { font-size: 12px; color: var(--ink-muted); display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; }
+    .opening-meta span { display: flex; align-items: center; gap: 4px; }
+    .opening-meta svg { width: 14px; height: 14px; stroke: currentColor; }
+
+    /* Workspace Grid */
+    .workspace { display: grid; grid-template-columns: 280px 1fr 380px; gap: 24px; margin-bottom: 24px; }
+    @media (max-width: 1280px) { .workspace { grid-template-columns: 1fr; } }
+
+    /* Engine Panel */
+    .engine-panel { background: var(--paper); border: 1px solid var(--rule); border-radius: 16px; overflow: hidden; }
+    .panel-header { padding: 16px 20px; border-bottom: 1px solid var(--rule); display: flex; align-items: center; justify-content: space-between; }
+    .panel-title { font-family: 'Fraunces', serif; font-size: 16px; font-weight: 500; color: var(--ink); }
+    .panel-header .icon-btn { padding: 4px; }
+    .engine-lines { display: flex; flex-direction: column; }
+    .engine-line { padding: 16px 20px; border-bottom: 1px solid var(--rule); transition: background 0.15s; position: relative; }
+    .engine-line:last-child { border-bottom: none; }
+    .engine-line:hover { background: var(--canvas); }
+    .line-header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+    .line-rank { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 500; color: var(--forest); }
+    .line-eval { font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 500; color: var(--ink); }
+    .line-eval.positive { color: var(--forest); }
+    .line-eval.negative { color: var(--terracotta); }
+    .line-pv { font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.7; color: var(--ink-muted); white-space: pre-wrap; word-break: break-word; }
+    .line-pv .move-number { color: var(--sage); font-weight: 500; }
+    .line-pv .move-san { color: var(--ink); }
+    .depth-indicator { position: absolute; bottom: 0; left: 20px; right: 20px; height: 2px; background: var(--rule); border-radius: 0 0 16px 16px; overflow: hidden; }
+    .depth-indicator .fill { height: 100%; background: var(--forest); border-radius: inherit; transition: width 0.3s ease; }
+
+    /* Board Card */
+    .board-card { background: var(--paper); border: 1px solid var(--rule); border-radius: 16px; overflow: hidden; }
+    .board-header { padding: 16px 20px; border-bottom: 1px solid var(--rule); display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .board-title { font-family: 'Fraunces', serif; font-size: 16px; font-weight: 500; color: var(--ink); }
+    .eval-bar-container { position: relative; width: 24px; height: 280px; flex-shrink: 0; }
+    .eval-bar { width: 100%; height: 100%; background: linear-gradient(180deg, var(--terracotta) 0%, var(--terracotta) 50%, var(--forest) 50%, var(--forest) 100%); border-radius: 12px; position: relative; overflow: hidden; }
+    .eval-bar::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 2px; background: var(--brass); transform: translateY(-50%); }
+    .eval-marker { position: absolute; left: -6px; width: 36px; height: 4px; background: var(--brass); border-radius: 2px; transform: translateX(-50%); transition: top 0.3s ease; z-index: 2; }
+    .eval-readout { position: absolute; right: -56px; top: 50%; transform: translateY(-50%); width: 50px; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; color: var(--ink); white-space: nowrap; }
+    .depth-readout { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--sage); margin-top: 8px; text-align: center; letter-spacing: 0.05em; }
+    .board-wrapper { position: relative; aspect-ratio: 1 / 1; background: #E8DCC8; }
+    .chessboard { width: 100%; height: 100%; display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); }
+    .square { position: relative; }
+    .square.light { background: #F0D9B5; }
+    .square.dark { background: #B58863; }
+    .square.highlight-lastmove::after { content: ''; position: absolute; inset: 2px; border: 2px solid var(--brass); border-radius: 2px; pointer-events: none; }
+    .square .piece { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: clamp(24px, 5vw, 48px); line-height: 1; user-select: none; }
+    .coordinates { position: absolute; inset: 0; pointer-events: none; display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); }
+    .coord-file { position: absolute; bottom: 4px; left: 0; right: 0; text-align: center; font-size: 9px; font-weight: 500; color: var(--ink-muted); font-family: 'JetBrains Mono', monospace; text-transform: lowercase; }
+    .coord-rank { position: absolute; top: 0; bottom: 0; left: 4px; display: flex; align-items: center; font-size: 9px; font-weight: 500; color: var(--ink-muted); font-family: 'JetBrains Mono', monospace; }
+    .arrow-layer { position: absolute; inset: 0; pointer-events: none; z-index: 10; }
+    .arrow-layer svg { width: 100%; height: 100%; }
+    .arrow-layer path { fill: none; stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15)); }
+    .arrow-best { stroke: #008000; }
+    .arrow-second { stroke: #0044FF; opacity: 0.8; }
+    .board-toolbar { padding: 16px 20px; border-top: 1px solid var(--rule); display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .move-nav { display: flex; align-items: center; gap: 8px; }
+    .move-nav-btn { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--rule); background: var(--paper); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; }
+    .move-nav-btn:hover { background: var(--canvas); border-color: var(--rule-strong); }
+    .move-nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .move-nav-btn svg { width: 18px; height: 18px; stroke: var(--ink); }
+    .move-counter { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 500; color: var(--ink); min-width: 70px; text-align: center; }
+    .board-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* Insight Panel */
+    .insight-panel { background: var(--paper); border: 1px solid var(--rule); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
+    .insight-tabs { display: flex; border-bottom: 1px solid var(--rule); background: var(--canvas); padding: 0 4px; }
+    .insight-tab { flex: 1; padding: 12px 8px; text-align: center; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted); background: transparent; border: none; border-radius: 6px; cursor: pointer; transition: all 0.15s; position: relative; }
+    .insight-tab:hover { color: var(--ink); background: var(--paper); }
+    .insight-tab.active { color: var(--forest); background: var(--paper); }
+    .insight-tab.active::after { content: ''; position: absolute; bottom: -1px; left: 50%; transform: translateX(-50%); width: 24px; height: 2px; background: var(--forest); border-radius: 1px; }
+    .insight-tab svg { width: 14px; height: 14px; display: block; margin: 0 auto 4px; stroke: currentColor; }
+    .insight-tab span { display: block; }
+    .insight-content { flex: 1; padding: 20px; overflow-y: auto; }
+    .insight-pane { display: none; }
+    .insight-pane.active { display: block; animation: fadeIn 0.2s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+    /* Riepilogo / Summary */
+    .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: var(--canvas); border: 1px solid var(--rule); border-radius: 12px; padding: 16px; }
+    .stat-label { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--sage); margin-bottom: 6px; }
+    .stat-value { font-family: 'Fraunces', serif; font-size: 28px; font-weight: 500; color: var(--ink); line-height: 1.2; }
+    .stat-value .unit { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 400; color: var(--ink-muted); }
+    .classification-list { display: flex; flex-direction: column; gap: 8px; }
+    .classification-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--canvas); border: 1px solid var(--rule); border-radius: 8px; }
+    .classification-info { display: flex; align-items: center; gap: 10px; }
+    .classification-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .classification-name { font-size: 13px; font-weight: 500; color: var(--ink); }
+    .classification-count { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; color: var(--ink-muted); }
+    .coach-card { background: var(--canvas); border: 1px solid var(--rule); border-radius: 12px; padding: 20px; margin-top: 16px; }
+    .coach-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .coach-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--forest); color: var(--paper); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 12px; }
+    .coach-title { font-family: 'Fraunces', serif; font-size: 14px; font-weight: 500; color: var(--ink); }
+    .coach-text { font-size: 13px; line-height: 1.7; color: var(--ink-muted); }
+
+    /* Grafico / Chart */
+    .chart-area { height: 280px; position: relative; background: var(--canvas); border: 1px solid var(--rule); border-radius: 12px; margin-bottom: 16px; }
+    .chart-svg { width: 100%; height: 100%; }
+    .chart-tooltip { position: absolute; pointer-events: none; transform: translate(-50%, -100%); margin-bottom: 8px; }
+    .chart-tooltip-box { background: var(--ink); color: var(--paper); padding: 8px 12px; border-radius: 6px; font-size: 11px; white-space: nowrap; box-shadow: var(--shadow-elevated); font-family: 'JetBrains Mono', monospace; }
+
+    /* Mosse / Moves */
+    .move-list { font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 2.2; color: var(--ink); }
+    .move-list .move-number { color: var(--sage); }
+    .move-list .move-white { color: var(--ink); }
+    .move-list .move-black { color: var(--ink); }
+    .move-list .move-classification { display: inline-block; width: 18px; height: 18px; border-radius: 4px; margin-left: 4px; vertical-align: middle; }
+    .move-list .move-current { background: var(--forest); color: var(--paper); padding: 0 6px; border-radius: 4px; }
+
+    /* Timeline Strip */
+    .timeline-strip { background: var(--paper); border: 1px solid var(--rule); border-radius: 16px; padding: 24px; margin-bottom: 24px; }
+    .timeline-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .timeline-title { font-family: 'Fraunces', serif; font-size: 16px; font-weight: 500; color: var(--ink); }
+    .timeline-chart { height: 120px; position: relative; }
+    .timeline-svg { width: 100%; height: 100%; }
+    .timeline-markers { position: absolute; inset: 0; pointer-events: none; }
+    .timeline-marker { position: absolute; top: 0; bottom: 0; width: 1px; }
+    .timeline-marker .dot { position: absolute; top: 50%; transform: translate(-50%, -50%); width: 8px; height: 8px; border-radius: 50%; border: 2px solid var(--paper); box-shadow: var(--shadow-soft); }
+    .timeline-marker .label { position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--ink-muted); white-space: nowrap; }
+    .timeline-controls { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--rule); }
+    .keyboard-hints { display: flex; gap: 16px; font-size: 11px; color: var(--sage); font-family: 'JetBrains Mono', monospace; }
+    .keyboard-hints kbd { background: var(--canvas); border: 1px solid var(--rule); padding: 2px 6px; border-radius: 4px; font-family: inherit; }
+
+    /* Footer Status Bar */
+    .status-bar { background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 32px; }
+    .status-left { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink-muted); }
+    .status-item { display: flex; align-items: center; gap: 6px; }
+    .status-item .label { color: var(--sage); }
+    .status-item .value { color: var(--ink); font-weight: 500; }
+    .status-right { display: flex; align-items: center; gap: 16px; }
+    .status-saved { color: var(--forest); font-size: 11px; font-weight: 500; }
+
+    /* System Strip */
+    .system-strip { margin-top: 48px; padding-top: 32px; border-top: 1px solid var(--rule); }
+    .system-title { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 500; color: var(--ink); margin-bottom: 24px; }
+    .system-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 48px; }
+    @media (max-width: 900px) { .system-grid { grid-template-columns: 1fr; } }
+    .system-card { background: var(--paper); border: 1px solid var(--rule); border-radius: 16px; overflow: hidden; }
+    .system-card-header { padding: 16px 20px; border-bottom: 1px solid var(--rule); background: var(--canvas); }
+    .system-card-title { font-family: 'Fraunces', serif; font-size: 14px; font-weight: 500; color: var(--ink); }
+    .system-card-preview { padding: 20px; min-height: 200px; }
+    .preview-item { padding: 12px 0; border-bottom: 1px solid var(--rule); display: flex; align-items: center; gap: 12px; }
+    .preview-item:last-child { border-bottom: none; }
+    .preview-icon { width: 40px; height: 40px; border-radius: 10px; background: var(--canvas); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .preview-icon svg { width: 20px; height: 20px; stroke: var(--forest); }
+    .preview-text { flex: 1; min-width: 0; }
+    .preview-label { font-size: 13px; font-weight: 500; color: var(--ink); margin-bottom: 2px; }
+    .preview-desc { font-size: 11px; color: var(--ink-muted); }
+    .tokens-strip { background: var(--paper); border: 1px solid var(--rule); border-radius: 16px; padding: 24px; }
+    .tokens-title { font-family: 'Fraunces', serif; font-size: 14px; font-weight: 500; color: var(--ink); margin-bottom: 16px; }
+    .tokens-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; }
+    .token-group { }
+    .token-group-title { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--sage); margin-bottom: 10px; }
+    .token-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
+    .token-swatch { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--rule); flex-shrink: 0; }
+    .token-info { display: flex; flex-direction: column; gap: 2px; }
+    .token-name { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink); }
+    .token-value { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--ink-muted); }
+    .type-scale { display: flex; flex-direction: column; gap: 8px; }
+    .type-sample { font-family: 'Fraunces', serif; }
+    .type-sample.sans { font-family: 'Inter', sans-serif; }
+    .type-sample.mono { font-family: 'JetBrains Mono', monospace; }
+    .type-sample .label { font-size: 10px; color: var(--sage); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 2px; display: block; }
+    .type-sample .text { color: var(--ink); }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .main-content { padding: 24px 16px; }
+      .match-header { grid-template-columns: 1fr; gap: 16px; text-align: center; padding: 20px; }
+      .vs-divider { flex-direction: row; gap: 16px; }
+      .workspace { grid-template-columns: 1fr; }
+      .insight-panel { order: -1; }
+      .board-header { flex-direction: column; align-items: stretch; }
+      .eval-bar-container { width: 100%; height: 20px; flex-direction: row; }
+      .eval-bar { width: 100%; height: 100%; background: linear-gradient(90deg, var(--terracotta) 0%, var(--terracotta) 50%, var(--forest) 50%, var(--forest) 100%); }
+      .eval-bar::before { top: 0; bottom: 0; left: 50%; width: 2px; height: auto; transform: translateX(-50%); }
+      .eval-marker { left: 50%; top: -6px; width: 4px; height: 36px; transform: translateX(-50%); }
+      .eval-readout { right: auto; left: 50%; top: -28px; transform: translateX(-50%); text-align: center; }
+      .board-toolbar { flex-direction: column; align-items: stretch; }
+      .move-nav { justify-content: center; }
+      .board-actions { justify-content: center; }
+      .summary-grid { grid-template-columns: 1fr; }
+      .top-bar-center { display: none; }
+    }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+    }
+
+    /* Focus visible */
+    :focus:not(:focus-visible) { outline: none; }
+    :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Left Rail -->
+    <nav class="rail" aria-label="Navigazione principale">
+      <div class="rail-brand" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+      </div>
+      <div class="rail-nav">
+        <button class="rail-item" aria-label="Home" title="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span class="tooltip">Home</span></button>
+        <button class="rail-item" aria-label="Gioca" title="Gioca"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="5 3 19 12 5 21 5 3"/></svg><span class="tooltip">Gioca</span></button>
+        <button class="rail-item" aria-label="Studio" title="Studio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg><span class="tooltip">Studio</span></button>
+        <button class="rail-item" aria-label="Partite" title="Partite"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg><span class="tooltip">Partite</span></button>
+        <button class="rail-item active" aria-label="Analisi" title="Analisi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="tooltip">Analisi</span></button>
+        <button class="rail-item" aria-label="Puzzle" title="Puzzle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l3 7 7 3-3 7 3 7L12 22l-7-3-3-7 3-7-3-7z"/><circle cx="12" cy="12" r="3"/></svg><span class="tooltip">Puzzle</span></button>
+      </div>
+      <div class="rail-divider" aria-hidden="true"></div>
+      <div class="rail-footer">
+        <button class="rail-item" aria-label="Impostazioni" title="Impostazioni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="tooltip">Impostazioni</span></button>
+      </div>
+    </nav>
+
+    <!-- Top Bar -->
+    <header class="top-bar" role="banner">
+      <div class="top-bar-left">
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+          <span>Analisi</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin: 0 8px;"><polyline points="9 18 15 12 9 6"/></svg>
+          <span aria-current="page">Partita</span>
+        </nav>
+      </div>
+      <div class="top-bar-center">
+        <input type="search" class="search-field" placeholder="Cerca posizione, apertura, giocatore..." aria-label="Ricerca" autocomplete="off">
+      </div>
+      <div class="top-bar-right">
+        <button class="icon-btn" aria-label="Tema" title="Tema"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button>
+        <button class="icon-btn" aria-label="Notifiche" title="Notifiche"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>
+        <div class="avatar" aria-label="Profilo utente">AR</div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content" role="main">
+      <!-- Page Header -->
+      <header class="page-header">
+        <div class="page-title-row">
+          <h1 class="page-title font-display">Analisi <span class="accent">partita</span></h1>
+          <div class="page-actions">
+            <button class="btn btn-secondary btn-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Nuova posizione</button>
+            <button class="btn btn-primary btn-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Gioca contro bot</button>
+            <button class="btn btn-tertiary btn-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Crea puzzle</button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Match Header -->
+      <section class="match-header" aria-labelledby="match-title">
+        <div class="player-block" id="match-title">
+          <div class="player-name">A. Rossi</div>
+          <div class="player-meta">
+            <span class="player-rating font-mono">1842</span>
+            <span aria-hidden="true">•</span>
+            <span>Bianco</span>
+          </div>
+        </div>
+        <div class="vs-divider">
+          <span class="vs-label">vs</span>
+          <span class="result-pill">1–0</span>
+        </div>
+        <div class="player-block">
+          <div class="player-name">K. Müller</div>
+          <div class="player-meta">
+            <span class="player-rating font-mono">1876</span>
+            <span aria-hidden="true">•</span>
+            <span>Nero</span>
+          </div>
+        </div>
+        <div class="opening-info" style="grid-column: 1 / -1; text-align: center; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--rule);">
+          <div class="opening-name">Gambetto di Donna Rifiutato · Ragozin (D38)</div>
+          <div class="opening-meta">
+            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> 34 mosse</span>
+            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> 12.03.2026</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Workspace -->
+      <div class="workspace">
+        <!-- Engine Panel (Left) -->
+        <aside class="engine-panel" aria-label="Linee del motore">
+          <header class="panel-header">
+            <h2 class="panel-title font-display">Motore</h2>
+            <button class="icon-btn" aria-label="Impostazioni motore"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+          </header>
+          <div class="engine-lines" role="list" aria-label="Principali varianti">
+            <article class="engine-line" role="listitem" aria-label="Linea 1, valutazione +0.32">
+              <div class="line-header">
+                <span class="line-rank font-display">#1</span>
+                <span class="line-eval positive font-mono">+0.32</span>
+              </div>
+              <div class="line-pv font-mono"><span class="move-number">1.</span> <span class="move-san">d4</span> <span class="move-san">d5</span> <span class="move-number">2.</span> <span class="move-san">c4</span> <span class="move-san">e6</span> <span class="move-number">3.</span> <span class="move-san">Nc3</span> <span class="move-san">Nf6</span> <span class="move-number">4.</span> <span class="move-san">Nf3</span> <span class="move-san">Bb4</span> <span class="move-number">5.</span> <span class="move-san">Bg5</span> <span class="move-san">h6</span> <span class="move-number">6.</span> <span class="move-san">Bh4</span> <span class="move-san">g5</span> <span class="move-number">7.</span> <span class="move-san">Bg3</span> <span class="move-san">Nxe4</span></div>
+              <div class="depth-indicator"><div class="fill" style="width: 55%;" aria-hidden="true"></div></div>
+            </article>
+            <article class="engine-line" role="listitem" aria-label="Linea 2, valutazione +0.21">
+              <div class="line-header">
+                <span class="line-rank font-display">#2</span>
+                <span class="line-eval positive font-mono">+0.21</span>
+              </div>
+              <div class="line-pv font-mono"><span class="move-number">1.</span> <span class="move-san">Nf3</span> <span class="move-san">d5</span> <span class="move-number">2.</span> <span class="move-san">d4</span> <span class="move-san">Nf6</span> <span class="move-number">3.</span> <span class="move-san">c4</span> <span class="move-san">e6</span> <span class="move-number">4.</span> <span class="move-san">Nc3</span> <span class="move-san">Bb4</span></div>
+              <div class="depth-indicator"><div class="fill" style="width: 42%;" aria-hidden="true"></div></div>
+            </article>
+            <article class="engine-line" role="listitem" aria-label="Linea 3, valutazione +0.18">
+              <div class="line-header">
+                <span class="line-rank font-display">#3</span>
+                <span class="line-eval positive font-mono">+0.18</span>
+              </div>
+              <div class="line-pv font-mono"><span class="move-number">1.</span> <span class="move-san">e4</span> <span class="move-san">e6</span> <span class="move-number">2.</span> <span class="move-san">d4</span> <span class="move-san">d5</span> <span class="move-number">3.</span> <span class="move-san">Nc3</span> <span class="move-san">Bb4</span></div>
+              <div class="depth-indicator"><div class="fill" style="width: 35%;" aria-hidden="true"></div></div>
+            </article>
+          </div>
+        </aside>
+
+        <!-- Board Card (Center) -->
+        <section class="board-card" aria-label="Scacchiera">
+          <header class="board-header">
+            <h2 class="board-title font-display">Posizione corrente</h2>
+            <div class="eval-bar-container" aria-label="Barra di valutazione">
+              <div class="eval-bar" role="img" aria-label="Valutazione posizione: vantaggio bianco 32 centipedoni">
+                <div class="eval-marker" style="top: 34%;" aria-hidden="true"></div>
+              </div>
+              <div class="eval-readout font-mono" aria-live="polite">+0.32</div>
+            </div>
+          </header>
+          <div class="board-wrapper">
+            <div class="chessboard" id="chessboard" role="img" aria-label="Scacchiera: posizione dopo 7... Nxe4"></div>
+            <div class="coordinates" aria-hidden="true"></div>
+            <div class="arrow-layer" aria-hidden="true">
+              <svg viewBox="0 0 512 512" preserveAspectRatio="none">
+                <path class="arrow-best" d="M192 128 L192 256" marker-end="url(#arrowhead-best)"/>
+                <path class="arrow-second" d="M320 384 L320 256" marker-end="url(#arrowhead-second)"/>
+                <defs>
+                  <marker id="arrowhead-best" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                    <polygon points="0 0, 10 3.5, 0 7" fill="#008000"/>
+                  </marker>
+                  <marker id="arrowhead-second" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                    <polygon points="0 0, 10 3.5, 0 7" fill="#0044FF"/>
+                  </marker>
+                </defs>
+              </svg>
+            </div>
+          </div>
+          <div class="depth-readout font-mono" aria-live="polite">depth 22 / 40</div>
+          <footer class="board-toolbar">
+            <div class="move-nav">
+              <button class="move-nav-btn" aria-label="Inizio partita" title="Inizio partita"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg></button>
+              <button class="move-nav-btn" aria-label="Mossa precedente" title="Mossa precedente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 17 10 12 15 7"/></svg></button>
+              <span class="move-counter font-mono">18 / 34</span>
+              <button class="move-nav-btn" aria-label="Mossa successiva" title="Mossa successiva"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="9 17 14 12 9 7"/></svg></button>
+              <button class="move-nav-btn" aria-label="Fine partita" title="Fine partita"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg></button>
+            </div>
+            <div class="board-actions">
+              <button class="btn btn-ghost btn-sm" aria-label="Ribalta scacchiera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Ribalta</button>
+              <button class="btn btn-ghost btn-sm" aria-label="Ripristina posizione"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M21 12a9 9 0 1 1-9 9 9.75 9.75 0 0 1 6.74-2.74L21 16"/></svg> Ripristina</button>
+            </div>
+          </footer>
+        </section>
+
+        <!-- Insight Panel (Right) -->
+        <aside class="insight-panel" aria-label="Analisi e approfondimenti">
+          <nav class="insight-tabs" role="tablist" aria-label="Sezioni analisi">
+            <button class="insight-tab active" role="tab" aria-selected="true" aria-controls="pane-riepilogo" id="tab-riepilogo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg><span>Riepilogo</span></button>
+            <button class="insight-tab" role="tab" aria-selected="false" aria-controls="pane-grafico" id="tab-grafico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span>Grafico</span></button>
+            <button class="insight-tab" role="tab" aria-selected="false" aria-controls="pane-mosse" id="tab-mosse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg><span>Mosse</span></button>
+            <button class="insight-tab" role="tab" aria-selected="false" aria-controls="pane-freece" id="tab-freece"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/><line x1="12" y1="22" x2="12" y2="15.5"/><polyline points="22 8.5 12 15.5 2 8.5"/></svg><span>Freece</span></button>
+            <button class="insight-tab" role="tab" aria-selected="false" aria-controls="pane-coach" id="tab-coach"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg><span>Coach</span></button>
+          </nav>
+          <div class="insight-content">
+            <!-- Riepilogo -->
+            <div class="insight-pane active" id="pane-riepilogo" role="tabpanel" aria-labelledby="tab-riepilogo">
+              <div class="summary-grid">
+                <div class="stat-card"><div class="stat-label">Accuratezza Bianca</div><div class="stat-value font-display">87.4%<span class="unit font-mono"></span></div></div>
+                <div class="stat-card"><div class="stat-label">Accuratezza Nera</div><div class="stat-value font-display">84.1%<span class="unit font-mono"></span></div></div>
+                <div class="stat-card"><div class="stat-label">ACPL Bianco</div><div class="stat-value font-display">24<span class="unit font-mono"></span></div></div>
+                <div class="stat-card"><div class="stat-label">ACPL Nero</div><div class="stat-value font-display">31<span class="unit font-mono"></span></div></div>
+              </div>
+              <div class="classification-list" role="list" aria-label="Classificazioni mosse">
+                <div class="classification-item" role="listitem"><div class="classification-info"><span class="classification-dot" style="background: #10B981;" aria-hidden="true"></span><span class="classification-name">Brillante</span></div><span class="classification-count font-mono">2</span></div>
+                <div class="classification-item" role="listitem"><div class="classification-info"><span class="classification-dot" style="background: #059669;" aria-hidden="true"></span><span class="classification-name">Migliore</span></div><span class="classification-count font-mono">8</span></div>
+                <div class="classification-item" role="listitem"><div class="classification-info"><span class="classification-dot" style="background: #34D399;" aria-hidden="true"></span><span class="classification-name">Eccellente</span></div><span class="classification-count font-mono">12</span></div>
+                <div class="classification-item" role="listitem"><div class="classification-info"><span class="classification-dot" style="background: #6EE7B7;" aria-hidden="true"></span><span class="classification-name">Buona</span></div><span class="classification-count font-mono">6</span></div>
+                <div class="classification-item" role="listitem"><div class="classification-info"><span class="classification-dot" style="background: #F59E0B;" aria-hidden="true"></span><span class="classification-name">Imprecisione</span></div><span class="classification-count font-mono">4</span></div>
+                <div class="classification-item" role="listitem"><div class="classification-info"><span class="classification-dot" style="background: #F97316;" aria-hidden="true"></span><span class="classification-name">Errore</span></div><span class="classification-count font-mono">2</span></div>
+                <div class="classification-item" role="listitem"><div class="classification-info"><span class="classification-dot" style="background: #EF4444;" aria-hidden="true"></span><span class="classification-name">Errore grave</span></div><span class="classification-count font-mono">1</span></div>
+              </div>
+              <div class="coach-card">
+                <div class="coach-header"><div class="coach-avatar">C</div><span class="coach-title font-display">Coach Insight</span></div>
+                <p class="coach-text">Il 7... Nxe4 è una scelta tematica nella Ragozin: il Nero sacrifica un pedone per sviluppo rapido e gioco sui quadrati chiari. Il Bianco ha mantenuto un vantaggio posizionale costante, ma il 14. O-O-O è stato impreciso — 14. Rd1 manteneva più tensione. La partita dimostra come il Bianco converta un vantaggio strategico in finale.</p>
+              </div>
+            </div>
+
+            <!-- Grafico -->
+            <div class="insight-pane" id="pane-grafico" role="tabpanel" aria-labelledby="tab-grafico">
+              <div class="chart-area" aria-label="Grafico valutazione partita">
+                <svg class="chart-svg" viewBox="0 0 600 280" preserveAspectRatio="none" aria-hidden="true">
+                  <defs>
+                    <linearGradient id="evalGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#EF4444"/><stop offset="50%" stop-color="#F59E0B"/><stop offset="50%" stop-color="#10B981"/><stop offset="100%" stop-color="#059669"/>
+                    </linearGradient>
+                    <linearGradient id="areaGradientWhite" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#10B981" stop-opacity="0.3"/><stop offset="100%" stop-color="#10B981" stop-opacity="0"/></linearGradient>
+                    <linearGradient id="areaGradientBlack" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#EF4444" stop-opacity="0.3"/><stop offset="100%" stop-color="#EF4444" stop-opacity="0"/></linearGradient>
+                  </defs>
+                  <rect x="40" y="20" width="520" height="240" fill="var(--canvas)"/>
+                  <line x1="40" y1="140" x2="560" y2="140" stroke="var(--rule)" stroke-width="1"/>
+                  <path d="M40 140 C80 120, 120 100, 160 110 C200 120, 240 130, 280 125 C320 120, 360 115, 400 110 C440 105, 480 100, 520 95 C560 90, 560 85" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  <circle cx="200" cy="105" r="4" fill="#10B981"/><circle cx="340" cy="118" r="4" fill="#F59E0B"/><circle cx="460" cy="98" r="4" fill="#EF4444"/>
+                </svg>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink-muted);">
+                <span>Bianco meglio</span><span>Parità</span><span>Nero meglio</span>
+              </div>
+            </div>
+
+            <!-- Mosse -->
+            <div class="insight-pane" id="pane-mosse" role="tabpanel" aria-labelledby="tab-mosse">
+              <div class="move-list" aria-label="Elenco mosse">
+                <span class="move-number">1.</span><span class="move-white"> d4</span> <span class="move-black">d5</span>
+                <span class="move-number">2.</span><span class="move-white"> c4</span> <span class="move-black">e6</span>
+                <span class="move-number">3.</span><span class="move-white"> Nc3</span> <span class="move-black">Nf6</span>
+                <span class="move-number">4.</span><span class="move-white"> Nf3</span> <span class="move-black">Bb4</span>
+                <span class="move-number">5.</span><span class="move-white"> Bg5</span> <span class="move-black">h6</span>
+                <span class="move-number">6.</span><span class="move-white"> Bh4</span> <span class="move-black">g5</span>
+                <span class="move-number">7.</span><span class="move-white move-current"> Bg3</span> <span class="move-black">Nxe4</span>
+                <span class="move-number">8.</span><span class="move-white"> Qc2</span> <span class="move-black">Qxg5</span>
+                <span class="move-number">9.</span><span class="move-white"> Qxg5</span> <span class="move-black">Bxg5</span>
+                <span class="move-number">10.</span><span class="move-white"> Bxc7</span> <span class="move-black">Kd7</span>
+                <span class="move-number">11.</span><span class="move-white"> Bxa8</span> <span class="move-black">Bxa8</span>
+              </div>
+            </div>
+
+            <!-- Freece -->
+            <div class="insight-pane" id="pane-freece" role="tabpanel" aria-labelledby="tab-freece">
+              <div style="display: flex; flex-direction: column; gap: 12px;">
+                <div style="padding: 16px; background: var(--canvas); border: 1px solid var(--rule); border-radius: 12px;">
+                  <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                    <span style="width: 24px; height: 24px; border-radius: 6px; background: #008000; display: flex; align-items: center; justify-content: center;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></span>
+                    <strong style="font-family: 'Fraunces', serif;">Mossa migliore</span>
+                  </div>
+                  <p style="font-size: 13px; color: var(--ink-muted);">8. Qc2 — Mantiene la tensione e prepara Rd1</p>
+                </div>
+                <div style="padding: 16px; background: var(--canvas); border: 1px solid var(--rule); border-radius: 12px;">
+                  <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                    <span style="width: 24px; height: 24px; border-radius: 6px; background: #0044FF; display: flex; align-items: center; justify-content: center;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></span>
+                    <strong style="font-family: 'Fraunces', serif;">Seconda migliore</span>
+                  </div>
+                  <p style="font-size: 13px; color: var(--ink-muted);">8. Rd1 — Più solido, meno ambizioso</p>
+                </div>
+                <div style="padding: 16px; background: var(--canvas); border: 1px solid var(--rule); border-radius: 12px;">
+                  <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                    <span style="width: 24px; height: 24px; border-radius: 6px; background: #8800CC; display: flex; align-items: center; justify-content: center;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></span>
+                    <strong style="font-family: 'Fraunces', serif;">Terza migliore</span>
+                  </div>
+                  <p style="font-size: 13px; color: var(--ink-muted);">8. Qb3 — Tattico, richiede calcolo preciso</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Coach -->
+            <div class="insight-pane" id="pane-coach" role="tabpanel" aria-labelledby="tab-coach">
+              <div class="coach-card" style="margin-top: 0;">
+                <div class="coach-header"><div class="coach-avatar">C</div><span class="coach-title font-display">Analisi del Coach</span></div>
+                <p class="coach-text">In questa posizione della variante Ragozin, il Nero ha appena giocato 7... Nxe4 accettando il sacrificio di pedone tipico. Il Bianco ha diverse opzioni:</p>
+                <ul style="margin: 12px 0 12px 20px; font-size: 13px; line-height: 1.8; color: var(--ink-muted);">
+                  <li><strong>8. Qc2</strong> (mossa principale) — Sviluppa la donna con tempo, attacca c7 e prepara Rd1. Mantiene l'iniziativa.</li>
+                  <li><strong>8. Rd1</strong> — Più posizionale, controlla la colonna d. Meno incisivo ma solido.</li>
+                  <li><strong>8. Qb3</strong> — Tattico, doppia minaccia su b7 e f7. Richiede calcolo accurato delle varianti.</li>
+                </ul>
+                <p class="coach-text">Concetto chiave: <strong>iniziativa vs materiale</strong>. Il Nero ha il pedone in più ma il Bianco ha sviluppo superiore e controllo dei quadrati chiari. Il piano corretto per il Bianco è aprire le colonne centrali prima che il Nero completi lo sviluppo.</p>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <!-- Timeline Strip -->
+      <section class="timeline-strip" aria-label="Cronologia valutazione">
+        <header class="timeline-header">
+          <h2 class="timeline-title font-display">Andamento partita</h2>
+        </header>
+        <div class="timeline-chart" aria-label="Grafico andamento valutazione per mossa">
+          <svg class="timeline-svg" viewBox="0 0 800 120" preserveAspectRatio="none" aria-hidden="true">
+            <defs>
+              <linearGradient id="tlGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#EF4444"/><stop offset="50%" stop-color="#F59E0B"/><stop offset="50%" stop-color="#10B981"/><stop offset="100%" stop-color="#059669"/></linearGradient>
+            </defs>
+            <rect x="40" y="10" width="720" height="100" fill="var(--canvas)"/>
+            <line x1="40" y1="60" x2="760" y2="60" stroke="var(--rule)" stroke-width="1"/>
+            <path d="M40 60 C80 55, 120 45, 160 50 C200 55, 240 58, 280 52 C320 46, 360 42, 400 38 C440 34, 480 30, 520 28 C560 26, 600 28, 640 32 C680 36, 720 40, 760 42" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="200" cy="48" r="5" fill="#10B981"/><circle cx="340" cy="54" r="5" fill="#F59E0B"/><circle cx="460" cy="26" r="5" fill="#EF4444"/>
+          </svg>
+          <div class="timeline-markers" aria-hidden="true">
+            <div class="timeline-marker" style="left: 25%;"><span class="dot" style="background: #10B981;"></span><span class="label">10</span></div>
+            <div class="timeline-marker" style="left: 42%;"><span class="dot" style="background: #F59E0B;"></span><span class="label">18</span></div>
+            <div class="timeline-marker" style="left: 57%;"><span class="dot" style="background: #EF4444;"></span><span class="label">24</span></div>
+            <div class="timeline-marker" style="left: 95%;"><span class="dot" style="background: #10B981;"></span><span class="label">34</span></div>
+          </div>
+        </div>
+        <footer class="timeline-controls">
+          <div class="move-nav">
+            <button class="move-nav-btn" aria-label="Inizio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg></button>
+            <button class="move-nav-btn" aria-label="Indietro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 17 10 12 15 7"/></svg></button>
+            <span class="move-counter font-mono">18 / 34</span>
+            <button class="move-nav-btn" aria-label="Avanti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="9 17 14 12 9 7"/></svg></button>
+            <button class="move-nav-btn" aria-label="Fine"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg></button>
+          </div>
+          <div class="keyboard-hints">
+            <kbd>←</kbd><kbd>→</kbd> naviga &nbsp; <kbd>F</kbd> ribalta &nbsp; <kbd>Space</kbd> analizza
+          </div>
+        </footer>
+      </section>
+
+      <!-- Status Bar -->
+      <footer class="status-bar" role="contentinfo">
+        <div class="status-left">
+          <div class="status-item"><span class="label">Motore:</span><span class="value">Stockfish 16</span></div>
+          <div class="status-item"><span class="label">Profondità:</span><span class="value">22 / 40</span></div>
+          <div class="status-item"><span class="label">Thread:</span><span class="value">1</span></div>
+          <div class="status-item"><span class="label">Hash:</span><span class="value">16 MB</span></div>
+        </div>
+        <div class="status-right">
+          <span class="status-saved">✓ Tutto salvato</span>
+          <button class="btn btn-ghost btn-sm" aria-label="Esporta analisi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Esporta</button>
+        </div>
+      </footer>
+
+      <!-- System Strip -->
+      <section class="system-strip" aria-label="Anteprima altre pagine e token di design">
+        <h2 class="system-title font-display">Sistema — Altre pagine</h2>
+        <div class="system-grid">
+          <!-- Home Preview -->
+          <article class="system-card">
+            <header class="system-card-header"><span class="system-card-title font-display">Home</span></header>
+            <div class="system-card-preview">
+              <div class="preview-item"><div class="preview-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div><div class="preview-text"><div class="preview-label">Bentornato, Alessandro</div><div class="preview-desc">Streak: 12 giorni • 1.842 ELO</div></div></div>
+              <div class="preview-item"><div class="preview-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/></svg></div><div class="preview-text"><div class="preview-label">Studio aperture</div><div class="preview-desc">Ragozin, Nimzo, Slav — 3 cartelle</div></div></div>
+              <div class="preview-item"><div class="preview-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg></div><div class="preview-text"><div class="preview-label">Puzzle giornaliero</div><div class="preview-desc">Matto in 3 • Tattica: infilata</div></div></div>
+              <div class="preview-item"><div class="preview-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg></div><div class="preview-text"><div class="preview-label">Analizza partita</div><div class="preview-desc">Ultima: 12.03 vs K. Müller (1–0)</div></div></div>
+            </div>
+          </article>
+          <!-- Studio Preview -->
+          <article class="system-card">
+            <header class="system-card-header"><span class="system-card-title font-display">Studio</span></header>
+            <div class="system-card-preview">
+              <div class="preview-item"><div class="preview-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div><div class="preview-text"><div class="preview-label">Aperture per il Bianco</div><div class="preview-desc">5 cartelle • 47 varianti</div></div></div>
+              <div class="preview-item"><div class="preview-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div><div class="preview-text"><div class="preview-label">Aperture per il Nero</div><div class="preview-desc">4 cartelle • 32 varianti</div></div></div>
+              <div class="preview-item"><div class="preview-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg></div><div class="preview-text"><div class="preview-label">Finali teorici</div><div class="preview-desc">Re e pedone • Torre • Alfieri</div></div></div>
+              <div class="preview-item"><div class="preview-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/></svg></div><div class="preview-text"><div class="preview-label">Partite modello</div><div class="preview-desc">Carlsen, Kasparov, Fischer — 28 partite</div></div></div>
+            </div>
+          </article>
+          <!-- Puzzles Preview -->
+          <article class="system-card">
+            <header class="system-card-header"><span class="system-card-title font-display">Puzzle</span></header>
+            <div class="system-card-preview">
+              <div class="preview-item"><div class="preview-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l3 7 7 3-3 7 3 7L12 22l-7-3-3-7 3-7-3-7z"/></svg></div><div class="preview-text"><div class="preview-label">Tattica: Infilata</div><div class="preview-desc">12 puzzle • Media 1.650</div></div></div>
+              <div class="preview-item"><div class="preview-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l3 7 7 3-3 7 3 7L12 22l-7-3-3-7 3-7-3-7z"/></svg></div><div class="preview-text"><div class="preview-label">Tattica: Forchetta</div><div class="preview-desc">18 puzzle • Media 1.720</div></div></div>
+              <div class="preview-item"><div class="preview-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l3 7 7 3-3 7 3 7L12 22l-7-3-3-7 3-7-3-7z"/></svg></div><div class="preview-text"><div class="preview-label">Tattica: Scacco doppio</div><div class="preview-desc">8 puzzle • Media 1.850</div></div></div>
+              <div class="preview-item"><div class="preview-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l3 7 7 3-3 7 3 7L12 22l-7-3-3-7 3-7-3-7z"/></svg></div><div class="preview-text"><div class="preview-label">Matto in 2-3</div><div class="preview-desc">15 puzzle • Media 1.900</div></div></div>
+            </div>
+          </article>
+        </div>
+        <div class="tokens-strip">
+          <h3 class="tokens-title font-display">Token di design</h3>
+          <div class="tokens-grid">
+            <div class="token-group">
+              <div class="token-group-title">Colori</div>
+              <div class="token-row"><div class="token-swatch" style="background: var(--canvas);"></div><div class="token-info"><span class="token-name">Canvas</span><span class="token-value">#F6F1E7</span></div></div>
+              <div class="token-row"><div class="token-swatch" style="background: var(--paper);"></div><div class="token-info"><span class="token-name">Paper</span><span class="token-value">#FFFDF8</span></div></div>
+              <div class="token-row"><div class="token-swatch" style="background: var(--forest);"></div><div class="token-info"><span class="token-name">Forest</span><span class="token-value">#2E5B3B</span></div></div>
+              <div class="token-row"><div class="token-swatch" style="background: var(--brass);"></div><div class="token-info"><span class="token-name">Brass</span><span class="token-value">#A9822F</span></div></div>
+              <div class="token-row"><div class="token-swatch" style="background: var(--terracotta);"></div><div class="token-info"><span class="token-name">Terracotta</span><span class="token-value">#B4553F</span></div></div>
+              <div class="token-row"><div class="token-swatch" style="background: var(--rule);"></div><div class="token-info"><span class="token-name">Rule</span><span class="token-value">#E3DCCB</span></div></div>
+            </div>
+            <div class="token-group">
+              <div class="token-group-title">Tipografia</div>
+              <div class="type-scale">
+                <div class="type-sample"><span class="label">Display Large</span><span class="text" style="font-size: 40px; font-weight: 500;">Fraunces 40/500</span></div>
+                <div class="type-sample"><span class="label">Display Medium</span><span class="text" style="font-size: 28px; font-weight: 500;">Fraunces 28/500</span></div>
+                <div class="type-sample sans"><span class="label">Body Large</span><span class="text" style="font-size: 16px;">Inter 16/400</span></div>
+                <div class="type-sample sans"><span class="label">Body Small</span><span class="text" style="font-size: 13px;">Inter 13/400</span></div>
+                <div class="type-sample mono"><span class="label">Mono Data</span><span class="text" style="font-size: 13px;">JetBrains Mono 13/500</span></div>
+                <div class="type-sample mono"><span class="label">Mono Small</span><span class="text" style="font-size: 11px;">JetBrains Mono 11/400</span></div>
+              </div>
+            </div>
+            <div class="token-group">
+              <div class="token-group-title">Spaziatura / Raggio</div>
+              <div class="token-row"><div class="token-info"><span class="token-name">Base unit</span><span class="token-value">8px</span></div></div>
+              <div class="token-row"><div class="token-info"><span class="token-name">Raggio card</span><span class="token-value">16px</span></div></div>
+              <div class="token-row"><div class="token-info"><span class="token-name">Raggio button</span><span class="token-value">8px</span></div></div>
+              <div class="token-row"><div class="token-info"><span class="token-name">Raggio input</span><span class="token-value">8px</span></div></div>
+              <div class="token-row"><div class="token-info"><span class="token-name">Ombra card</span><span class="token-value">0 4px 24px rgba(29,36,27,0.10)</span></div></div>
+              <div class="token-row"><div class="token-info"><span class="token-name">Ombra elevated</span><span class="token-value">0 12px 40px rgba(29,36,27,0.14)</span></div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // Tab switching
+    const tabs = document.querySelectorAll('.insight-tab');
+    const panes = document.querySelectorAll('.insight-pane');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
+        panes.forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        tab.setAttribute('aria-selected', 'true');
+        const paneId = tab.getAttribute('aria-controls');
+        document.getElementById(paneId).classList.add('active');
+      });
+    });
+
+    // Generate chessboard
+    const board = document.getElementById('chessboard');
+    const coordinates = board.parentElement.querySelector('.coordinates');
+    const pieces = {
+      'r': '♜', 'n': '♞', 'b': '♝', 'q': '♛', 'k': '♚', 'p': '♟',
+      'R': '♖', 'N': '♘', 'B': '♗', 'Q': '♕', 'K': '♔', 'P': '♙'
+    };
+    // Position after 7... Nxe4 (Ragozin)
+    const fen = 'rnbqkb1r/ppp2ppp/4pn2/3p4/2PP4/2N1PN2/PP3PPP/R1BQKB1R w KQkq - 0 8';
+    const rows = fen.split(' ')[0].split('/');
+    rows.forEach((row, r) => {
+      let file = 0;
+      for (const ch of row) {
+        if (ch >= '1' && ch <= '8') {
+          file += parseInt(ch);
+        } else {
+          const sq = document.createElement('div');
+          sq.className = `square ${(r + file) % 2 === 0 ? 'light' : 'dark'}`;
+          if (ch === 'N' && r === 3 && file === 4) sq.classList.add('highlight-lastmove');
+          if (ch === 'n' && r === 4 && file === 4) sq.classList.add('highlight-lastmove');
+          sq.innerHTML = `<span class="piece">${pieces[ch]}</span>`;
+          board.appendChild(sq);
+          file++;
+        }
+      }
+    });
+    // Coordinates
+    const files = ['a','b','c','d','e','f','g','h'];
+    files.forEach((f, i) => {
+      const el = document.createElement('div');
+      el.className = 'coord-file';
+      el.style.gridColumn = i + 1;
+      el.textContent = f;
+      coordinates.appendChild(el);
+    });
+    for (let r = 7; r >= 0; r--) {
+      const el = document.createElement('div');
+      el.className = 'coord-rank';
+      el.style.gridRow = 8 - r;
+      el.textContent = r + 1;
+      coordinates.appendChild(el);
+    }
+  </script>
+</body>
+</html>

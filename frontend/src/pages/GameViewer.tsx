@@ -1,0 +1,169 @@
+import { useTranslation } from 'react-i18next'
+import { useEffect, useState } from 'react'
+import { Chess } from 'chess.js'
+import { Chessboard } from '../components/board/ThemedBoard'
+import { api } from '../api/client'
+import { useMoveNavigation, type MoveItem } from '../engine/useMoveNavigation'
+import { ArrowLeft } from 'lucide-react'
+
+interface Props {
+  gameId: number
+  onBack: () => void
+  onAnalyze: () => void
+}
+
+export function GameViewer({ gameId, onBack, onAnalyze }: Props) {
+  const { t } = useTranslation('common')
+  const [moves, setMoves] = useState<MoveItem[]>([])
+  const [game] = useState(() => new Chess())
+  const [fen, setFen] = useState('start')
+  const [loading, setLoading] = useState(true)
+  const { currentIndex, goToMove, goNext, goPrev, canPrev, canNext } = useMoveNavigation(moves)
+
+  useEffect(() => {
+    api.analysis.getMoves(gameId).then((data: any) => {
+      setMoves(data)
+      setLoading(false)
+    }).catch(console.error)
+  }, [gameId])
+
+  useEffect(() => {
+    if (currentIndex === -1) {
+      game.reset()
+      setFen('start')
+      return
+    }
+    const storedFen = moves[currentIndex]?.fen
+    if (storedFen) {
+      try { game.load(storedFen) } catch {}
+      setFen(storedFen)
+      return
+    }
+    game.reset()
+    for (let i = 0; i <= currentIndex; i++) {
+      const san = moves[i]?.san
+      if (!san) { setFen(game.fen()); return }
+      try { game.move(san) } catch { break }
+    }
+    setFen(game.fen())
+  }, [currentIndex, moves])
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <p className="text-[var(--color-text-secondary)]">{t('games.loadingGame')}</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="flex items-center justify-between mb-4">
+        <button onClick={onBack} className="btn-ghost text-sm">
+          <ArrowLeft size={16} className="inline-block" /> {t('games.backToGames')}
+        </button>
+        <button onClick={onAnalyze} className="btn-primary text-sm">
+          {t('games.analyzeWithStockfish')}
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div>
+          <div style={{ width: '100%', maxWidth: 480, aspectRatio: '1/1' }}>
+            <Chessboard
+              options={{
+                id: 'game-board',
+                position: fen === 'start' ? undefined : fen,
+                onPieceDrop: ({ piece, sourceSquare, targetSquare }) => {
+                  if (!targetSquare) return false
+                  const promotion = piece.pieceType.toLowerCase() === 'p' && (targetSquare[1] === '8' || targetSquare[1] === '1') ? 'q' : undefined
+                  try {
+                    const result = game.move({ from: sourceSquare, to: targetSquare, promotion })
+                    if (!result) return false
+                    setFen(game.fen())
+                    goToMove(-1)
+                    return true
+                  } catch {
+                    return false
+                  }
+                },
+                boardStyle: {},
+              }}
+            />
+          </div>
+
+          <div className="flex items-center justify-center gap-4 mt-4">
+            <button
+              onClick={goPrev}
+              disabled={!canPrev}
+              className={`px-4 py-2 rounded-box text-sm font-medium transition-colors ${
+                canPrev ? 'bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)]' : 'bg-[var(--color-bg)] text-[var(--color-text-secondary)] cursor-not-allowed'
+              }`}
+            >
+              &larr; {t('common.previous')}
+            </button>
+            <span className="text-sm text-[var(--color-text-secondary)]">
+              {currentIndex + 1} / {moves.length}
+            </span>
+            <button
+              onClick={goNext}
+              disabled={!canNext}
+              className={`px-4 py-2 rounded-box text-sm font-medium transition-colors ${
+                canNext ? 'bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)]' : 'bg-[var(--color-bg)] text-[var(--color-text-secondary)] cursor-not-allowed'
+              }`}
+            >
+              {t('common.next')} &rarr;
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] shadow-[var(--shadow)] p-5">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] mb-3">
+            {t('analysis.moves')}
+          </h2>
+          <div className="space-y-0.5 text-sm max-h-96 overflow-y-auto">
+            {(() => {
+              const pairs: Array<{ w: MoveItem; b?: MoveItem; wi: number; bi?: number }> = []
+              for (let i = 0; i < moves.length; i++) {
+                if (moves[i].is_white) {
+                  const bi = i + 1 < moves.length && !moves[i + 1].is_white ? i + 1 : undefined
+                  pairs.push({ w: moves[i], b: bi !== undefined ? moves[bi] : undefined, wi: i, bi })
+                }
+              }
+              return pairs.map((pair) => {
+                const isWhiteCurrent = pair.wi === currentIndex
+                const isBlackCurrent = pair.bi === currentIndex
+                return (
+                  <div
+                    key={pair.wi}
+                    className="grid grid-cols-[36px_1fr_1fr] gap-1 px-2 py-1 rounded"
+                  >
+                    <span className="text-[var(--color-text-secondary)]">{pair.w.move_number}.</span>
+                    <span
+                      className={`cursor-pointer rounded px-1 ${
+                        isWhiteCurrent ? 'bg-[var(--color-bg)] font-semibold' : 'hover:bg-[var(--color-bg)]'
+                      }`}
+                      onClick={() => goToMove(pair.wi)}
+                    >
+                      {pair.w.san}
+                    </span>
+                    {pair.b && (
+                      <span
+                        className={`cursor-pointer rounded px-1 ${
+                          isBlackCurrent ? 'bg-[var(--color-bg)] font-semibold' : 'hover:bg-[var(--color-bg)]'
+                        }`}
+                        onClick={() => goToMove(pair.bi!)}
+                      >
+                        {pair.b.san}
+                      </span>
+                    )}
+                  </div>
+                )
+              })
+            })()}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

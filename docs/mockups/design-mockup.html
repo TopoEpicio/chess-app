@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Design System — Chess Training</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --sage-50: #f6f7f4;
+      --sage-100: #e2e6da;
+      --sage-200: #c5ccb6;
+      --sage-500: #8a9a7a;
+      --sage-700: #5c6b4e;
+      --sage-900: #2d3527;
+      --sand-50: #faf8f5;
+      --sand-100: #f5f0e8;
+      --sand-200: #e8dfce;
+      --sand-500: #c4b49a;
+      --sand-700: #9a8a72;
+      --board-light: #edeed7;
+      --board-dark: #7a9a6a;
+      --radius: 14px;
+      --shadow: 0 2px 12px rgba(45, 53, 39, 0.08);
+      --shadow-lg: 0 8px 30px rgba(45, 53, 39, 0.12);
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--sage-50);
+      color: var(--sage-900);
+      padding: 40px;
+    }
+
+    .container { max-width: 1200px; margin: 0 auto; }
+
+    h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+    h2 { font-size: 20px; font-weight: 600; margin-bottom: 6px; }
+    .subtitle { color: var(--sage-700); font-size: 15px; margin-bottom: 40px; }
+
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 48px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 32px; margin-bottom: 48px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; margin-bottom: 48px; }
+
+    .section { margin-bottom: 48px; }
+    .section-title { font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--sage-500); margin-bottom: 16px; }
+
+    /* Cards */
+    .card {
+      background: white;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+    .card-lg {
+      background: white;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-lg);
+      padding: 32px;
+    }
+
+    /* Color swatches */
+    .swatch-grid { display: flex; gap: 12px; flex-wrap: wrap; }
+    .swatch {
+      width: 80px; height: 80px; border-radius: var(--radius);
+      display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+      padding: 8px; font-size: 11px; font-weight: 500; text-align: center;
+    }
+
+    /* Board preview */
+    .board-preview {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      width: 240px; height: 240px;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .board-preview .light { background: var(--board-light); }
+    .board-preview .dark { background: var(--board-dark); }
+
+    /* Progress bar */
+    .progress-bar {
+      height: 8px;
+      background: var(--sage-100);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--sage-500);
+      border-radius: 4px;
+      transition: width 0.3s;
+    }
+
+    /* Mock stroke line */
+    .stat { text-align: center; }
+    .stat-value { font-size: 28px; font-weight: 700; }
+    .stat-label { font-size: 13px; color: var(--sage-700); margin-top: 4px; }
+
+    /* Coach box */
+    .coach-box {
+      background: var(--sand-50);
+      border-left: 4px solid var(--sage-500);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 16px 20px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .coach-box strong { color: var(--sage-700); }
+
+    /* Color coding */
+    .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; }
+    .dot-green { background: #5cb85c; }
+    .dot-yellow { background: #f0ad4e; }
+    .dot-red { background: #d9534f; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 20px; border-radius: var(--radius);
+      font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500;
+      border: none; cursor: pointer; transition: all 0.15s;
+    }
+    .btn-primary { background: var(--sage-500); color: white; }
+    .btn-primary:hover { background: var(--sage-700); }
+    .btn-ghost { background: transparent; color: var(--sage-700); }
+    .btn-ghost:hover { background: var(--sage-100); }
+
+    /* Typography */
+    .font-grid { display: flex; flex-direction: column; gap: 8px; }
+    .font-grid .w400 { font-weight: 400; }
+    .font-grid .w500 { font-weight: 500; }
+    .font-grid .w600 { font-weight: 600; }
+    .font-grid .w700 { font-weight: 700; }
+    .font-sample { display: flex; justify-content: space-between; align-items: center; }
+    .font-sample .size { font-size: 12px; color: var(--sage-500); }
+
+    hr { border: none; border-top: 1px solid var(--sage-100); margin: 40px 0; }
+
+    /* Tree mock */
+    .tree-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 12px; border-radius: 8px;
+      font-size: 14px;
+    }
+    .tree-item:hover { background: var(--sage-50); }
+    .tree-item .move { font-weight: 600; min-width: 50px; }
+    .tree-item .annotation { color: var(--sage-700); font-size: 13px; }
+    .tree-children { padding-left: 32px; display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>♟ Chess Training — Design System</h1>
+    <p class="subtitle">Clean come Lichess, caldo come un libro di scacchi</p>
+
+    <!-- COLORS -->
+    <div class="section">
+      <div class="section-title">Colori</div>
+      <div class="grid">
+        <div class="card">
+          <h2>Sage Green</h2>
+          <div class="swatch-grid" style="margin-top:12px">
+            <div class="swatch" style="background:#f6f7f4;color:#2d3527">50</div>
+            <div class="swatch" style="background:#e2e6da;color:#2d3527">100</div>
+            <div class="swatch" style="background:#c5ccb6;color:#2d3527">200</div>
+            <div class="swatch" style="background:#8a9a7a;color:white">500</div>
+            <div class="swatch" style="background:#5c6b4e;color:white">700</div>
+            <div class="swatch" style="background:#2d3527;color:white">900</div>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Warm Sand</h2>
+          <div class="swatch-grid" style="margin-top:12px">
+            <div class="swatch" style="background:#faf8f5;color:#2d3527">50</div>
+            <div class="swatch" style="background:#f5f0e8;color:#2d3527">100</div>
+            <div class="swatch" style="background:#e8dfce;color:#2d3527">200</div>
+            <div class="swatch" style="background:#c4b49a;color:#2d3527">500</div>
+            <div class="swatch" style="background:#9a8a72;color:white">700</div>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Board Colors</h2>
+          <div class="board-preview" style="margin-top:12px">
+            <div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div>
+            <div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div>
+            <div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div>
+            <div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div>
+            <div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div>
+            <div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div>
+            <div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div>
+            <div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div>
+          </div>
+          <p style="margin-top:8px;font-size:13px;color:var(--sage-700)">Light: #edeed7 · Dark: #7a9a6a</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- TYPOGRAPHY -->
+    <div class="section">
+      <div class="section-title">Tipografia</div>
+      <div class="card">
+        <div class="font-grid">
+          <div class="font-sample"><span class="w400">Inter Regular 400</span><span class="size">Regular</span></div>
+          <div class="font-sample" style="font-size:15px"><span class="w400">Il cavallo in g5 è letale: attacca Re e Donna</span><span class="size">15px body</span></div>
+          <div class="font-sample"><span class="w500">Inter Medium 500</span><span class="size">Medium</span></div>
+          <div class="font-sample" style="font-size:14px"><span class="w500">Mossa consigliata · Note del coach</span><span class="size">14px button/label</span></div>
+          <div class="font-sample"><span class="w600">Inter Semibold 600</span><span class="size">Semibold</span></div>
+          <div class="font-sample" style="font-size:20px"><span class="w600">Titolo sezione</span><span class="size">20px h2</span></div>
+          <div class="font-sample"><span class="w700">Inter Bold 700</span><span class="size">Bold</span></div>
+          <div class="font-sample" style="font-size:28px"><span class="w700">Dashboard</span><span class="size">28px h1</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMPONENTS -->
+    <div class="section">
+      <div class="section-title">Componenti</div>
+      <div class="grid">
+        <!-- Card -->
+        <div class="card">
+          <h2 style="margin-bottom:4px">Card standard</h2>
+          <p style="font-size:14px;color:var(--sage-700);line-height:1.5">14px radius, soft shadow, padding 24px. Usata per widget e contenitori interni.</p>
+          <div style="margin-top:12px">
+            <span class="dot dot-green"></span>Linea principale
+            <span class="dot dot-yellow" style="margin-left:12px"></span>Secondaria
+            <span class="dot dot-red" style="margin-left:12px"></span>Pericolosa
+          </div>
+        </div>
+
+        <!-- Card large -->
+        <div class="card-lg">
+          <h2 style="margin-bottom:4px">Card large</h2>
+          <p style="font-size:14px;color:var(--sage-700);line-height:1.5">Shadow più grande, padding 32px. Usata per scacchiera e analisi principali.</p>
+        </div>
+
+        <!-- Stats -->
+        <div class="card" style="display:flex;gap:32px;justify-content:space-around">
+          <div class="stat"><div class="stat-value">87%</div><div class="stat-label">Accuracy</div></div>
+          <div class="stat"><div class="stat-value">15</div><div class="stat-label">Giorni streak</div></div>
+          <div class="stat"><div class="stat-value">234</div><div class="stat-label">Puzzle risolti</div></div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="card" style="display:flex;gap:12px;align-items:center">
+          <button class="btn btn-primary">Studia ora</button>
+          <button class="btn btn-ghost">Annulla</button>
+          <button class="btn btn-primary" style="background:var(--sand-500);color:var(--sage-900)">Secondario</button>
+        </div>
+
+        <!-- Progress -->
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:8px">
+            <span>Italiana (C54)</span><span>68%</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:68%"></div></div>
+          <div style="display:flex;justify-content:space-between;font-size:14px;margin:12px 0 8px">
+            <span>Siciliana (B90)</span><span>42%</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:42%"></div></div>
+          <div style="display:flex;justify-content:space-between;font-size:14px;margin:12px 0 8px">
+            <span>Francese (C11)</span><span>91%</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:91%"></div></div>
+        </div>
+
+        <!-- Coach box -->
+        <div class="card">
+          <div style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--sage-500);margin-bottom:8px">Note del coach</div>
+          <div class="coach-box">
+            <strong>Qui il Cavallo in g5 è letale:</strong> attacca Re e Donna contemporaneamente (FORK).<br />
+            Il Re non può catturare perché il Cavallo è protetto dal pedone f4.<br /><br />
+            <em>Se il Nero avesse il pedone in h6, questo fork non funzionerebbe...</em>
+          </div>
+        </div>
+
+        <!-- Tree mock -->
+        <div class="card">
+          <div style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--sage-500);margin-bottom:12px">Repertorio · Italiana</div>
+          <div class="tree-item"><span class="dot dot-green"></span><span class="move">1.e4</span><span class="annotation">Apertura</span></div>
+          <div class="tree-children">
+            <div class="tree-item"><span class="dot dot-green"></span><span class="move">1...e5</span><span class="annotation">Risposta simmetrica</span></div>
+            <div class="tree-children">
+              <div class="tree-item"><span class="dot dot-green"></span><span class="move">2.Cf3</span><span class="annotation">Sviluppo e attacco e5</span></div>
+              <div class="tree-children">
+                <div class="tree-item"><span class="dot dot-green"></span><span class="move">2...Cc6</span><span class="annotation">Difesa naturale</span></div>
+                <div class="tree-children">
+                  <div class="tree-item"><span class="dot dot-green"></span><span class="move">3.Ac4</span><span class="annotation">Italiana classica</span></div>
+                  <div class="tree-item"><span class="dot dot-yellow"></span><span class="move">3.Ab5</span><span class="annotation">Spagnola</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCREEN MOCKUP: HOME -->
+    <hr />
+    <div class="section">
+      <div class="section-title">Preview — Schermata Home</div>
+      <div class="card-lg" style="max-width:800px;margin:0 auto">
+        <!-- Top streak bar -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+          <div>
+            <h1>Buongiorno! 👋</h1>
+            <p style="color:var(--sage-700);font-size:14px">Oggi hai 12 posizioni da ripassare</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;background:var(--sand-50);padding:8px 16px;border-radius:var(--radius)">
+            <span style="font-size:24px;font-weight:700">15</span>
+            <span style="font-size:13px;color:var(--sage-700)">giorni streak</span>
+          </div>
+        </div>
+
+        <!-- Stats row -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:24px">
+          <div style="background:var(--sage-50);border-radius:var(--radius);padding:16px;text-align:center">
+            <div style="font-size:22px;font-weight:700">87%</div>
+            <div style="font-size:13px;color:var(--sage-700)">Accuracy puzzle</div>
+          </div>
+          <div style="background:var(--sage-50);border-radius:var(--radius);padding:16px;text-align:center">
+            <div style="font-size:22px;font-weight:700">68%</div>
+            <div style="font-size:13px;color:var(--sage-700)">Repertorio</div>
+          </div>
+          <div style="background:var(--sage-50);border-radius:var(--radius);padding:16px;text-align:center">
+            <div style="font-size:22px;font-weight:700">5</div>
+            <div style="font-size:13px;color:var(--sage-700)">Da ripassare</div>
+          </div>
+        </div>
+
+        <!-- Cards row -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div class="card" style="cursor:pointer">
+            <div style="display:flex;justify-content:space-between;align-items:start">
+              <div>
+                <div style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--sage-500)">Repertorio</div>
+                <h2 style="margin-top:4px">Italiana · C54</h2>
+                <p style="font-size:14px;color:var(--sage-700);margin-top:4px">3 posizioni da ripassare oggi</p>
+                <div style="margin-top:8px;display:flex;gap:6px">
+                  <span class="dot dot-green"></span><span style="font-size:12px;color:var(--sage-700)">1.e4 e5 2.Cf3 Cc6...</span>
+                </div>
+              </div>
+              <div class="board-preview" style="width:80px;height:80px;flex-shrink:0">
+                <div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div>
+                <div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div>
+                <div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div>
+                <div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div>
+              </div>
+            </div>
+          </div>
+          <div class="card" style="cursor:pointer">
+            <div style="display:flex;justify-content:space-between;align-items:start">
+              <div>
+                <div style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--sage-500)">Puzzle</div>
+                <h2 style="margin-top:4px">Fork · Difficile</h2>
+                <p style="font-size:14px;color:var(--sage-700);margin-top:4px">5 puzzle pronti per te</p>
+                <div style="margin-top:8px;display:flex;gap:6px">
+                  <span style="font-size:12px;color:var(--sage-700)">Focus: pattern deboli</span>
+                </div>
+              </div>
+              <div class="board-preview" style="width:80px;height:80px;flex-shrink:0">
+                <div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div>
+                <div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div>
+                <div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div>
+                <div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCREEN MOCKUP: ANALYSIS -->
+    <hr />
+    <div class="section">
+      <div class="section-title">Preview — Schermata Analisi</div>
+      <div class="card-lg" style="display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:800px;margin:0 auto">
+        <!-- Board side -->
+        <div>
+          <div class="board-preview" style="width:100%;height:280px;border-radius:8px">
+            <div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div>
+            <div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div>
+            <div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div>
+            <div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div>
+            <div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div>
+            <div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div>
+            <div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div>
+            <div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div><div class="dark"></div><div class="light"></div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button class="btn btn-primary" style="flex:1">◀ Precedente</button>
+            <button class="btn btn-primary" style="flex:1">Successiva ▶</button>
+          </div>
+        </div>
+        <!-- Analysis side -->
+        <div>
+          <div style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--sage-500);margin-bottom:4px">Valutazione</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+            <span style="font-size:20px;font-weight:700">+1.2</span>
+            <span style="font-size:14px;color:var(--sage-700)">— Bianco leggermente meglio</span>
+          </div>
+
+          <div style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--sage-500);margin-bottom:8px">Mossa consigliata</div>
+          <div style="font-size:18px;font-weight:600;margin-bottom:16px">1.Dd3! <span style="font-size:14px;font-weight:400;color:var(--sage-700)">— 1.Dd3! controlla la diagonale</span></div>
+
+          <div class="coach-box" style="margin-bottom:16px">
+            <strong>Perché questa mossa:</strong><br />
+            • Controlla la diagonale a6-f1, minacciando l'Alfiere in c4<br />
+            • Libera la Donna per future manovre (es. Dg3)<br />
+            • Mantiene flessibilità — non si impegna troppo<br /><br />
+            <strong>Follow-up:</strong> 1.Dd3 Ac5 2.Ce4! (minaccia Cxc5 e Cxf6+) 2...Ae7 3.Cxf6+ Axf6 4.Dh7#
+          </div>
+
+          <div style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--sage-500);margin-bottom:8px">Alternativa valida</div>
+          <div style="font-size:14px;color:var(--sage-700)">1.De2 — più sicura ma meno attiva · 1.Ce4 — attiva ma permette ...Cxe4</div>
+        </div>
+      </div>
+    </div>
+
+    <hr />
+    <p style="text-align:center;color:var(--sage-500);font-size:13px;padding:20px 0">Design System v1.0 — Chess Training App</p>
+  </div>
+</body>
+</html>
